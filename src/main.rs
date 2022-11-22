@@ -24,12 +24,20 @@ fn main() {
             },
             ..default()
         }))
+        .add_startup_system(spawn_root)
         .add_plugin(ShapePlugin)
         .add_plugin(UiPlugin)
         .add_plugin(CameraPlugin)
-        .add_plugin(ActionsPlugin)
+        .add_plugin(ActionsPlugin::<Root>::default())
         .add_system(geometry_builder)
         .run();
+}
+
+#[derive(Component)]
+pub struct Root;
+
+fn spawn_root(mut commands: Commands) {
+    commands.spawn((SpatialBundle::default(), Root));
 }
 
 fn geometry_builder(

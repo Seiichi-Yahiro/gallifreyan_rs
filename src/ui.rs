@@ -1,6 +1,7 @@
-use crate::actions::{Actions, SetText};
+use crate::actions::{Actions, SetText, UiSizeChanged};
 use crate::event_set::SendEvent;
 use crate::text_converter;
+use bevy::ecs::schedule::ShouldRun;
 use bevy::prelude::*;
 use bevy_egui::egui::Ui;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
@@ -15,9 +16,13 @@ impl Plugin for UiPlugin {
     }
 }
 
+#[derive(Default, Copy, Clone)]
+pub struct UiSize {
+    pub sidebar_width: f32,
+}
+
 #[derive(Resource, Default)]
 pub struct UiState {
-    pub sidebar_width: f32,
     pub text: String,
     pub sanitized_text: String,
     pub tree: Option<TreeNode>,
@@ -45,23 +50,44 @@ fn render_tree(node: &TreeNode, ui: &mut Ui) {
         });
 }
 
-fn ui(mut egui_context: ResMut<EguiContext>, mut ui_state: ResMut<UiState>, mut actions: Actions) {
-    ui_state.sidebar_width = egui::SidePanel::left("sidebar")
-        .resizable(true)
-        .show(egui_context.ctx_mut(), |ui| {
-            if ui.text_edit_singleline(&mut ui_state.text).changed() {
-                let new_sanitized_text = text_converter::sanitize_text_input(&ui_state.text);
-                if ui_state.sanitized_text != new_sanitized_text {
-                    ui_state.sanitized_text = new_sanitized_text;
-                    actions.dispatch(SetText(ui_state.sanitized_text.clone()));
-                }
-            }
+pub fn is_ui_blocking(mut egui_context: ResMut<EguiContext>) -> ShouldRun {
+    let ctx = egui_context.ctx_mut();
 
-            if let Some(node) = &ui_state.tree {
-                render_tree(node, ui);
-            }
-        })
-        .response
-        .rect
-        .width();
+    // somehow is_pointer_over_area always returns false when called in a run_criteria
+    if ctx.wants_pointer_input() || ctx.wants_keyboard_input() {
+        ShouldRun::No
+    } else {
+        ShouldRun::Yes
+    }
+}
+
+pub fn ui(
+    mut egui_context: ResMut<EguiContext>,
+    mut ui_state: ResMut<UiState>,
+    mut actions: Actions,
+    mut local_ui_size: Local<UiSize>,
+) {
+    let side_bar =
+        egui::SidePanel::left("sidebar")
+            .resizable(true)
+            .show(egui_context.ctx_mut(), |ui| {
+                if ui.text_edit_singleline(&mut ui_state.text).changed() {
+                    let new_sanitized_text = text_converter::sanitize_text_input(&ui_state.text);
+                    if ui_state.sanitized_text != new_sanitized_text {
+                        ui_state.sanitized_text = new_sanitized_text;
+                        actions.dispatch(SetText(ui_state.sanitized_text.clone()));
+                    }
+                }
+
+                if let Some(node) = &ui_state.tree {
+                    render_tree(node, ui);
+                }
+            });
+
+    let side_bar_width = side_bar.response.rect.width();
+
+    if side_bar_width != local_ui_size.sidebar_width {
+        local_ui_size.sidebar_width = side_bar_width;
+        actions.dispatch(UiSizeChanged(*local_ui_size));
+    }
 }
