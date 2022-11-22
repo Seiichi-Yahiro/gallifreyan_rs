@@ -26,7 +26,7 @@ macro_rules! event_set {
         pub struct $name<'w, 's> {
             $(
                 $event: bevy::prelude::EventWriter<'w, 's, $event>
-            )+
+            ),+
         }
 
         impl<'w, 's> EventSet for $name<'w, 's> {
