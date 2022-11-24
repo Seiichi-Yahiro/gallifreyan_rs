@@ -1,9 +1,10 @@
+mod angle_slider;
+
 use crate::actions::{Actions, SetText, UiSizeChanged};
 use crate::event_set::SendEvent;
 use crate::text_converter;
 use bevy::ecs::schedule::ShouldRun;
 use bevy::prelude::*;
-use bevy_egui::egui::Ui;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 
 pub struct UiPlugin;
@@ -35,7 +36,7 @@ pub struct TreeNode {
     pub children: Vec<TreeNode>,
 }
 
-fn render_tree(node: &TreeNode, ui: &mut Ui) {
+fn render_tree(node: &TreeNode, ui: &mut egui::Ui) {
     egui::CollapsingHeader::new(&node.text)
         .id_source(node.entity)
         .default_open(node.open)
