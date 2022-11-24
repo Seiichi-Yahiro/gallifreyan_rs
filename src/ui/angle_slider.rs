@@ -82,6 +82,8 @@ impl<'a> AngleSlider<'a> {
     }
 
     fn paint(&self, ui: &mut egui::Ui, response: &egui::Response) {
+        let rect_center = response.rect.center();
+
         // normal slider and rect width
         let slider_width = ui.spacing().slider_width;
 
@@ -97,7 +99,7 @@ impl<'a> AngleSlider<'a> {
         // normal slider height
         let slider_height = 2.0 * slider_radius;
 
-        let rail_position = response.rect.center();
+        let rail_position = rect_center;
         let rail_radius = (slider_width - slider_height) / 2.0;
         let rail_thickness = slider_height;
 
@@ -107,8 +109,23 @@ impl<'a> AngleSlider<'a> {
             egui::Stroke::new(rail_thickness, ui.visuals().widgets.inactive.bg_fill),
         );
 
-        let handle_rotation = rotate(egui::Pos2::new(0.0, rail_radius), -self.angle.to_radians());
-        let handle_position = handle_rotation + response.rect.center().to_vec2();
+        let zero_degree = egui::Pos2::new(0.0, rail_radius);
+        let [current_angle, start_angle, end_angle] =
+            [self.angle, self.angle_range.start(), self.angle_range.end()]
+                .map(|angle| -angle.to_radians())
+                .map(|angle| rotate(zero_degree, angle))
+                .map(|pos| pos + rect_center.to_vec2());
+
+        if (*self.angle_range.end() - *self.angle_range.start()).abs() < 360.0 {
+            let angle_range_stroke = egui::Stroke::new(1.0, ui.visuals().widgets.inactive.bg_fill);
+
+            ui.painter()
+                .line_segment([rect_center, start_angle], angle_range_stroke);
+            ui.painter()
+                .line_segment([rect_center, end_angle], angle_range_stroke);
+        }
+
+        let handle_position = current_angle;
         let handle_radius = slider_rect_height / 2.5;
         let handle_visuals = ui.style().interact(response);
 
