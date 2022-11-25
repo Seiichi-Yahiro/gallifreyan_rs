@@ -10,7 +10,7 @@ lazy_static! {
         .case_insensitive(true)
         .build()
         .unwrap();
-    static ref VOCAL: Regex = RegexBuilder::new(r"[aeiou]")
+    static ref VOCAL: Regex = RegexBuilder::new(r"^[aeiou]$")
         .case_insensitive(true)
         .build()
         .unwrap();
