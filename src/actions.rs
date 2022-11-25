@@ -1,7 +1,11 @@
+mod reset;
+
+use crate::actions::reset::*;
 use crate::event_set::*;
 use crate::text_converter;
 use crate::ui::{UiSize, UiState};
 use bevy::prelude::*;
+
 use std::marker::PhantomData;
 
 pub struct ActionsPlugin<T: Component> {
@@ -20,7 +24,8 @@ impl<T: Component> Plugin for ActionsPlugin<T> {
     fn build(&self, app: &mut App) {
         app.add_event_set::<Actions>()
             .add_system(Self::adjust_root_to_ui)
-            .add_system(Self::set_text_action);
+            .add_system_to_stage(CoreStage::PreUpdate, Self::set_text_action)
+            .add_plugin(ResetPlugin);
     }
 }
 
@@ -29,7 +34,8 @@ pub struct UiSizeChanged(pub UiSize);
 
 event_set!(Actions {
     SetText,
-    UiSizeChanged
+    UiSizeChanged,
+    ResetAll
 });
 
 impl<T: Component> ActionsPlugin<T> {
@@ -46,6 +52,7 @@ impl<T: Component> ActionsPlugin<T> {
     fn set_text_action(
         mut commands: Commands,
         mut events: EventReader<SetText>,
+        mut actions: EventWriter<ResetAll>,
         mut ui_state: ResMut<UiState>,
         root_query: Query<Entity, With<T>>,
     ) {
@@ -57,6 +64,8 @@ impl<T: Component> ActionsPlugin<T> {
                 let sentence_node = text_converter::spawn_sentence(&mut commands, text);
                 commands.entity(root).add_child(sentence_node.entity);
                 ui_state.tree = Some(sentence_node);
+
+                actions.send(ResetAll);
             } else {
                 ui_state.tree = None;
             }
