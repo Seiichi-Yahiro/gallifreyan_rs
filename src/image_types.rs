@@ -41,7 +41,7 @@ impl SentenceBundle {
         Self {
             sentence: Sentence,
             text,
-            radius: Radius(500.0),
+            radius: Radius::default(),
             position_data: PositionData::default(),
             words,
             line_slots,
@@ -69,7 +69,7 @@ impl WordBundle {
         Self {
             word: Word,
             text,
-            radius: Radius(100.0),
+            radius: Radius::default(),
             position_data: PositionData::default(),
             letters,
             line_slots,
@@ -105,7 +105,7 @@ impl VocalBundle {
             vocal: Vocal,
             letter: Letter,
             text,
-            radius: Radius(25.0),
+            radius: Radius::default(),
             position_data: PositionData::default(),
             placement,
             decoration,
@@ -144,7 +144,7 @@ impl ConsonantBundle {
             consonant: Consonant,
             letter: Letter,
             text,
-            radius: Radius(50.0),
+            radius: Radius::default(),
             position_data: PositionData::default(),
             placement,
             decoration,
@@ -170,7 +170,7 @@ impl DotBundle {
     pub fn new() -> Self {
         Self {
             dot: Dot,
-            radius: Radius(5.0),
+            radius: Radius::default(),
             position_data: PositionData::default(),
             shape: ShapeBundle {
                 mode: DrawMode::Fill(FillMode::color(Color::BLACK)),
