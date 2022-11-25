@@ -1,4 +1,6 @@
 use bevy::prelude::*;
+use bevy_prototype_lyon::entity::ShapeBundle;
+use bevy_prototype_lyon::prelude::{DrawMode, FillMode, StrokeMode};
 
 #[derive(Debug, Copy, Clone, Component)]
 pub struct Sentence;
@@ -21,56 +23,161 @@ pub struct CircleChildren(pub Vec<Entity>);
 #[derive(Component, Deref, DerefMut)]
 pub struct LineSlotChildren(pub Vec<Entity>);
 
+const LINE_WIDTH: f32 = 4.0;
+
 #[derive(Bundle)]
 pub struct SentenceBundle {
-    pub sentence: Sentence,
-    pub text: Text,
-    pub radius: Radius,
-    pub position_data: PositionData,
-    pub words: CircleChildren,
-    pub line_slots: LineSlotChildren,
+    sentence: Sentence,
+    text: Text,
+    radius: Radius,
+    position_data: PositionData,
+    words: CircleChildren,
+    line_slots: LineSlotChildren,
+    shape: ShapeBundle,
+}
+
+impl SentenceBundle {
+    pub fn new(text: Text, words: CircleChildren, line_slots: LineSlotChildren) -> Self {
+        Self {
+            sentence: Sentence,
+            text,
+            radius: Radius(500.0),
+            position_data: PositionData::default(),
+            words,
+            line_slots,
+            shape: ShapeBundle {
+                mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                ..default()
+            },
+        }
+    }
 }
 
 #[derive(Bundle)]
 pub struct WordBundle {
-    pub word: Word,
-    pub text: Text,
-    pub radius: Radius,
-    pub position_data: PositionData,
-    pub letters: CircleChildren,
-    pub line_slots: LineSlotChildren,
+    word: Word,
+    text: Text,
+    radius: Radius,
+    position_data: PositionData,
+    letters: CircleChildren,
+    line_slots: LineSlotChildren,
+    shape: ShapeBundle,
+}
+
+impl WordBundle {
+    pub fn new(text: Text, letters: CircleChildren, line_slots: LineSlotChildren) -> Self {
+        Self {
+            word: Word,
+            text,
+            radius: Radius(100.0),
+            position_data: PositionData::default(),
+            letters,
+            line_slots,
+            shape: ShapeBundle {
+                mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                ..default()
+            },
+        }
+    }
 }
 
 #[derive(Bundle)]
 pub struct VocalBundle {
-    pub vocal: Vocal,
-    pub letter: Letter,
-    pub text: Text,
-    pub radius: Radius,
-    pub position_data: PositionData,
-    pub placement: VocalPlacement,
-    pub decoration: VocalDecoration,
-    pub line_slots: LineSlotChildren,
+    vocal: Vocal,
+    letter: Letter,
+    text: Text,
+    radius: Radius,
+    position_data: PositionData,
+    placement: VocalPlacement,
+    decoration: VocalDecoration,
+    line_slots: LineSlotChildren,
+    shape: ShapeBundle,
+}
+
+impl VocalBundle {
+    pub fn new(
+        text: Text,
+        placement: VocalPlacement,
+        decoration: VocalDecoration,
+        line_slots: LineSlotChildren,
+    ) -> Self {
+        Self {
+            vocal: Vocal,
+            letter: Letter,
+            text,
+            radius: Radius(25.0),
+            position_data: PositionData::default(),
+            placement,
+            decoration,
+            line_slots,
+            shape: ShapeBundle {
+                mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                ..default()
+            },
+        }
+    }
 }
 
 #[derive(Bundle)]
 pub struct ConsonantBundle {
-    pub consonant: Consonant,
-    pub letter: Letter,
-    pub text: Text,
-    pub radius: Radius,
-    pub position_data: PositionData,
-    pub placement: ConsonantPlacement,
-    pub decoration: ConsonantDecoration,
-    pub dots: CircleChildren,
-    pub line_slots: LineSlotChildren,
+    consonant: Consonant,
+    letter: Letter,
+    text: Text,
+    radius: Radius,
+    position_data: PositionData,
+    placement: ConsonantPlacement,
+    decoration: ConsonantDecoration,
+    dots: CircleChildren,
+    line_slots: LineSlotChildren,
+    shape: ShapeBundle,
+}
+
+impl ConsonantBundle {
+    pub fn new(
+        text: Text,
+        placement: ConsonantPlacement,
+        decoration: ConsonantDecoration,
+        dots: CircleChildren,
+        line_slots: LineSlotChildren,
+    ) -> Self {
+        Self {
+            consonant: Consonant,
+            letter: Letter,
+            text,
+            radius: Radius(50.0),
+            position_data: PositionData::default(),
+            placement,
+            decoration,
+            dots,
+            line_slots,
+            shape: ShapeBundle {
+                mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                ..default()
+            },
+        }
+    }
 }
 
 #[derive(Bundle)]
 pub struct DotBundle {
-    pub dot: Dot,
-    pub radius: Radius,
-    pub position_data: PositionData,
+    dot: Dot,
+    radius: Radius,
+    position_data: PositionData,
+    shape: ShapeBundle,
+}
+
+impl DotBundle {
+    pub fn new() -> Self {
+        Self {
+            dot: Dot,
+            radius: Radius(5.0),
+            position_data: PositionData::default(),
+            shape: ShapeBundle {
+                mode: DrawMode::Fill(FillMode::color(Color::BLACK)),
+                ..default()
+            },
+        }
+    }
 }
 
 #[derive(Bundle)]

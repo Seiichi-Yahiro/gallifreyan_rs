@@ -11,6 +11,7 @@ use crate::image_types::{PositionData, Radius};
 use crate::ui::UiPlugin;
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
+use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use bevy_prototype_lyon::prelude::*;
 
 fn main() {
@@ -29,7 +30,8 @@ fn main() {
         .add_plugin(UiPlugin)
         .add_plugin(CameraPlugin)
         .add_plugin(ActionsPlugin::<Root>::default())
-        .add_system(geometry_builder)
+        .add_system(update_radius)
+        .add_system(update_position_data)
         .run();
 }
 
@@ -40,21 +42,26 @@ fn spawn_root(mut commands: Commands) {
     commands.spawn((SpatialBundle::default(), Root));
 }
 
-fn geometry_builder(
-    mut commands: Commands,
-    query: Query<(Entity, &PositionData, &Radius), (Added<PositionData>, Added<Radius>)>,
-) {
-    for (entity, position_data, radius) in query.iter() {
+fn update_radius(mut query: Query<(&mut Path, &Radius), Changed<Radius>>) {
+    for (mut path, radius) in query.iter_mut() {
+        let mut path_builder = Builder::new();
+
         let circle = shapes::Circle {
             radius: **radius,
             center: Default::default(),
         };
-        let shape = GeometryBuilder::build_as(
-            &circle,
-            DrawMode::Stroke(StrokeMode::new(Color::BLACK, 4.0)),
-            Default::default(),
-        );
 
-        commands.entity(entity).insert(shape);
+        circle.add_geometry(&mut path_builder);
+
+        *path = Path(path_builder.build());
+    }
+}
+
+fn update_position_data(mut query: Query<(&mut Transform, &PositionData), Changed<PositionData>>) {
+    for (mut transform, position_data) in query.iter_mut() {
+        let (sin, cos) = (-position_data.angle).to_radians().sin_cos();
+        let v = Vec2::new(0.0, position_data.distance);
+        let translation = Vec3::new(v.x * cos - v.y * sin, v.x * sin + v.y * cos, 0.0);
+        transform.translation = translation;
     }
 }

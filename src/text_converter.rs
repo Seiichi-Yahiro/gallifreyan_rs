@@ -41,14 +41,11 @@ pub fn spawn_sentence(commands: &mut Commands, text: &str) -> TreeNode {
     let mut sentence = commands.spawn_empty();
     sentence.push_children(&word_entities);
 
-    sentence.insert(SentenceBundle {
-        sentence: Sentence,
-        text: Text(text.to_string()),
-        radius: Radius(500.0),
-        position_data: Default::default(),
-        words: CircleChildren(word_entities),
-        line_slots: LineSlotChildren(vec![]),
-    });
+    sentence.insert(SentenceBundle::new(
+        Text(text.to_string()),
+        CircleChildren(word_entities),
+        LineSlotChildren(vec![]),
+    ));
 
     TreeNode {
         entity: sentence.id(),
@@ -77,14 +74,11 @@ fn spawn_word(commands: &mut Commands, text: &str) -> TreeNode {
     let mut word = commands.spawn_empty();
     word.push_children(&letter_entities);
 
-    word.insert(WordBundle {
-        word: Word,
-        text: Text(text.to_string()),
-        radius: Radius(100.0),
-        position_data: Default::default(),
-        letters: CircleChildren(letter_entities),
-        line_slots: LineSlotChildren(vec![]),
-    });
+    word.insert(WordBundle::new(
+        Text(text.to_string()),
+        CircleChildren(letter_entities),
+        LineSlotChildren(vec![]),
+    ));
 
     TreeNode {
         entity: word.id(),
@@ -106,16 +100,12 @@ fn spawn_vocal(commands: &mut Commands, text: &str) -> TreeNode {
         vocal.add_child(line_slot);
     }
 
-    vocal.insert(VocalBundle {
-        vocal: Vocal,
-        letter: Letter,
-        text: Text(text.to_string()),
-        radius: Radius(10.0),
-        position_data: PositionData::default(),
-        decoration,
+    vocal.insert(VocalBundle::new(
+        Text(text.to_string()),
         placement,
-        line_slots: LineSlotChildren(line_slot_entity.into_iter().collect()),
-    });
+        decoration,
+        LineSlotChildren(line_slot_entity.into_iter().collect()),
+    ));
 
     TreeNode {
         entity: vocal.id(),
@@ -162,17 +152,13 @@ fn spawn_consonant(commands: &mut Commands, text: &str) -> TreeNode {
     consonant.push_children(&dot_entities);
     consonant.push_children(&line_slot_entities);
 
-    consonant.insert(ConsonantBundle {
-        consonant: Consonant,
-        letter: Letter,
-        text: Text(text.to_string()),
-        radius: Radius(50.0),
-        position_data: PositionData::default(),
-        decoration,
+    consonant.insert(ConsonantBundle::new(
+        Text(text.to_string()),
         placement,
-        dots: CircleChildren(dot_entities),
-        line_slots: LineSlotChildren(line_slot_entities),
-    });
+        decoration,
+        CircleChildren(dot_entities),
+        LineSlotChildren(line_slot_entities),
+    ));
 
     TreeNode {
         entity: consonant.id(),
@@ -197,13 +183,7 @@ fn spawn_dots(commands: &mut Commands, decoration: ConsonantDecoration) -> Vec<T
     let mut dots: Vec<TreeNode> = Vec::with_capacity(number_of_dots);
 
     for _ in 0..number_of_dots {
-        let dot = commands
-            .spawn(DotBundle {
-                dot: Dot,
-                radius: Radius(2.0),
-                position_data: Default::default(),
-            })
-            .id();
+        let dot = commands.spawn(DotBundle::new()).id();
 
         let node = TreeNode {
             entity: dot,
