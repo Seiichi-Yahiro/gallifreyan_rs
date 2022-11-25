@@ -59,8 +59,8 @@ fn update_radius(mut query: Query<(&mut Path, &Radius), Changed<Radius>>) {
 
 fn update_position_data(mut query: Query<(&mut Transform, &PositionData), Changed<PositionData>>) {
     for (mut transform, position_data) in query.iter_mut() {
-        let (sin, cos) = (-position_data.angle).to_radians().sin_cos();
-        let v = Vec2::new(0.0, position_data.distance);
+        let (sin, cos) = (position_data.angle).to_radians().sin_cos();
+        let v = Vec2::new(0.0, -position_data.distance);
         let translation = Vec3::new(v.x * cos - v.y * sin, v.x * sin + v.y * cos, 0.0);
         transform.translation = translation;
     }
