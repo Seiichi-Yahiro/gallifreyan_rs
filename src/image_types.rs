@@ -23,7 +23,7 @@ pub struct CircleChildren(pub Vec<Entity>);
 #[derive(Component, Deref, DerefMut)]
 pub struct LineSlotChildren(pub Vec<Entity>);
 
-const LINE_WIDTH: f32 = 4.0;
+const LINE_WIDTH: f32 = 1.0;
 
 #[derive(Bundle)]
 pub struct SentenceBundle {
