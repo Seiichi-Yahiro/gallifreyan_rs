@@ -1,4 +1,4 @@
-use crate::ui::{is_ui_blocking, ui};
+use crate::ui::{is_ui_blocking, Ui};
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 
@@ -8,7 +8,7 @@ impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup).add_system_set(
             SystemSet::new()
-                .after(ui)
+                .after(Ui)
                 .with_run_criteria(is_ui_blocking)
                 .with_system(camera_pan)
                 .with_system(camera_zoom),
