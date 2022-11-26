@@ -1,16 +1,16 @@
-use bevy::prelude::*;
 use bevy_egui::egui;
+use std::hash::Hash;
 
-pub struct TreeNode {
-    pub entity: Entity,
+pub struct TreeNode<T: Hash + Copy> {
+    pub id: T,
     pub text: String,
     pub open: bool,
-    pub children: Vec<TreeNode>,
+    pub children: Vec<TreeNode<T>>,
 }
 
-pub fn render_tree(node: &TreeNode, ui: &mut egui::Ui) {
+pub fn render_tree<T: Hash + Copy>(node: &TreeNode<T>, ui: &mut egui::Ui) {
     egui::CollapsingHeader::new(&node.text)
-        .id_source(node.entity)
+        .id_source(node.id)
         .default_open(node.open)
         .show(ui, |ui| {
             for child in &node.children {

@@ -1,16 +1,18 @@
 mod actions;
-mod camera;
 mod event_set;
 mod image_types;
+mod sidebar;
+mod svg_view;
 mod text_converter;
 mod ui;
 
 use crate::actions::ActionsPlugin;
-use crate::camera::CameraPlugin;
 use crate::image_types::{PositionData, Radius};
-use crate::ui::UiPlugin;
+use crate::sidebar::SideBarPlugin;
+use crate::svg_view::SVGViewPlugin;
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
+use bevy_egui::EguiPlugin;
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use bevy_prototype_lyon::prelude::*;
 
@@ -25,21 +27,14 @@ fn main() {
             },
             ..default()
         }))
-        .add_startup_system(spawn_root)
         .add_plugin(ShapePlugin)
-        .add_plugin(UiPlugin)
-        .add_plugin(CameraPlugin)
-        .add_plugin(ActionsPlugin::<Root>::default())
+        .add_plugin(EguiPlugin)
+        .add_plugin(SideBarPlugin)
+        .add_plugin(SVGViewPlugin)
+        .add_plugin(ActionsPlugin)
         .add_system(update_radius)
         .add_system(update_position_data)
         .run();
-}
-
-#[derive(Component)]
-pub struct Root;
-
-fn spawn_root(mut commands: Commands) {
-    commands.spawn((SpatialBundle::default(), Root));
 }
 
 fn update_radius(mut query: Query<(&mut Path, &Radius), Changed<Radius>>) {

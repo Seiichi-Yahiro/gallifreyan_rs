@@ -1,23 +1,68 @@
-use crate::ui::{is_ui_blocking, Ui};
+use crate::ui::is_ui_blocking;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
+use bevy::render::camera::Viewport;
+use bevy_egui::{egui, EguiContext};
 
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup).add_system_set(
-            SystemSet::new()
-                .after(Ui)
-                .with_run_criteria(is_ui_blocking)
-                .with_system(camera_pan)
-                .with_system(camera_zoom),
-        );
+        app.add_startup_system(setup)
+            .add_system(adjust_view_port.after(crate::sidebar::ui))
+            .add_system_set(
+                SystemSet::new()
+                    .with_run_criteria(is_ui_blocking)
+                    .with_system(camera_pan)
+                    .with_system(camera_zoom),
+            );
     }
 }
 
+#[derive(Component)]
+struct SVGViewCamera;
+
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn((Camera2dBundle::default(), SVGViewCamera));
+}
+
+#[derive(Deref, DerefMut)]
+struct AvailableRect(egui::Rect);
+
+impl Default for AvailableRect {
+    fn default() -> Self {
+        Self(egui::Rect::NOTHING)
+    }
+}
+
+fn adjust_view_port(
+    mut egui_context: ResMut<EguiContext>,
+    windows: Res<Windows>,
+    mut camera_query: Query<&mut Camera, With<SVGViewCamera>>,
+    mut available_rect: Local<AvailableRect>,
+) {
+    let new_rect = egui_context.ctx_mut().available_rect();
+    
+    if **available_rect != new_rect {
+        **available_rect = new_rect;
+
+        let window = windows.primary();
+        let scale_factor = window.scale_factor();
+
+        let mut camera = camera_query.single_mut();
+
+        camera.viewport = Some(Viewport {
+            physical_position: UVec2::new(
+                (new_rect.left() as f64 * scale_factor) as u32,
+                (new_rect.top() as f64 * scale_factor) as u32,
+            ),
+            physical_size: UVec2::new(
+                (new_rect.width() as f64 * scale_factor) as u32,
+                (new_rect.height() as f64 * scale_factor) as u32,
+            ),
+            ..default()
+        });
+    }
 }
 
 fn camera_pan(

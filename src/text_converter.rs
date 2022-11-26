@@ -1,5 +1,4 @@
 use crate::image_types::*;
-use crate::ui::TreeNode;
 use bevy::prelude::*;
 use itertools::Itertools;
 use lazy_static::lazy_static;
@@ -28,15 +27,11 @@ pub fn sanitize_text_input(text: &str) -> String {
         .join(" ")
 }
 
-pub fn spawn_sentence(commands: &mut Commands, text: &str) -> TreeNode {
-    let mut word_nodes: Vec<TreeNode> = Vec::with_capacity(10);
-
-    for word in text.split_whitespace() {
-        let node = spawn_word(commands, word);
-        word_nodes.push(node);
-    }
-
-    let word_entities: Vec<Entity> = word_nodes.iter().map(|node| node.entity).collect();
+pub fn spawn_sentence(commands: &mut Commands, text: &str) -> Entity {
+    let word_entities: Vec<Entity> = text
+        .split_whitespace()
+        .map(|word| spawn_word(commands, word))
+        .collect();
 
     let mut sentence = commands.spawn_empty();
     sentence.push_children(&word_entities);
@@ -47,29 +42,19 @@ pub fn spawn_sentence(commands: &mut Commands, text: &str) -> TreeNode {
         LineSlotChildren(vec![]),
     ));
 
-    TreeNode {
-        entity: sentence.id(),
-        text: text.to_string(),
-        open: true,
-        children: word_nodes,
-    }
+    sentence.id()
 }
 
-fn spawn_word(commands: &mut Commands, text: &str) -> TreeNode {
-    let letters = split_word_to_chars(text);
-    let mut letter_nodes: Vec<TreeNode> = Vec::with_capacity(5);
-
-    for letter in letters {
-        let node = if VOCAL.is_match(letter) {
-            spawn_vocal(commands, letter)
-        } else {
-            spawn_consonant(commands, letter)
-        };
-
-        letter_nodes.push(node);
-    }
-
-    let letter_entities: Vec<Entity> = letter_nodes.iter().map(|node| node.entity).collect();
+fn spawn_word(commands: &mut Commands, text: &str) -> Entity {
+    let letter_entities: Vec<Entity> = split_word_to_chars(text)
+        .map(|letter| {
+            if VOCAL.is_match(letter) {
+                spawn_vocal(commands, letter)
+            } else {
+                spawn_consonant(commands, letter)
+            }
+        })
+        .collect();
 
     let mut word = commands.spawn_empty();
     word.push_children(&letter_entities);
@@ -80,20 +65,14 @@ fn spawn_word(commands: &mut Commands, text: &str) -> TreeNode {
         LineSlotChildren(vec![]),
     ));
 
-    TreeNode {
-        entity: word.id(),
-        text: text.to_string(),
-        open: false,
-        children: letter_nodes,
-    }
+    word.id()
 }
 
-fn spawn_vocal(commands: &mut Commands, text: &str) -> TreeNode {
+fn spawn_vocal(commands: &mut Commands, text: &str) -> Entity {
     let decoration = VocalDecoration::try_from(text).unwrap();
     let placement = VocalPlacement::try_from(text).unwrap();
 
-    let line_slot_node = spawn_vocal_line(commands, decoration);
-    let line_slot_entity = line_slot_node.as_ref().map(|node| node.entity);
+    let line_slot_entity = spawn_vocal_line(commands, decoration);
 
     let mut vocal = commands.spawn_empty();
     if let Some(line_slot) = line_slot_entity {
@@ -107,15 +86,10 @@ fn spawn_vocal(commands: &mut Commands, text: &str) -> TreeNode {
         LineSlotChildren(line_slot_entity.into_iter().collect()),
     ));
 
-    TreeNode {
-        entity: vocal.id(),
-        text: text.to_string(),
-        open: false,
-        children: line_slot_node.into_iter().collect(),
-    }
+    vocal.id()
 }
 
-fn spawn_vocal_line(commands: &mut Commands, decoration: VocalDecoration) -> Option<TreeNode> {
+fn spawn_vocal_line(commands: &mut Commands, decoration: VocalDecoration) -> Option<Entity> {
     match decoration {
         VocalDecoration::None => None,
         VocalDecoration::LineInside | VocalDecoration::LineOutside => {
@@ -126,27 +100,17 @@ fn spawn_vocal_line(commands: &mut Commands, decoration: VocalDecoration) -> Opt
                 })
                 .id();
 
-            let node = TreeNode {
-                entity: line_slot,
-                text: "LINE".to_string(),
-                open: false,
-                children: vec![],
-            };
-
-            Some(node)
+            Some(line_slot)
         }
     }
 }
 
-fn spawn_consonant(commands: &mut Commands, text: &str) -> TreeNode {
+fn spawn_consonant(commands: &mut Commands, text: &str) -> Entity {
     let decoration = ConsonantDecoration::try_from(text).unwrap();
     let placement = ConsonantPlacement::try_from(text).unwrap();
 
-    let dot_nodes = spawn_dots(commands, decoration);
-    let dot_entities: Vec<Entity> = dot_nodes.iter().map(|node| node.entity).collect();
-
-    let line_slot_nodes = spawn_consonant_lines(commands, decoration);
-    let line_slot_entities: Vec<Entity> = line_slot_nodes.iter().map(|node| node.entity).collect();
+    let dot_entities = spawn_dots(commands, decoration);
+    let line_slot_entities = spawn_consonant_lines(commands, decoration);
 
     let mut consonant = commands.spawn_empty();
     consonant.push_children(&dot_entities);
@@ -160,18 +124,10 @@ fn spawn_consonant(commands: &mut Commands, text: &str) -> TreeNode {
         LineSlotChildren(line_slot_entities),
     ));
 
-    TreeNode {
-        entity: consonant.id(),
-        text: text.to_string(),
-        open: false,
-        children: dot_nodes
-            .into_iter()
-            .chain(line_slot_nodes.into_iter())
-            .collect(),
-    }
+    consonant.id()
 }
 
-fn spawn_dots(commands: &mut Commands, decoration: ConsonantDecoration) -> Vec<TreeNode> {
+fn spawn_dots(commands: &mut Commands, decoration: ConsonantDecoration) -> Vec<Entity> {
     let number_of_dots = match decoration {
         ConsonantDecoration::SingleDot => 1,
         ConsonantDecoration::DoubleDot => 2,
@@ -180,28 +136,17 @@ fn spawn_dots(commands: &mut Commands, decoration: ConsonantDecoration) -> Vec<T
         _ => 0,
     };
 
-    let mut dots: Vec<TreeNode> = Vec::with_capacity(number_of_dots);
+    let mut dots: Vec<Entity> = Vec::with_capacity(number_of_dots);
 
     for _ in 0..number_of_dots {
         let dot = commands.spawn(DotBundle::new()).id();
-
-        let node = TreeNode {
-            entity: dot,
-            text: "DOT".to_string(),
-            open: false,
-            children: vec![],
-        };
-
-        dots.push(node);
+        dots.push(dot);
     }
 
     dots
 }
 
-fn spawn_consonant_lines(
-    commands: &mut Commands,
-    decoration: ConsonantDecoration,
-) -> Vec<TreeNode> {
+fn spawn_consonant_lines(commands: &mut Commands, decoration: ConsonantDecoration) -> Vec<Entity> {
     let number_of_lines = match decoration {
         ConsonantDecoration::SingleLine => 1,
         ConsonantDecoration::DoubleLine => 2,
@@ -209,7 +154,7 @@ fn spawn_consonant_lines(
         _ => 0,
     };
 
-    let mut line_slots: Vec<TreeNode> = Vec::with_capacity(number_of_lines);
+    let mut line_slots: Vec<Entity> = Vec::with_capacity(number_of_lines);
 
     for _ in 0..number_of_lines {
         let line_slot = commands
@@ -219,14 +164,7 @@ fn spawn_consonant_lines(
             })
             .id();
 
-        let node = TreeNode {
-            entity: line_slot,
-            text: "LINE".to_string(),
-            open: false,
-            children: vec![],
-        };
-
-        line_slots.push(node);
+        line_slots.push(line_slot);
     }
 
     line_slots
