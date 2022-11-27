@@ -9,7 +9,7 @@ lazy_static! {
         .case_insensitive(true)
         .build()
         .unwrap();
-    static ref VOCAL: Regex = RegexBuilder::new(r"^[aeiou]$")
+    pub static ref VOCAL: Regex = RegexBuilder::new(r"^[aeiou]$")
         .case_insensitive(true)
         .build()
         .unwrap();
@@ -36,11 +36,11 @@ pub fn spawn_sentence(commands: &mut Commands, text: &str) -> Entity {
     let mut sentence = commands.spawn_empty();
     sentence.push_children(&word_entities);
 
-    sentence.insert(SentenceBundle::new(
+    /*sentence.insert(SentenceBundle::new(
         Text(text.to_string()),
         CircleChildren(word_entities),
         LineSlotChildren(vec![]),
-    ));
+    ));*/
 
     sentence.id()
 }
@@ -59,11 +59,11 @@ fn spawn_word(commands: &mut Commands, text: &str) -> Entity {
     let mut word = commands.spawn_empty();
     word.push_children(&letter_entities);
 
-    word.insert(WordBundle::new(
+    /*word.insert(WordBundle::new(
         Text(text.to_string()),
         CircleChildren(letter_entities),
         LineSlotChildren(vec![]),
-    ));
+    ));*/
 
     word.id()
 }
@@ -79,12 +79,12 @@ fn spawn_vocal(commands: &mut Commands, text: &str) -> Entity {
         vocal.add_child(line_slot);
     }
 
-    vocal.insert(VocalBundle::new(
+    /*    vocal.insert(VocalBundle::new(
         Text(text.to_string()),
         placement,
         decoration,
         LineSlotChildren(line_slot_entity.into_iter().collect()),
-    ));
+    ));*/
 
     vocal.id()
 }
@@ -116,13 +116,13 @@ fn spawn_consonant(commands: &mut Commands, text: &str) -> Entity {
     consonant.push_children(&dot_entities);
     consonant.push_children(&line_slot_entities);
 
-    consonant.insert(ConsonantBundle::new(
+    /*    consonant.insert(ConsonantBundle::new(
         Text(text.to_string()),
         placement,
         decoration,
         CircleChildren(dot_entities),
         LineSlotChildren(line_slot_entities),
-    ));
+    ));*/
 
     consonant.id()
 }

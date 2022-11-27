@@ -3,6 +3,7 @@ use crate::event_set::SendEvent;
 use crate::image_types::{CircleChildren, Letter, LineSlotChildren, Sentence, Text, Word};
 use crate::text_converter;
 use crate::ui::tree::{render_tree, TreeNode};
+use bevy::ecs::query::QuerySingleError;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext};
 
@@ -12,7 +13,7 @@ impl Plugin for SideBarPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SidebarState>()
             .add_system(ui)
-            .add_system(build_tree);
+            .add_system_to_stage(CoreStage::PostUpdate, build_tree);
     }
 }
 
@@ -47,60 +48,71 @@ pub fn ui(
 
 fn build_tree(
     sentence_query: Query<&Sentence>,
-    added_sentence_query: Query<(Entity, &Text, &CircleChildren), Added<Sentence>>,
+    changed_sentence_query: Query<
+        (Entity, &Text, &CircleChildren),
+        (With<Sentence>, Changed<Text>),
+    >,
     word_query: Query<(Entity, &Text, &CircleChildren), With<Word>>,
     letter_query: Query<(Entity, &Text, Option<&CircleChildren>, &LineSlotChildren), With<Letter>>,
     mut ui_state: ResMut<SidebarState>,
 ) {
-    if let Ok((sentence, sentence_text, words)) = added_sentence_query.get_single() {
-        let sentence_children = word_query
-            .iter_many(words.iter())
-            .map(|(word, word_text, letters)| {
-                let word_children = letter_query
-                    .iter_many(letters.iter())
-                    .map(|(letter, letter_text, dots, letter_line_slots)| TreeNode {
-                        id: letter,
-                        text: letter_text.to_string(),
+    match changed_sentence_query.get_single() {
+        Ok((sentence, sentence_text, words)) => {
+            let sentence_children = word_query
+                .iter_many(words.iter())
+                .map(|(word, word_text, letters)| {
+                    let word_children = letter_query
+                        .iter_many(letters.iter())
+                        .map(|(letter, letter_text, dots, letter_line_slots)| TreeNode {
+                            id: letter,
+                            text: letter_text.to_string(),
+                            open: false,
+                            children: dots
+                                .map(|dots| {
+                                    dots.iter()
+                                        .map(|dot| TreeNode {
+                                            id: *dot,
+                                            text: "DOT".to_string(),
+                                            open: false,
+                                            children: vec![],
+                                        })
+                                        .chain(letter_line_slots.iter().map(|line_slot| TreeNode {
+                                            id: *line_slot,
+                                            text: "LINE".to_string(),
+                                            open: false,
+                                            children: vec![],
+                                        }))
+                                        .collect::<Vec<TreeNode<Entity>>>()
+                                })
+                                .unwrap_or_default(),
+                        })
+                        .collect();
+
+                    TreeNode {
+                        id: word,
+                        text: word_text.to_string(),
                         open: false,
-                        children: dots
-                            .map(|dots| {
-                                dots.iter()
-                                    .map(|dot| TreeNode {
-                                        id: *dot,
-                                        text: "DOT".to_string(),
-                                        open: false,
-                                        children: vec![],
-                                    })
-                                    .chain(letter_line_slots.iter().map(|line_slot| TreeNode {
-                                        id: *line_slot,
-                                        text: "LINE".to_string(),
-                                        open: false,
-                                        children: vec![],
-                                    }))
-                                    .collect::<Vec<TreeNode<Entity>>>()
-                            })
-                            .unwrap_or_default(),
-                    })
-                    .collect();
+                        children: word_children,
+                    }
+                })
+                .collect();
 
-                TreeNode {
-                    id: word,
-                    text: word_text.to_string(),
-                    open: false,
-                    children: word_children,
-                }
-            })
-            .collect();
+            let sentence_node = TreeNode {
+                id: sentence,
+                text: sentence_text.to_string(),
+                open: true,
+                children: sentence_children,
+            };
 
-        let sentence_node = TreeNode {
-            id: sentence,
-            text: sentence_text.to_string(),
-            open: true,
-            children: sentence_children,
-        };
-
-        ui_state.tree = Some(sentence_node);
-    } else if sentence_query.iter().next().is_none() {
-        ui_state.tree = None;
+            ui_state.tree = Some(sentence_node);
+        }
+        Err(QuerySingleError::NoEntities(_)) => {
+            if sentence_query.iter().next().is_none() {
+                ui_state.tree = None;
+            }
+        }
+        error => {
+            error.unwrap();
+        }
     }
 }

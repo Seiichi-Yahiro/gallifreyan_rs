@@ -4,112 +4,231 @@ use bevy_prototype_lyon::prelude::{DrawMode, FillMode, StrokeMode};
 
 #[derive(Debug, Copy, Clone, Component)]
 pub struct Sentence;
+
+impl Sentence {
+    pub fn radius() -> f32 {
+        (1000.0 / 2.0) * 0.9
+    }
+
+    pub fn position_data() -> PositionData {
+        PositionData {
+            angle: 0.0,
+            distance: 0.0,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Component)]
 pub struct Word;
+
+impl Word {
+    pub fn radius(sentence_radius: f32, number_of_words: usize) -> f32 {
+        (sentence_radius * 0.75) / (1.0 + number_of_words as f32 / 2.0)
+    }
+
+    pub fn position_data(
+        sentence_radius: f32,
+        number_of_words: usize,
+        index: usize,
+    ) -> PositionData {
+        PositionData {
+            distance: if number_of_words > 1 {
+                sentence_radius - Self::radius(sentence_radius, number_of_words) * 1.5
+            } else {
+                0.0
+            },
+            angle: index as f32 * (360.0 / number_of_words as f32),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Component)]
 pub struct Letter;
+
 #[derive(Debug, Copy, Clone, Component)]
 pub struct Vocal;
+
+impl Vocal {
+    pub fn radius(word_radius: f32, number_of_letters: usize) -> f32 {
+        (word_radius * 0.75 * 0.4) / (1.0 + number_of_letters as f32 / 2.0)
+    }
+
+    pub fn position_data(
+        word_radius: f32,
+        number_of_letters: usize,
+        index: usize,
+        placement: VocalPlacement,
+    ) -> PositionData {
+        let distance = match placement {
+            VocalPlacement::OnLine => word_radius,
+            VocalPlacement::Outside => {
+                word_radius + Self::radius(word_radius, number_of_letters) * 1.5
+            }
+            VocalPlacement::Inside => {
+                if number_of_letters > 1 {
+                    word_radius - Self::radius(word_radius, number_of_letters) * 1.5
+                } else {
+                    0.0
+                }
+            }
+        };
+
+        let angle = index as f32 * (360.0 / number_of_letters as f32);
+
+        PositionData { distance, angle }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Component)]
 pub struct Consonant;
+
+impl Consonant {
+    pub fn radius(word_radius: f32, number_of_letters: usize) -> f32 {
+        (word_radius * 0.75) / (1.0 + number_of_letters as f32 / 2.0)
+    }
+
+    pub fn position_data(
+        word_radius: f32,
+        number_of_letters: usize,
+        index: usize,
+        placement: ConsonantPlacement,
+    ) -> PositionData {
+        let distance = match placement {
+            ConsonantPlacement::DeepCut => {
+                word_radius - Self::radius(word_radius, number_of_letters) * 0.75
+            }
+            ConsonantPlacement::Inside => {
+                if number_of_letters > 1 {
+                    word_radius - Self::radius(word_radius, number_of_letters) * 1.5
+                } else {
+                    0.0
+                }
+            }
+            ConsonantPlacement::ShallowCut => word_radius,
+            ConsonantPlacement::OnLine => word_radius,
+        };
+
+        let angle = index as f32 * (360.0 / number_of_letters as f32);
+
+        PositionData { distance, angle }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Component)]
 pub struct Dot;
 #[derive(Debug, Copy, Clone, Component)]
 pub struct LineSlot;
 
-#[derive(Component, Deref, DerefMut)]
+#[derive(Default, Component, Deref, DerefMut)]
 pub struct CircleChildren(pub Vec<Entity>);
 
-#[derive(Component, Deref, DerefMut)]
+#[derive(Default, Component, Deref, DerefMut)]
 pub struct LineSlotChildren(pub Vec<Entity>);
 
 const LINE_WIDTH: f32 = 1.0;
 
 #[derive(Bundle)]
 pub struct SentenceBundle {
-    sentence: Sentence,
-    text: Text,
-    radius: Radius,
-    position_data: PositionData,
-    words: CircleChildren,
-    line_slots: LineSlotChildren,
-    shape: ShapeBundle,
+    pub sentence: Sentence,
+    pub text: Text,
+    pub radius: Radius,
+    pub position_data: PositionData,
+    pub words: CircleChildren,
+    pub line_slots: LineSlotChildren,
+    pub shape: ShapeBundle,
 }
 
-impl SentenceBundle {
-    pub fn new(text: Text, words: CircleChildren, line_slots: LineSlotChildren) -> Self {
+impl Default for SentenceBundle {
+    fn default() -> Self {
         Self {
             sentence: Sentence,
-            text,
-            radius: Radius::default(),
-            position_data: PositionData::default(),
-            words,
-            line_slots,
+            text: Text::default(),
+            radius: Default::default(),
+            position_data: Default::default(),
+            words: CircleChildren::default(),
+            line_slots: LineSlotChildren::default(),
             shape: ShapeBundle {
                 mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
                 ..default()
             },
+        }
+    }
+}
+
+impl SentenceBundle {
+    pub fn new(sentence: String) -> Self {
+        Self {
+            text: Text(sentence),
+            radius: Radius(Sentence::radius()),
+            position_data: Sentence::position_data(),
+            ..default()
         }
     }
 }
 
 #[derive(Bundle)]
 pub struct WordBundle {
-    word: Word,
-    text: Text,
-    radius: Radius,
-    position_data: PositionData,
-    letters: CircleChildren,
-    line_slots: LineSlotChildren,
-    shape: ShapeBundle,
+    pub word: Word,
+    pub text: Text,
+    pub radius: Radius,
+    pub position_data: PositionData,
+    pub letters: CircleChildren,
+    pub line_slots: LineSlotChildren,
+    pub shape: ShapeBundle,
 }
 
-impl WordBundle {
-    pub fn new(text: Text, letters: CircleChildren, line_slots: LineSlotChildren) -> Self {
+impl Default for WordBundle {
+    fn default() -> Self {
         Self {
             word: Word,
-            text,
-            radius: Radius::default(),
-            position_data: PositionData::default(),
-            letters,
-            line_slots,
+            text: Text::default(),
+            radius: Default::default(),
+            position_data: Default::default(),
+            letters: CircleChildren::default(),
+            line_slots: LineSlotChildren::default(),
             shape: ShapeBundle {
                 mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
                 ..default()
             },
+        }
+    }
+}
+
+impl WordBundle {
+    pub fn new(word: String, sentence_radius: f32, number_of_words: usize, index: usize) -> Self {
+        Self {
+            text: Text(word),
+            radius: Radius(Word::radius(sentence_radius, number_of_words)),
+            position_data: Word::position_data(sentence_radius, number_of_words, index),
+            ..default()
         }
     }
 }
 
 #[derive(Bundle)]
 pub struct VocalBundle {
-    vocal: Vocal,
-    letter: Letter,
-    text: Text,
-    radius: Radius,
-    position_data: PositionData,
-    placement: VocalPlacement,
-    decoration: VocalDecoration,
-    line_slots: LineSlotChildren,
-    shape: ShapeBundle,
+    pub vocal: Vocal,
+    pub letter: Letter,
+    pub text: Text,
+    pub radius: Radius,
+    pub position_data: PositionData,
+    pub placement: VocalPlacement,
+    pub decoration: VocalDecoration,
+    pub line_slots: LineSlotChildren,
+    pub shape: ShapeBundle,
 }
 
-impl VocalBundle {
-    pub fn new(
-        text: Text,
-        placement: VocalPlacement,
-        decoration: VocalDecoration,
-        line_slots: LineSlotChildren,
-    ) -> Self {
+impl Default for VocalBundle {
+    fn default() -> Self {
         Self {
             vocal: Vocal,
             letter: Letter,
-            text,
-            radius: Radius::default(),
-            position_data: PositionData::default(),
-            placement,
-            decoration,
-            line_slots,
+            text: Default::default(),
+            radius: Default::default(),
+            position_data: Default::default(),
+            placement: VocalPlacement::OnLine,
+            decoration: VocalDecoration::None,
+            line_slots: Default::default(),
             shape: ShapeBundle {
                 mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
                 ..default()
@@ -118,42 +237,71 @@ impl VocalBundle {
     }
 }
 
-#[derive(Bundle)]
-pub struct ConsonantBundle {
-    consonant: Consonant,
-    letter: Letter,
-    text: Text,
-    radius: Radius,
-    position_data: PositionData,
-    placement: ConsonantPlacement,
-    decoration: ConsonantDecoration,
-    dots: CircleChildren,
-    line_slots: LineSlotChildren,
-    shape: ShapeBundle,
+impl VocalBundle {
+    pub fn new(letter: String, word_radius: f32, number_of_letters: usize, index: usize) -> Self {
+        let placement = VocalPlacement::try_from(letter.as_str()).unwrap();
+
+        Self {
+            radius: Radius(Vocal::radius(word_radius, number_of_letters)),
+            position_data: Vocal::position_data(word_radius, number_of_letters, index, placement),
+            placement,
+            decoration: VocalDecoration::try_from(letter.as_str()).unwrap(),
+            text: Text(letter),
+            ..default()
+        }
+    }
 }
 
-impl ConsonantBundle {
-    pub fn new(
-        text: Text,
-        placement: ConsonantPlacement,
-        decoration: ConsonantDecoration,
-        dots: CircleChildren,
-        line_slots: LineSlotChildren,
-    ) -> Self {
+#[derive(Bundle)]
+pub struct ConsonantBundle {
+    pub consonant: Consonant,
+    pub letter: Letter,
+    pub text: Text,
+    pub radius: Radius,
+    pub position_data: PositionData,
+    pub placement: ConsonantPlacement,
+    pub decoration: ConsonantDecoration,
+    pub dots: CircleChildren,
+    pub line_slots: LineSlotChildren,
+    pub shape: ShapeBundle,
+}
+
+impl Default for ConsonantBundle {
+    fn default() -> Self {
         Self {
             consonant: Consonant,
             letter: Letter,
-            text,
-            radius: Radius::default(),
-            position_data: PositionData::default(),
-            placement,
-            decoration,
-            dots,
-            line_slots,
+            text: Default::default(),
+            radius: Default::default(),
+            position_data: Default::default(),
+            placement: ConsonantPlacement::DeepCut,
+            decoration: ConsonantDecoration::None,
+            dots: Default::default(),
+            line_slots: Default::default(),
             shape: ShapeBundle {
                 mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
                 ..default()
             },
+        }
+    }
+}
+
+impl ConsonantBundle {
+    pub fn new(letter: String, word_radius: f32, number_of_letters: usize, index: usize) -> Self {
+        let placement = ConsonantPlacement::try_from(letter.as_str()).unwrap();
+
+        Self {
+            radius: Radius(Consonant::radius(word_radius, number_of_letters)),
+            position_data: Consonant::position_data(
+                word_radius,
+                number_of_letters,
+                index,
+                placement,
+            ),
+            placement,
+            decoration: ConsonantDecoration::try_from(letter.as_str()).unwrap(),
+            text: Text(letter),
+            ..default()
         }
     }
 }
@@ -186,13 +334,13 @@ pub struct LineSlotBundle {
     pub position_data: PositionData,
 }
 
-#[derive(Debug, Component, Deref, DerefMut)]
+#[derive(Debug, Default, PartialEq, Eq, Component, Deref, DerefMut)]
 pub struct Text(pub String);
 
-#[derive(Debug, Default, Copy, Clone, Component, Deref, DerefMut)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Component, Deref, DerefMut)]
 pub struct Radius(pub f32);
 
-#[derive(Debug, Default, Copy, Clone, Component)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Component)]
 pub struct PositionData {
     pub angle: f32,
     pub distance: f32,
