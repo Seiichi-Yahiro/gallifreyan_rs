@@ -1,12 +1,9 @@
-mod actions;
 mod event_set;
 mod image_types;
 mod sidebar;
 mod svg_view;
-mod text_converter;
 mod ui;
 
-use crate::actions::ActionsPlugin;
 use crate::image_types::{PositionData, Radius};
 use crate::sidebar::SideBarPlugin;
 use crate::svg_view::SVGViewPlugin;
@@ -31,7 +28,6 @@ fn main() {
         .add_plugin(EguiPlugin)
         .add_plugin(SideBarPlugin)
         .add_plugin(SVGViewPlugin)
-        .add_plugin(ActionsPlugin)
         .add_system(update_radius)
         .add_system(update_position_data)
         .run();

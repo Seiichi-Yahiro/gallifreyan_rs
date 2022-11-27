@@ -1,7 +1,7 @@
-use crate::actions::{Actions, SetText};
-use crate::event_set::SendEvent;
+mod text_converter;
+
 use crate::image_types::{CircleChildren, Letter, LineSlotChildren, Sentence, Text, Word};
-use crate::text_converter;
+use crate::sidebar::text_converter::{SetText, TextConverterPlugin};
 use crate::ui::tree::{render_tree, TreeNode};
 use bevy::ecs::query::QuerySingleError;
 use bevy::prelude::*;
@@ -13,7 +13,8 @@ impl Plugin for SideBarPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SidebarState>()
             .add_system(ui)
-            .add_system_to_stage(CoreStage::PostUpdate, build_tree);
+            .add_system_to_stage(CoreStage::PostUpdate, build_tree)
+            .add_plugin(TextConverterPlugin);
     }
 }
 
@@ -27,7 +28,7 @@ pub struct SidebarState {
 pub fn ui(
     mut egui_context: ResMut<EguiContext>,
     mut ui_state: ResMut<SidebarState>,
-    mut actions: Actions,
+    mut set_text_event: EventWriter<SetText>,
 ) {
     egui::SidePanel::left("sidebar")
         .resizable(true)
@@ -36,7 +37,7 @@ pub fn ui(
                 let new_sanitized_text = text_converter::sanitize_text_input(&ui_state.text);
                 if ui_state.sanitized_text != new_sanitized_text {
                     ui_state.sanitized_text = new_sanitized_text;
-                    actions.dispatch(SetText(ui_state.sanitized_text.clone()));
+                    set_text_event.send(SetText(ui_state.sanitized_text.clone()));
                 }
             }
 

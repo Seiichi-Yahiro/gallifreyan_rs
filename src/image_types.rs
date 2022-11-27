@@ -57,19 +57,20 @@ impl Vocal {
         word_radius: f32,
         number_of_letters: usize,
         index: usize,
-        placement: VocalPlacement,
+        placement: Placement,
     ) -> PositionData {
         let distance = match placement {
-            VocalPlacement::OnLine => word_radius,
-            VocalPlacement::Outside => {
-                word_radius + Self::radius(word_radius, number_of_letters) * 1.5
-            }
-            VocalPlacement::Inside => {
+            Placement::OnLine => word_radius,
+            Placement::Outside => word_radius + Self::radius(word_radius, number_of_letters) * 1.5,
+            Placement::Inside => {
                 if number_of_letters > 1 {
                     word_radius - Self::radius(word_radius, number_of_letters) * 1.5
                 } else {
                     0.0
                 }
+            }
+            _ => {
+                panic!("{:?} is not a vocal placement!", placement);
             }
         };
 
@@ -91,21 +92,22 @@ impl Consonant {
         word_radius: f32,
         number_of_letters: usize,
         index: usize,
-        placement: ConsonantPlacement,
+        placement: Placement,
     ) -> PositionData {
         let distance = match placement {
-            ConsonantPlacement::DeepCut => {
-                word_radius - Self::radius(word_radius, number_of_letters) * 0.75
-            }
-            ConsonantPlacement::Inside => {
+            Placement::DeepCut => word_radius - Self::radius(word_radius, number_of_letters) * 0.75,
+            Placement::Inside => {
                 if number_of_letters > 1 {
                     word_radius - Self::radius(word_radius, number_of_letters) * 1.5
                 } else {
                     0.0
                 }
             }
-            ConsonantPlacement::ShallowCut => word_radius,
-            ConsonantPlacement::OnLine => word_radius,
+            Placement::ShallowCut => word_radius,
+            Placement::OnLine => word_radius,
+            _ => {
+                panic!("{:?} is not a consonant placement", placement);
+            }
         };
 
         let angle = index as f32 * (360.0 / number_of_letters as f32);
@@ -116,6 +118,32 @@ impl Consonant {
 
 #[derive(Debug, Copy, Clone, Component)]
 pub struct Dot;
+
+impl Dot {
+    pub fn radius(consonant_radius: f32) -> f32 {
+        consonant_radius * 0.1
+    }
+
+    pub fn position_data(
+        consonant_radius: f32,
+        number_of_dots: usize,
+        index: usize,
+    ) -> PositionData {
+        const LETTER_SIDE_ANGLE: f32 = 180.0;
+        const DOT_DISTANCE_ANGLE: f32 = 45.0;
+
+        let center_dots_on_letter_side_angle: f32 =
+            ((number_of_dots - 1) as f32 * DOT_DISTANCE_ANGLE) / 2.0;
+
+        let distance = consonant_radius - Self::radius(consonant_radius) * 1.5;
+
+        let angle = index as f32 * DOT_DISTANCE_ANGLE - center_dots_on_letter_side_angle
+            + LETTER_SIDE_ANGLE;
+
+        PositionData { distance, angle }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Component)]
 pub struct LineSlot;
 
@@ -212,8 +240,8 @@ pub struct VocalBundle {
     pub text: Text,
     pub radius: Radius,
     pub position_data: PositionData,
-    pub placement: VocalPlacement,
-    pub decoration: VocalDecoration,
+    pub placement: Placement,
+    pub decoration: Decoration,
     pub line_slots: LineSlotChildren,
     pub shape: ShapeBundle,
 }
@@ -226,8 +254,8 @@ impl Default for VocalBundle {
             text: Default::default(),
             radius: Default::default(),
             position_data: Default::default(),
-            placement: VocalPlacement::OnLine,
-            decoration: VocalDecoration::None,
+            placement: Placement::OnLine,
+            decoration: Decoration::None,
             line_slots: Default::default(),
             shape: ShapeBundle {
                 mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
@@ -239,13 +267,13 @@ impl Default for VocalBundle {
 
 impl VocalBundle {
     pub fn new(letter: String, word_radius: f32, number_of_letters: usize, index: usize) -> Self {
-        let placement = VocalPlacement::try_from(letter.as_str()).unwrap();
+        let placement = Placement::try_from(letter.as_str()).unwrap();
 
         Self {
             radius: Radius(Vocal::radius(word_radius, number_of_letters)),
             position_data: Vocal::position_data(word_radius, number_of_letters, index, placement),
             placement,
-            decoration: VocalDecoration::try_from(letter.as_str()).unwrap(),
+            decoration: Decoration::try_from(letter.as_str()).unwrap(),
             text: Text(letter),
             ..default()
         }
@@ -259,8 +287,8 @@ pub struct ConsonantBundle {
     pub text: Text,
     pub radius: Radius,
     pub position_data: PositionData,
-    pub placement: ConsonantPlacement,
-    pub decoration: ConsonantDecoration,
+    pub placement: Placement,
+    pub decoration: Decoration,
     pub dots: CircleChildren,
     pub line_slots: LineSlotChildren,
     pub shape: ShapeBundle,
@@ -274,8 +302,8 @@ impl Default for ConsonantBundle {
             text: Default::default(),
             radius: Default::default(),
             position_data: Default::default(),
-            placement: ConsonantPlacement::DeepCut,
-            decoration: ConsonantDecoration::None,
+            placement: Placement::DeepCut,
+            decoration: Decoration::None,
             dots: Default::default(),
             line_slots: Default::default(),
             shape: ShapeBundle {
@@ -288,7 +316,7 @@ impl Default for ConsonantBundle {
 
 impl ConsonantBundle {
     pub fn new(letter: String, word_radius: f32, number_of_letters: usize, index: usize) -> Self {
-        let placement = ConsonantPlacement::try_from(letter.as_str()).unwrap();
+        let placement = Placement::try_from(letter.as_str()).unwrap();
 
         Self {
             radius: Radius(Consonant::radius(word_radius, number_of_letters)),
@@ -299,7 +327,7 @@ impl ConsonantBundle {
                 placement,
             ),
             placement,
-            decoration: ConsonantDecoration::try_from(letter.as_str()).unwrap(),
+            decoration: Decoration::try_from(letter.as_str()).unwrap(),
             text: Text(letter),
             ..default()
         }
@@ -308,22 +336,32 @@ impl ConsonantBundle {
 
 #[derive(Bundle)]
 pub struct DotBundle {
-    dot: Dot,
-    radius: Radius,
-    position_data: PositionData,
-    shape: ShapeBundle,
+    pub dot: Dot,
+    pub radius: Radius,
+    pub position_data: PositionData,
+    pub shape: ShapeBundle,
 }
 
-impl DotBundle {
-    pub fn new() -> Self {
+impl Default for DotBundle {
+    fn default() -> Self {
         Self {
             dot: Dot,
-            radius: Radius::default(),
-            position_data: PositionData::default(),
+            radius: Default::default(),
+            position_data: Default::default(),
             shape: ShapeBundle {
                 mode: DrawMode::Fill(FillMode::color(Color::BLACK)),
                 ..default()
             },
+        }
+    }
+}
+
+impl DotBundle {
+    pub fn new(consonant_radius: f32, number_of_dots: usize, index: usize) -> Self {
+        Self {
+            radius: Radius(Dot::radius(consonant_radius)),
+            position_data: Dot::position_data(consonant_radius, number_of_dots, index),
+            ..default()
         }
     }
 }
@@ -347,25 +385,29 @@ pub struct PositionData {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
-pub enum ConsonantPlacement {
-    DeepCut,
-    Inside,
-    ShallowCut,
-    OnLine,
+pub enum Placement {
+    DeepCut,    // c
+    Inside,     // cv
+    ShallowCut, // c
+    OnLine,     // cv
+    Outside,    // v
 }
 
-impl TryFrom<&str> for ConsonantPlacement {
+impl TryFrom<&str> for Placement {
     type Error = String;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let placement = match value {
-            "b" | "ch" | "d" | "g" | "h" | "f" => ConsonantPlacement::DeepCut,
-            "j" | "ph" | "k" | "l" | "c" | "n" | "p" | "m" => ConsonantPlacement::Inside,
-            "t" | "wh" | "sh" | "r" | "v" | "w" | "s" => ConsonantPlacement::ShallowCut,
-            "th" | "gh" | "y" | "z" | "q" | "qu" | "x" | "ng" => ConsonantPlacement::OnLine,
+            "b" | "ch" | "d" | "g" | "h" | "f" => Placement::DeepCut,
+            "j" | "ph" | "k" | "l" | "c" | "n" | "p" | "m" => Placement::Inside,
+            "t" | "wh" | "sh" | "r" | "v" | "w" | "s" => Placement::ShallowCut,
+            "th" | "gh" | "y" | "z" | "q" | "qu" | "x" | "ng" => Placement::OnLine,
+            "o" => Placement::Inside,
+            "a" => Placement::Outside,
+            "e" | "i" | "u" => Placement::OnLine,
             _ => {
                 return Err(format!(
-                    "Cannot assign consonant placement to '{}' as it is not a consonant!",
+                    "Cannot assign placement to '{}' as it is not a valid letter!",
                     value
                 ))
             }
@@ -376,33 +418,38 @@ impl TryFrom<&str> for ConsonantPlacement {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
-pub enum ConsonantDecoration {
-    None,
-    SingleDot,
-    DoubleDot,
-    TripleDot,
-    QuadrupleDot,
-    SingleLine,
-    DoubleLine,
-    TripleLine,
+pub enum Decoration {
+    None,         // cv
+    SingleDot,    // c
+    DoubleDot,    // c
+    TripleDot,    // c
+    QuadrupleDot, // c
+    SingleLine,   // c
+    DoubleLine,   // c
+    TripleLine,   // c
+    LineInside,   // v
+    LineOutside,  // v
 }
 
-impl TryFrom<&str> for ConsonantDecoration {
+impl TryFrom<&str> for Decoration {
     type Error = String;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let decoration = match value {
-            "b" | "j" | "t" | "th" => ConsonantDecoration::None,
-            "ph" | "wh" | "gh" => ConsonantDecoration::SingleDot,
-            "ch" | "k" | "sh" | "y" => ConsonantDecoration::DoubleDot,
-            "d" | "l" | "r" | "z" => ConsonantDecoration::TripleDot,
-            "c" | "q" => ConsonantDecoration::QuadrupleDot,
-            "g" | "n" | "v" | "qu" => ConsonantDecoration::SingleLine,
-            "h" | "p" | "w" | "x" => ConsonantDecoration::DoubleLine,
-            "f" | "m" | "s" | "ng" => ConsonantDecoration::TripleLine,
+            "b" | "j" | "t" | "th" => Decoration::None,
+            "ph" | "wh" | "gh" => Decoration::SingleDot,
+            "ch" | "k" | "sh" | "y" => Decoration::DoubleDot,
+            "d" | "l" | "r" | "z" => Decoration::TripleDot,
+            "c" | "q" => Decoration::QuadrupleDot,
+            "g" | "n" | "v" | "qu" => Decoration::SingleLine,
+            "h" | "p" | "w" | "x" => Decoration::DoubleLine,
+            "f" | "m" | "s" | "ng" => Decoration::TripleLine,
+            "i" => Decoration::LineInside,
+            "u" => Decoration::LineOutside,
+            "a" | "e" | "o" => Decoration::None,
             _ => {
                 return Err(format!(
-                    "Cannot assign consonant decoration to '{}' as it is not a consonant!",
+                    "Cannot assign decoration to '{}' as it is not a valid letter!",
                     value
                 ))
             }
@@ -412,56 +459,23 @@ impl TryFrom<&str> for ConsonantDecoration {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
-pub enum VocalPlacement {
-    OnLine,
-    Outside,
-    Inside,
-}
-
-impl TryFrom<&str> for VocalPlacement {
-    type Error = String;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let placement = match value {
-            "o" => VocalPlacement::Inside,
-            "a" => VocalPlacement::Outside,
-            "e" | "i" | "u" => VocalPlacement::OnLine,
-            _ => {
-                return Err(format!(
-                    "Cannot assign vocal placement to '{}' as it is not a vocal!",
-                    value
-                ))
-            }
-        };
-
-        Ok(placement)
+impl Decoration {
+    pub fn dots(&self) -> usize {
+        match self {
+            Decoration::SingleDot => 1,
+            Decoration::DoubleDot => 2,
+            Decoration::TripleDot => 3,
+            Decoration::QuadrupleDot => 4,
+            _ => 0,
+        }
     }
-}
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
-pub enum VocalDecoration {
-    None,
-    LineInside,
-    LineOutside,
-}
-
-impl TryFrom<&str> for VocalDecoration {
-    type Error = String;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let decoration = match value {
-            "i" => VocalDecoration::LineInside,
-            "u" => VocalDecoration::LineOutside,
-            "a" | "e" | "o" => VocalDecoration::None,
-            _ => {
-                return Err(format!(
-                    "Cannot assign vocal decoration to '{}' as it is not a vocal!",
-                    value
-                ))
-            }
-        };
-
-        Ok(decoration)
+    pub fn lines(&self) -> usize {
+        match self {
+            Decoration::SingleLine | Decoration::LineInside | Decoration::LineOutside => 1,
+            Decoration::DoubleLine => 2,
+            Decoration::TripleLine => 3,
+            _ => 0,
+        }
     }
 }
