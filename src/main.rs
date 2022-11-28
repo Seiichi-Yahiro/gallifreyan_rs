@@ -4,7 +4,7 @@ mod sidebar;
 mod svg_view;
 mod ui;
 
-use crate::image_types::{PositionData, Radius};
+use crate::image_types::{LineSlot, PositionData, Radius};
 use crate::sidebar::SideBarPlugin;
 use crate::svg_view::SVGViewPlugin;
 use bevy::prelude::*;
@@ -30,6 +30,7 @@ fn main() {
         .add_plugin(SVGViewPlugin)
         .add_system(update_radius)
         .add_system(update_position_data)
+        .add_system(update_line_slot.after(update_position_data))
         .run();
 }
 
@@ -54,5 +55,20 @@ fn update_position_data(mut query: Query<(&mut Transform, &PositionData), Change
         let v = Vec2::new(0.0, -position_data.distance);
         let translation = Vec3::new(v.x * cos - v.y * sin, v.x * sin + v.y * cos, 0.0);
         transform.translation = translation;
+    }
+}
+
+fn update_line_slot(
+    mut query: Query<(&mut Path, &Transform), (With<LineSlot>, Changed<PositionData>)>,
+) {
+    for (mut path, transform) in query.iter_mut() {
+        let mut path_builder = Builder::new();
+
+        let end = transform.translation.truncate().normalize_or_zero() * 10.0;
+        let line = shapes::Line(Vec2::ZERO, end);
+
+        line.add_geometry(&mut path_builder);
+
+        *path = Path(path_builder.build());
     }
 }
