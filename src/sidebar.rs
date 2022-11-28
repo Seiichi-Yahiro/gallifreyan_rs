@@ -1,8 +1,9 @@
-use crate::actions::{Actions, SetText};
-use crate::event_set::SendEvent;
-use crate::image_types::{CircleChildren, Letter, LineSlotChildren, Sentence, Text, Word};
-use crate::text_converter;
+mod text_converter;
+
+use crate::image_types::{CircleChildren, LineSlotChildren, Sentence, Text};
+use crate::sidebar::text_converter::{SetText, TextConverterPlugin};
 use crate::ui::tree::{render_tree, TreeNode};
+use bevy::ecs::query::QuerySingleError;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext};
 
@@ -12,7 +13,8 @@ impl Plugin for SideBarPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SidebarState>()
             .add_system(ui)
-            .add_system(build_tree);
+            .add_system_to_stage(CoreStage::PostUpdate, build_tree)
+            .add_plugin(TextConverterPlugin);
     }
 }
 
@@ -26,7 +28,7 @@ pub struct SidebarState {
 pub fn ui(
     mut egui_context: ResMut<EguiContext>,
     mut ui_state: ResMut<SidebarState>,
-    mut actions: Actions,
+    mut set_text_event: EventWriter<SetText>,
 ) {
     egui::SidePanel::left("sidebar")
         .resizable(true)
@@ -35,7 +37,7 @@ pub fn ui(
                 let new_sanitized_text = text_converter::sanitize_text_input(&ui_state.text);
                 if ui_state.sanitized_text != new_sanitized_text {
                     ui_state.sanitized_text = new_sanitized_text;
-                    actions.dispatch(SetText(ui_state.sanitized_text.clone()));
+                    set_text_event.send(SetText(ui_state.sanitized_text.clone()));
                 }
             }
 
@@ -46,61 +48,80 @@ pub fn ui(
 }
 
 fn build_tree(
-    sentence_query: Query<&Sentence>,
-    added_sentence_query: Query<(Entity, &Text, &CircleChildren), Added<Sentence>>,
-    word_query: Query<(Entity, &Text, &CircleChildren), With<Word>>,
-    letter_query: Query<(Entity, &Text, Option<&CircleChildren>, &LineSlotChildren), With<Letter>>,
+    changed_query: Query<
+        Entity,
+        Or<(
+            Changed<Text>,
+            Changed<CircleChildren>,
+            Changed<LineSlotChildren>,
+        )>,
+    >,
+    sentence_query: Query<Entity, With<Sentence>>,
+    text_query: Query<(Entity, &Text, &CircleChildren, &LineSlotChildren)>,
     mut ui_state: ResMut<SidebarState>,
 ) {
-    if let Ok((sentence, sentence_text, words)) = added_sentence_query.get_single() {
-        let sentence_children = word_query
-            .iter_many(words.iter())
-            .map(|(word, word_text, letters)| {
-                let word_children = letter_query
-                    .iter_many(letters.iter())
-                    .map(|(letter, letter_text, dots, letter_line_slots)| TreeNode {
-                        id: letter,
-                        text: letter_text.to_string(),
-                        open: false,
-                        children: dots
-                            .map(|dots| {
-                                dots.iter()
+    match sentence_query.get_single() {
+        Ok(sentence_entity) if changed_query.iter().last().is_some() => {
+            if let Ok((_, sentence_text, words, sentence_line_slots)) =
+                text_query.get(sentence_entity)
+            {
+                let map_line_slots = |line_slot: &Entity| TreeNode {
+                    id: *line_slot,
+                    text: "LINE".to_string(),
+                    open: false,
+                    children: vec![],
+                };
+
+                let children = text_query
+                    .iter_many(words.iter())
+                    .map(|(word_entity, word_text, letters, word_line_slots)| {
+                        let children = text_query
+                            .iter_many(letters.iter())
+                            .map(|(letter_entity, letter_text, dots, letter_line_slots)| {
+                                let children = dots
+                                    .iter()
                                     .map(|dot| TreeNode {
                                         id: *dot,
                                         text: "DOT".to_string(),
                                         open: false,
                                         children: vec![],
                                     })
-                                    .chain(letter_line_slots.iter().map(|line_slot| TreeNode {
-                                        id: *line_slot,
-                                        text: "LINE".to_string(),
-                                        open: false,
-                                        children: vec![],
-                                    }))
-                                    .collect::<Vec<TreeNode<Entity>>>()
+                                    .chain(letter_line_slots.iter().map(map_line_slots))
+                                    .collect();
+
+                                TreeNode {
+                                    id: letter_entity,
+                                    text: letter_text.to_string(),
+                                    open: false,
+                                    children,
+                                }
                             })
-                            .unwrap_or_default(),
+                            .chain(word_line_slots.iter().map(map_line_slots))
+                            .collect();
+
+                        TreeNode {
+                            id: word_entity,
+                            text: word_text.to_string(),
+                            open: false,
+                            children,
+                        }
                     })
+                    .chain(sentence_line_slots.iter().map(map_line_slots))
                     .collect();
 
-                TreeNode {
-                    id: word,
-                    text: word_text.to_string(),
-                    open: false,
-                    children: word_children,
-                }
-            })
-            .collect();
-
-        let sentence_node = TreeNode {
-            id: sentence,
-            text: sentence_text.to_string(),
-            open: true,
-            children: sentence_children,
-        };
-
-        ui_state.tree = Some(sentence_node);
-    } else if sentence_query.iter().next().is_none() {
-        ui_state.tree = None;
+                ui_state.tree = Some(TreeNode {
+                    id: sentence_entity,
+                    text: sentence_text.to_string(),
+                    open: true,
+                    children,
+                });
+            }
+        }
+        Err(QuerySingleError::NoEntities(_)) => {
+            ui_state.tree = None;
+        }
+        error => {
+            error.unwrap();
+        }
     }
 }

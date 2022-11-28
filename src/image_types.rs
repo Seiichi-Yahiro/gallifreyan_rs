@@ -4,47 +4,195 @@ use bevy_prototype_lyon::prelude::{DrawMode, FillMode, StrokeMode};
 
 #[derive(Debug, Copy, Clone, Component)]
 pub struct Sentence;
+
+impl Sentence {
+    pub fn radius() -> f32 {
+        (1000.0 / 2.0) * 0.9
+    }
+
+    pub fn position_data() -> PositionData {
+        PositionData {
+            angle: 0.0,
+            distance: 0.0,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Component)]
 pub struct Word;
-#[derive(Debug, Copy, Clone, Component)]
-pub struct Letter;
-#[derive(Debug, Copy, Clone, Component)]
-pub struct Vocal;
-#[derive(Debug, Copy, Clone, Component)]
-pub struct Consonant;
+
+impl Word {
+    pub fn radius(sentence_radius: f32, number_of_words: usize) -> f32 {
+        (sentence_radius * 0.75) / (1.0 + number_of_words as f32 / 2.0)
+    }
+
+    pub fn position_data(
+        sentence_radius: f32,
+        number_of_words: usize,
+        index: usize,
+    ) -> PositionData {
+        PositionData {
+            distance: if number_of_words > 1 {
+                sentence_radius - Self::radius(sentence_radius, number_of_words) * 1.5
+            } else {
+                0.0
+            },
+            angle: index as f32 * (360.0 / number_of_words as f32),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
+pub enum Letter {
+    Vocal,
+    Consonant,
+}
+
+impl Letter {
+    pub fn radius(&self, word_radius: f32, number_of_letters: usize) -> f32 {
+        match self {
+            Letter::Vocal => (word_radius * 0.75 * 0.4) / (1.0 + number_of_letters as f32 / 2.0),
+            Letter::Consonant => (word_radius * 0.75) / (1.0 + number_of_letters as f32 / 2.0),
+        }
+    }
+
+    pub fn position_data(
+        &self,
+        word_radius: f32,
+        number_of_letters: usize,
+        index: usize,
+        placement: Placement,
+    ) -> PositionData {
+        match self {
+            Letter::Vocal => {
+                let distance = match placement {
+                    Placement::OnLine => word_radius,
+                    Placement::Outside => {
+                        word_radius + self.radius(word_radius, number_of_letters) * 1.5
+                    }
+                    Placement::Inside => {
+                        if number_of_letters > 1 {
+                            word_radius - self.radius(word_radius, number_of_letters) * 1.5
+                        } else {
+                            0.0
+                        }
+                    }
+                    _ => {
+                        panic!("{:?} is not a vocal placement!", placement);
+                    }
+                };
+
+                let angle = index as f32 * (360.0 / number_of_letters as f32);
+
+                PositionData { distance, angle }
+            }
+            Letter::Consonant => {
+                let distance = match placement {
+                    Placement::DeepCut => {
+                        word_radius - self.radius(word_radius, number_of_letters) * 0.75
+                    }
+                    Placement::Inside => {
+                        if number_of_letters > 1 {
+                            word_radius - self.radius(word_radius, number_of_letters) * 1.5
+                        } else {
+                            0.0
+                        }
+                    }
+                    Placement::ShallowCut => word_radius,
+                    Placement::OnLine => word_radius,
+                    _ => {
+                        panic!("{:?} is not a consonant placement", placement);
+                    }
+                };
+
+                let angle = index as f32 * (360.0 / number_of_letters as f32);
+
+                PositionData { distance, angle }
+            }
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Component)]
 pub struct Dot;
+
+impl Dot {
+    pub fn radius(consonant_radius: f32) -> f32 {
+        consonant_radius * 0.1
+    }
+
+    pub fn position_data(
+        consonant_radius: f32,
+        number_of_dots: usize,
+        index: usize,
+    ) -> PositionData {
+        const LETTER_SIDE_ANGLE: f32 = 180.0;
+        const DOT_DISTANCE_ANGLE: f32 = 45.0;
+
+        let center_dots_on_letter_side_angle: f32 =
+            ((number_of_dots - 1) as f32 * DOT_DISTANCE_ANGLE) / 2.0;
+
+        let distance = consonant_radius - Self::radius(consonant_radius) * 1.5;
+
+        let angle = index as f32 * DOT_DISTANCE_ANGLE - center_dots_on_letter_side_angle
+            + LETTER_SIDE_ANGLE;
+
+        PositionData { distance, angle }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Component)]
 pub struct LineSlot;
 
-#[derive(Component, Deref, DerefMut)]
+impl LineSlot {
+    pub fn position_data(
+        letter_radius: f32,
+        number_of_lines: usize,
+        index: usize,
+        point_outside: bool,
+    ) -> PositionData {
+        let letter_side_angle = if point_outside { 0.0 } else { 180.0 };
+        const LINE_DISTANCE_ANGLE: f32 = 45.0;
+        let center_lines_on_letter_side_angle =
+            ((number_of_lines - 1) as f32 * LINE_DISTANCE_ANGLE) / 2.0;
+
+        let distance = letter_radius;
+
+        let angle = index as f32 * LINE_DISTANCE_ANGLE - center_lines_on_letter_side_angle
+            + letter_side_angle;
+
+        PositionData { distance, angle }
+    }
+}
+
+#[derive(Default, Component, Deref, DerefMut)]
 pub struct CircleChildren(pub Vec<Entity>);
 
-#[derive(Component, Deref, DerefMut)]
+#[derive(Default, Component, Deref, DerefMut)]
 pub struct LineSlotChildren(pub Vec<Entity>);
 
 const LINE_WIDTH: f32 = 1.0;
 
 #[derive(Bundle)]
 pub struct SentenceBundle {
-    sentence: Sentence,
-    text: Text,
-    radius: Radius,
-    position_data: PositionData,
-    words: CircleChildren,
-    line_slots: LineSlotChildren,
-    shape: ShapeBundle,
+    pub sentence: Sentence,
+    pub text: Text,
+    pub radius: Radius,
+    pub position_data: PositionData,
+    pub words: CircleChildren,
+    pub line_slots: LineSlotChildren,
+    pub shape: ShapeBundle,
 }
 
 impl SentenceBundle {
-    pub fn new(text: Text, words: CircleChildren, line_slots: LineSlotChildren) -> Self {
+    pub fn new(sentence: String) -> Self {
         Self {
             sentence: Sentence,
-            text,
-            radius: Radius::default(),
-            position_data: PositionData::default(),
-            words,
-            line_slots,
+            text: Text(sentence),
+            radius: Radius(Sentence::radius()),
+            position_data: Sentence::position_data(),
+            words: CircleChildren::default(),
+            line_slots: LineSlotChildren::default(),
             shape: ShapeBundle {
                 mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
                 ..default()
@@ -55,24 +203,24 @@ impl SentenceBundle {
 
 #[derive(Bundle)]
 pub struct WordBundle {
-    word: Word,
-    text: Text,
-    radius: Radius,
-    position_data: PositionData,
-    letters: CircleChildren,
-    line_slots: LineSlotChildren,
-    shape: ShapeBundle,
+    pub word: Word,
+    pub text: Text,
+    pub radius: Radius,
+    pub position_data: PositionData,
+    pub letters: CircleChildren,
+    pub line_slots: LineSlotChildren,
+    pub shape: ShapeBundle,
 }
 
 impl WordBundle {
-    pub fn new(text: Text, letters: CircleChildren, line_slots: LineSlotChildren) -> Self {
+    pub fn new(word: String, sentence_radius: f32, number_of_words: usize, index: usize) -> Self {
         Self {
             word: Word,
-            text,
-            radius: Radius::default(),
-            position_data: PositionData::default(),
-            letters,
-            line_slots,
+            text: Text(word),
+            radius: Radius(Word::radius(sentence_radius, number_of_words)),
+            position_data: Word::position_data(sentence_radius, number_of_words, index),
+            letters: CircleChildren::default(),
+            line_slots: LineSlotChildren::default(),
             shape: ShapeBundle {
                 mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
                 ..default()
@@ -82,96 +230,59 @@ impl WordBundle {
 }
 
 #[derive(Bundle)]
-pub struct VocalBundle {
-    vocal: Vocal,
-    letter: Letter,
-    text: Text,
-    radius: Radius,
-    position_data: PositionData,
-    placement: VocalPlacement,
-    decoration: VocalDecoration,
-    line_slots: LineSlotChildren,
-    shape: ShapeBundle,
+pub struct LetterBundle {
+    pub letter: Letter,
+    pub text: Text,
+    pub radius: Radius,
+    pub position_data: PositionData,
+    pub placement: Placement,
+    pub decoration: Decoration,
+    pub dots: CircleChildren,
+    pub line_slots: LineSlotChildren,
+    pub shape: ShapeBundle,
 }
 
-impl VocalBundle {
+impl LetterBundle {
     pub fn new(
-        text: Text,
-        placement: VocalPlacement,
-        decoration: VocalDecoration,
-        line_slots: LineSlotChildren,
+        letter: Letter,
+        letter_text: String,
+        word_radius: f32,
+        number_of_letters: usize,
+        index: usize,
     ) -> Self {
+        let placement = Placement::try_from(letter_text.as_str()).unwrap();
+
         Self {
-            vocal: Vocal,
-            letter: Letter,
-            text,
-            radius: Radius::default(),
-            position_data: PositionData::default(),
+            letter,
+            radius: Radius(letter.radius(word_radius, number_of_letters)),
+            position_data: letter.position_data(word_radius, number_of_letters, index, placement),
             placement,
-            decoration,
-            line_slots,
+            decoration: Decoration::try_from(letter_text.as_str()).unwrap(),
+            dots: Default::default(),
+            text: Text(letter_text),
             shape: ShapeBundle {
                 mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
                 ..default()
             },
-        }
-    }
-}
-
-#[derive(Bundle)]
-pub struct ConsonantBundle {
-    consonant: Consonant,
-    letter: Letter,
-    text: Text,
-    radius: Radius,
-    position_data: PositionData,
-    placement: ConsonantPlacement,
-    decoration: ConsonantDecoration,
-    dots: CircleChildren,
-    line_slots: LineSlotChildren,
-    shape: ShapeBundle,
-}
-
-impl ConsonantBundle {
-    pub fn new(
-        text: Text,
-        placement: ConsonantPlacement,
-        decoration: ConsonantDecoration,
-        dots: CircleChildren,
-        line_slots: LineSlotChildren,
-    ) -> Self {
-        Self {
-            consonant: Consonant,
-            letter: Letter,
-            text,
-            radius: Radius::default(),
-            position_data: PositionData::default(),
-            placement,
-            decoration,
-            dots,
-            line_slots,
-            shape: ShapeBundle {
-                mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
-                ..default()
-            },
+            line_slots: Default::default(),
         }
     }
 }
 
 #[derive(Bundle)]
 pub struct DotBundle {
-    dot: Dot,
-    radius: Radius,
-    position_data: PositionData,
-    shape: ShapeBundle,
+    pub dot: Dot,
+    pub radius: Radius,
+    pub position_data: PositionData,
+    pub shape: ShapeBundle,
 }
 
 impl DotBundle {
-    pub fn new() -> Self {
+    pub fn new(consonant_radius: f32, number_of_dots: usize, index: usize) -> Self {
         Self {
             dot: Dot,
-            radius: Radius::default(),
-            position_data: PositionData::default(),
+            radius: Radius(Dot::radius(consonant_radius)),
+            position_data: Dot::position_data(consonant_radius, number_of_dots, index),
             shape: ShapeBundle {
                 mode: DrawMode::Fill(FillMode::color(Color::BLACK)),
                 ..default()
@@ -184,40 +295,81 @@ impl DotBundle {
 pub struct LineSlotBundle {
     pub line_slot: LineSlot,
     pub position_data: PositionData,
+    pub shape: ShapeBundle,
 }
 
-#[derive(Debug, Component, Deref, DerefMut)]
+impl Default for LineSlotBundle {
+    fn default() -> Self {
+        Self {
+            line_slot: LineSlot,
+            position_data: PositionData::default(),
+            shape: ShapeBundle {
+                mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                ..default()
+            },
+        }
+    }
+}
+
+impl LineSlotBundle {
+    pub fn new(
+        letter_radius: f32,
+        number_of_lines: usize,
+        index: usize,
+        point_outside: bool,
+    ) -> Self {
+        Self {
+            line_slot: LineSlot,
+            position_data: LineSlot::position_data(
+                letter_radius,
+                number_of_lines,
+                index,
+                point_outside,
+            ),
+            shape: ShapeBundle {
+                mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                ..default()
+            },
+        }
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Eq, Component, Deref, DerefMut)]
 pub struct Text(pub String);
 
-#[derive(Debug, Default, Copy, Clone, Component, Deref, DerefMut)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Component, Deref, DerefMut)]
 pub struct Radius(pub f32);
 
-#[derive(Debug, Default, Copy, Clone, Component)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Component)]
 pub struct PositionData {
     pub angle: f32,
     pub distance: f32,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
-pub enum ConsonantPlacement {
-    DeepCut,
-    Inside,
-    ShallowCut,
-    OnLine,
+pub enum Placement {
+    DeepCut,    // c
+    Inside,     // cv
+    ShallowCut, // c
+    OnLine,     // cv
+    Outside,    // v
 }
 
-impl TryFrom<&str> for ConsonantPlacement {
+impl TryFrom<&str> for Placement {
     type Error = String;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let placement = match value {
-            "b" | "ch" | "d" | "g" | "h" | "f" => ConsonantPlacement::DeepCut,
-            "j" | "ph" | "k" | "l" | "c" | "n" | "p" | "m" => ConsonantPlacement::Inside,
-            "t" | "wh" | "sh" | "r" | "v" | "w" | "s" => ConsonantPlacement::ShallowCut,
-            "th" | "gh" | "y" | "z" | "q" | "qu" | "x" | "ng" => ConsonantPlacement::OnLine,
+            "b" | "ch" | "d" | "g" | "h" | "f" => Placement::DeepCut,
+            "j" | "ph" | "k" | "l" | "c" | "n" | "p" | "m" => Placement::Inside,
+            "t" | "wh" | "sh" | "r" | "v" | "w" | "s" => Placement::ShallowCut,
+            "th" | "gh" | "y" | "z" | "q" | "qu" | "x" | "ng" => Placement::OnLine,
+            "o" => Placement::Inside,
+            "a" => Placement::Outside,
+            "e" | "i" | "u" => Placement::OnLine,
             _ => {
                 return Err(format!(
-                    "Cannot assign consonant placement to '{}' as it is not a consonant!",
+                    "Cannot assign placement to '{}' as it is not a valid letter!",
                     value
                 ))
             }
@@ -228,33 +380,38 @@ impl TryFrom<&str> for ConsonantPlacement {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
-pub enum ConsonantDecoration {
-    None,
-    SingleDot,
-    DoubleDot,
-    TripleDot,
-    QuadrupleDot,
-    SingleLine,
-    DoubleLine,
-    TripleLine,
+pub enum Decoration {
+    None,         // cv
+    SingleDot,    // c
+    DoubleDot,    // c
+    TripleDot,    // c
+    QuadrupleDot, // c
+    SingleLine,   // c
+    DoubleLine,   // c
+    TripleLine,   // c
+    LineInside,   // v
+    LineOutside,  // v
 }
 
-impl TryFrom<&str> for ConsonantDecoration {
+impl TryFrom<&str> for Decoration {
     type Error = String;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let decoration = match value {
-            "b" | "j" | "t" | "th" => ConsonantDecoration::None,
-            "ph" | "wh" | "gh" => ConsonantDecoration::SingleDot,
-            "ch" | "k" | "sh" | "y" => ConsonantDecoration::DoubleDot,
-            "d" | "l" | "r" | "z" => ConsonantDecoration::TripleDot,
-            "c" | "q" => ConsonantDecoration::QuadrupleDot,
-            "g" | "n" | "v" | "qu" => ConsonantDecoration::SingleLine,
-            "h" | "p" | "w" | "x" => ConsonantDecoration::DoubleLine,
-            "f" | "m" | "s" | "ng" => ConsonantDecoration::TripleLine,
+            "b" | "j" | "t" | "th" => Decoration::None,
+            "ph" | "wh" | "gh" => Decoration::SingleDot,
+            "ch" | "k" | "sh" | "y" => Decoration::DoubleDot,
+            "d" | "l" | "r" | "z" => Decoration::TripleDot,
+            "c" | "q" => Decoration::QuadrupleDot,
+            "g" | "n" | "v" | "qu" => Decoration::SingleLine,
+            "h" | "p" | "w" | "x" => Decoration::DoubleLine,
+            "f" | "m" | "s" | "ng" => Decoration::TripleLine,
+            "i" => Decoration::LineInside,
+            "u" => Decoration::LineOutside,
+            "a" | "e" | "o" => Decoration::None,
             _ => {
                 return Err(format!(
-                    "Cannot assign consonant decoration to '{}' as it is not a consonant!",
+                    "Cannot assign decoration to '{}' as it is not a valid letter!",
                     value
                 ))
             }
@@ -264,56 +421,30 @@ impl TryFrom<&str> for ConsonantDecoration {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
-pub enum VocalPlacement {
-    OnLine,
-    Outside,
-    Inside,
-}
-
-impl TryFrom<&str> for VocalPlacement {
-    type Error = String;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let placement = match value {
-            "o" => VocalPlacement::Inside,
-            "a" => VocalPlacement::Outside,
-            "e" | "i" | "u" => VocalPlacement::OnLine,
-            _ => {
-                return Err(format!(
-                    "Cannot assign vocal placement to '{}' as it is not a vocal!",
-                    value
-                ))
-            }
-        };
-
-        Ok(placement)
+impl Decoration {
+    pub fn dots(&self) -> usize {
+        match self {
+            Decoration::SingleDot => 1,
+            Decoration::DoubleDot => 2,
+            Decoration::TripleDot => 3,
+            Decoration::QuadrupleDot => 4,
+            _ => 0,
+        }
     }
-}
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
-pub enum VocalDecoration {
-    None,
-    LineInside,
-    LineOutside,
-}
+    pub fn lines(&self) -> usize {
+        match self {
+            Decoration::SingleLine | Decoration::LineInside | Decoration::LineOutside => 1,
+            Decoration::DoubleLine => 2,
+            Decoration::TripleLine => 3,
+            _ => 0,
+        }
+    }
 
-impl TryFrom<&str> for VocalDecoration {
-    type Error = String;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let decoration = match value {
-            "i" => VocalDecoration::LineInside,
-            "u" => VocalDecoration::LineOutside,
-            "a" | "e" | "o" => VocalDecoration::None,
-            _ => {
-                return Err(format!(
-                    "Cannot assign vocal decoration to '{}' as it is not a vocal!",
-                    value
-                ))
-            }
-        };
-
-        Ok(decoration)
+    pub fn line_points_outside(&self) -> bool {
+        match self {
+            Decoration::LineInside => false,
+            _ => true,
+        }
     }
 }
