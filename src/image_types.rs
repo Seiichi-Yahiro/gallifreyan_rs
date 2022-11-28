@@ -42,77 +42,74 @@ impl Word {
     }
 }
 
-#[derive(Debug, Copy, Clone, Component)]
-pub struct Letter;
-
-#[derive(Debug, Copy, Clone, Component)]
-pub struct Vocal;
-
-impl Vocal {
-    pub fn radius(word_radius: f32, number_of_letters: usize) -> f32 {
-        (word_radius * 0.75 * 0.4) / (1.0 + number_of_letters as f32 / 2.0)
-    }
-
-    pub fn position_data(
-        word_radius: f32,
-        number_of_letters: usize,
-        index: usize,
-        placement: Placement,
-    ) -> PositionData {
-        let distance = match placement {
-            Placement::OnLine => word_radius,
-            Placement::Outside => word_radius + Self::radius(word_radius, number_of_letters) * 1.5,
-            Placement::Inside => {
-                if number_of_letters > 1 {
-                    word_radius - Self::radius(word_radius, number_of_letters) * 1.5
-                } else {
-                    0.0
-                }
-            }
-            _ => {
-                panic!("{:?} is not a vocal placement!", placement);
-            }
-        };
-
-        let angle = index as f32 * (360.0 / number_of_letters as f32);
-
-        PositionData { distance, angle }
-    }
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
+pub enum Letter {
+    Vocal,
+    Consonant,
 }
 
-#[derive(Debug, Copy, Clone, Component)]
-pub struct Consonant;
-
-impl Consonant {
-    pub fn radius(word_radius: f32, number_of_letters: usize) -> f32 {
-        (word_radius * 0.75) / (1.0 + number_of_letters as f32 / 2.0)
+impl Letter {
+    pub fn radius(&self, word_radius: f32, number_of_letters: usize) -> f32 {
+        match self {
+            Letter::Vocal => (word_radius * 0.75 * 0.4) / (1.0 + number_of_letters as f32 / 2.0),
+            Letter::Consonant => (word_radius * 0.75) / (1.0 + number_of_letters as f32 / 2.0),
+        }
     }
 
     pub fn position_data(
+        &self,
         word_radius: f32,
         number_of_letters: usize,
         index: usize,
         placement: Placement,
     ) -> PositionData {
-        let distance = match placement {
-            Placement::DeepCut => word_radius - Self::radius(word_radius, number_of_letters) * 0.75,
-            Placement::Inside => {
-                if number_of_letters > 1 {
-                    word_radius - Self::radius(word_radius, number_of_letters) * 1.5
-                } else {
-                    0.0
-                }
-            }
-            Placement::ShallowCut => word_radius,
-            Placement::OnLine => word_radius,
-            _ => {
-                panic!("{:?} is not a consonant placement", placement);
-            }
-        };
+        match self {
+            Letter::Vocal => {
+                let distance = match placement {
+                    Placement::OnLine => word_radius,
+                    Placement::Outside => {
+                        word_radius + self.radius(word_radius, number_of_letters) * 1.5
+                    }
+                    Placement::Inside => {
+                        if number_of_letters > 1 {
+                            word_radius - self.radius(word_radius, number_of_letters) * 1.5
+                        } else {
+                            0.0
+                        }
+                    }
+                    _ => {
+                        panic!("{:?} is not a vocal placement!", placement);
+                    }
+                };
 
-        let angle = index as f32 * (360.0 / number_of_letters as f32);
+                let angle = index as f32 * (360.0 / number_of_letters as f32);
 
-        PositionData { distance, angle }
+                PositionData { distance, angle }
+            }
+            Letter::Consonant => {
+                let distance = match placement {
+                    Placement::DeepCut => {
+                        word_radius - self.radius(word_radius, number_of_letters) * 0.75
+                    }
+                    Placement::Inside => {
+                        if number_of_letters > 1 {
+                            word_radius - self.radius(word_radius, number_of_letters) * 1.5
+                        } else {
+                            0.0
+                        }
+                    }
+                    Placement::ShallowCut => word_radius,
+                    Placement::OnLine => word_radius,
+                    _ => {
+                        panic!("{:?} is not a consonant placement", placement);
+                    }
+                };
+
+                let angle = index as f32 * (360.0 / number_of_letters as f32);
+
+                PositionData { distance, angle }
+            }
+        }
     }
 }
 
@@ -187,30 +184,19 @@ pub struct SentenceBundle {
     pub shape: ShapeBundle,
 }
 
-impl Default for SentenceBundle {
-    fn default() -> Self {
+impl SentenceBundle {
+    pub fn new(sentence: String) -> Self {
         Self {
             sentence: Sentence,
-            text: Text::default(),
-            radius: Default::default(),
-            position_data: Default::default(),
+            text: Text(sentence),
+            radius: Radius(Sentence::radius()),
+            position_data: Sentence::position_data(),
             words: CircleChildren::default(),
             line_slots: LineSlotChildren::default(),
             shape: ShapeBundle {
                 mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
                 ..default()
             },
-        }
-    }
-}
-
-impl SentenceBundle {
-    pub fn new(sentence: String) -> Self {
-        Self {
-            text: Text(sentence),
-            radius: Radius(Sentence::radius()),
-            position_data: Sentence::position_data(),
-            ..default()
         }
     }
 }
@@ -226,13 +212,13 @@ pub struct WordBundle {
     pub shape: ShapeBundle,
 }
 
-impl Default for WordBundle {
-    fn default() -> Self {
+impl WordBundle {
+    pub fn new(word: String, sentence_radius: f32, number_of_words: usize, index: usize) -> Self {
         Self {
             word: Word,
-            text: Text::default(),
-            radius: Default::default(),
-            position_data: Default::default(),
+            text: Text(word),
+            radius: Radius(Word::radius(sentence_radius, number_of_words)),
+            position_data: Word::position_data(sentence_radius, number_of_words, index),
             letters: CircleChildren::default(),
             line_slots: LineSlotChildren::default(),
             shape: ShapeBundle {
@@ -243,67 +229,8 @@ impl Default for WordBundle {
     }
 }
 
-impl WordBundle {
-    pub fn new(word: String, sentence_radius: f32, number_of_words: usize, index: usize) -> Self {
-        Self {
-            text: Text(word),
-            radius: Radius(Word::radius(sentence_radius, number_of_words)),
-            position_data: Word::position_data(sentence_radius, number_of_words, index),
-            ..default()
-        }
-    }
-}
-
 #[derive(Bundle)]
-pub struct VocalBundle {
-    pub vocal: Vocal,
-    pub letter: Letter,
-    pub text: Text,
-    pub radius: Radius,
-    pub position_data: PositionData,
-    pub placement: Placement,
-    pub decoration: Decoration,
-    pub line_slots: LineSlotChildren,
-    pub shape: ShapeBundle,
-}
-
-impl Default for VocalBundle {
-    fn default() -> Self {
-        Self {
-            vocal: Vocal,
-            letter: Letter,
-            text: Default::default(),
-            radius: Default::default(),
-            position_data: Default::default(),
-            placement: Placement::OnLine,
-            decoration: Decoration::None,
-            line_slots: Default::default(),
-            shape: ShapeBundle {
-                mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
-                ..default()
-            },
-        }
-    }
-}
-
-impl VocalBundle {
-    pub fn new(letter: String, word_radius: f32, number_of_letters: usize, index: usize) -> Self {
-        let placement = Placement::try_from(letter.as_str()).unwrap();
-
-        Self {
-            radius: Radius(Vocal::radius(word_radius, number_of_letters)),
-            position_data: Vocal::position_data(word_radius, number_of_letters, index, placement),
-            placement,
-            decoration: Decoration::try_from(letter.as_str()).unwrap(),
-            text: Text(letter),
-            ..default()
-        }
-    }
-}
-
-#[derive(Bundle)]
-pub struct ConsonantBundle {
-    pub consonant: Consonant,
+pub struct LetterBundle {
     pub letter: Letter,
     pub text: Text,
     pub radius: Radius,
@@ -315,42 +242,29 @@ pub struct ConsonantBundle {
     pub shape: ShapeBundle,
 }
 
-impl Default for ConsonantBundle {
-    fn default() -> Self {
+impl LetterBundle {
+    pub fn new(
+        letter: Letter,
+        letter_text: String,
+        word_radius: f32,
+        number_of_letters: usize,
+        index: usize,
+    ) -> Self {
+        let placement = Placement::try_from(letter_text.as_str()).unwrap();
+
         Self {
-            consonant: Consonant,
-            letter: Letter,
-            text: Default::default(),
-            radius: Default::default(),
-            position_data: Default::default(),
-            placement: Placement::DeepCut,
-            decoration: Decoration::None,
+            letter,
+            radius: Radius(letter.radius(word_radius, number_of_letters)),
+            position_data: letter.position_data(word_radius, number_of_letters, index, placement),
+            placement,
+            decoration: Decoration::try_from(letter_text.as_str()).unwrap(),
             dots: Default::default(),
-            line_slots: Default::default(),
+            text: Text(letter_text),
             shape: ShapeBundle {
                 mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
                 ..default()
             },
-        }
-    }
-}
-
-impl ConsonantBundle {
-    pub fn new(letter: String, word_radius: f32, number_of_letters: usize, index: usize) -> Self {
-        let placement = Placement::try_from(letter.as_str()).unwrap();
-
-        Self {
-            radius: Radius(Consonant::radius(word_radius, number_of_letters)),
-            position_data: Consonant::position_data(
-                word_radius,
-                number_of_letters,
-                index,
-                placement,
-            ),
-            placement,
-            decoration: Decoration::try_from(letter.as_str()).unwrap(),
-            text: Text(letter),
-            ..default()
+            line_slots: Default::default(),
         }
     }
 }
@@ -363,26 +277,16 @@ pub struct DotBundle {
     pub shape: ShapeBundle,
 }
 
-impl Default for DotBundle {
-    fn default() -> Self {
+impl DotBundle {
+    pub fn new(consonant_radius: f32, number_of_dots: usize, index: usize) -> Self {
         Self {
             dot: Dot,
-            radius: Default::default(),
-            position_data: Default::default(),
+            radius: Radius(Dot::radius(consonant_radius)),
+            position_data: Dot::position_data(consonant_radius, number_of_dots, index),
             shape: ShapeBundle {
                 mode: DrawMode::Fill(FillMode::color(Color::BLACK)),
                 ..default()
             },
-        }
-    }
-}
-
-impl DotBundle {
-    pub fn new(consonant_radius: f32, number_of_dots: usize, index: usize) -> Self {
-        Self {
-            radius: Radius(Dot::radius(consonant_radius)),
-            position_data: Dot::position_data(consonant_radius, number_of_dots, index),
-            ..default()
         }
     }
 }
@@ -415,13 +319,17 @@ impl LineSlotBundle {
         point_outside: bool,
     ) -> Self {
         Self {
+            line_slot: LineSlot,
             position_data: LineSlot::position_data(
                 letter_radius,
                 number_of_lines,
                 index,
                 point_outside,
             ),
-            ..default()
+            shape: ShapeBundle {
+                mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                ..default()
+            },
         }
     }
 }

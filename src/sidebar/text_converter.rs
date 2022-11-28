@@ -159,13 +159,14 @@ fn convert_letters(
     mut letter_query: Query<
         (
             Entity,
+            &mut Letter,
             &mut Text,
             &mut Radius,
             &mut PositionData,
             &mut Placement,
             &mut Decoration,
         ),
-        (With<Letter>, Without<Word>),
+        Without<Word>,
     >,
 ) {
     for (word_entity, word_text, Radius(word_radius), mut children) in word_query.iter_mut() {
@@ -189,6 +190,7 @@ fn convert_letters(
                 (
                     Some((
                         letter_entity,
+                        mut letter,
                         mut letter_text,
                         mut radius,
                         mut position_data,
@@ -197,30 +199,22 @@ fn convert_letters(
                     )),
                     Some(new_letter),
                 ) => {
+                    if VOCAL.is_match(&new_letter) {
+                        *letter = Letter::Vocal;
+                    } else {
+                        *letter = Letter::Consonant;
+                    }
+
                     let new_placement = Placement::try_from(new_letter.as_str()).unwrap();
                     let new_decoration = Decoration::try_from(new_letter.as_str()).unwrap();
 
-                    let (new_radius, new_position_data) = if VOCAL.is_match(&new_letter) {
-                        (
-                            Vocal::radius(*word_radius, number_of_letters),
-                            Vocal::position_data(
-                                *word_radius,
-                                number_of_letters,
-                                new_children.len(),
-                                new_placement,
-                            ),
-                        )
-                    } else {
-                        (
-                            Consonant::radius(*word_radius, number_of_letters),
-                            Consonant::position_data(
-                                *word_radius,
-                                number_of_letters,
-                                new_children.len(),
-                                new_placement,
-                            ),
-                        )
-                    };
+                    let new_radius = letter.radius(*word_radius, number_of_letters);
+                    let new_position_data = letter.position_data(
+                        *word_radius,
+                        number_of_letters,
+                        new_children.len(),
+                        new_placement,
+                    );
 
                     if *placement != new_placement {
                         *placement = new_placement;
@@ -248,6 +242,7 @@ fn convert_letters(
                 (
                     Some((
                         letter_entity,
+                        _letter,
                         _letter_text,
                         _radius,
                         _position_data,
@@ -260,24 +255,21 @@ fn convert_letters(
                 }
                 // add letter
                 (None, Some(new_letter)) => {
-                    let letter_entity = if VOCAL.is_match(&new_letter) {
-                        let vocal_bundle = VocalBundle::new(
-                            new_letter,
-                            *word_radius,
-                            number_of_letters,
-                            new_children.len(),
-                        );
-                        commands.spawn(vocal_bundle).id()
+                    let letter = if VOCAL.is_match(&new_letter) {
+                        Letter::Vocal
                     } else {
-                        let consonant_bundle = ConsonantBundle::new(
-                            new_letter,
-                            *word_radius,
-                            number_of_letters,
-                            new_children.len(),
-                        );
-                        commands.spawn(consonant_bundle).id()
+                        Letter::Consonant
                     };
 
+                    let letter_bundle = LetterBundle::new(
+                        letter,
+                        new_letter,
+                        *word_radius,
+                        number_of_letters,
+                        new_children.len(),
+                    );
+
+                    let letter_entity = commands.spawn(letter_bundle).id();
                     commands.entity(word_entity).add_child(letter_entity);
                     new_children.push(letter_entity);
                 }
@@ -293,14 +285,13 @@ fn convert_letters(
 
 fn convert_dots(
     mut commands: Commands,
-    mut consonant_query: Query<
+    mut letter_query: Query<
         (Entity, &Radius, &Decoration, &mut CircleChildren),
-        (With<Consonant>, Changed<Text>),
+        (With<Letter>, Changed<Text>),
     >,
-    mut dot_query: Query<(Entity, &mut Radius, &mut PositionData), (With<Dot>, Without<Consonant>)>,
+    mut dot_query: Query<(Entity, &mut Radius, &mut PositionData), (With<Dot>, Without<Letter>)>,
 ) {
-    for (consonant_entity, Radius(consonant_radius), decoration, mut children) in
-        consonant_query.iter_mut()
+    for (letter_entity, Radius(letter_radius), decoration, mut children) in letter_query.iter_mut()
     {
         let mut existing_dots = dot_query.iter_many_mut(children.iter());
 
@@ -316,9 +307,9 @@ fn convert_dots(
             match (next_existing_dot, next_new_dot) {
                 // update dot
                 (Some((dot_entity, mut radius, mut position_data)), Some(_)) => {
-                    let new_radius = Dot::radius(*consonant_radius);
+                    let new_radius = Dot::radius(*letter_radius);
                     let new_position_data =
-                        Dot::position_data(*consonant_radius, number_of_dots, new_children.len());
+                        Dot::position_data(*letter_radius, number_of_dots, new_children.len());
 
                     if **radius != new_radius {
                         **radius = new_radius;
@@ -337,10 +328,10 @@ fn convert_dots(
                 // add dot
                 (None, Some(_)) => {
                     let dot_bundle =
-                        DotBundle::new(*consonant_radius, number_of_dots, new_children.len());
+                        DotBundle::new(*letter_radius, number_of_dots, new_children.len());
 
                     let dot_entity = commands.spawn(dot_bundle).id();
-                    commands.entity(consonant_entity).add_child(dot_entity);
+                    commands.entity(letter_entity).add_child(dot_entity);
                     new_children.push(dot_entity);
                 }
                 (None, None) => {
