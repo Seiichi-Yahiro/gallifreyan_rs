@@ -109,9 +109,10 @@ fn convert_words(
                     let new_position_data =
                         Word::position_data(*sentence_radius, number_of_words, new_children.len());
 
-                    if **word_text != new_word {
-                        **word_text = new_word;
-                    }
+                    // TODO text change
+                    //if **word_text != new_word {
+                    **word_text = new_word;
+                    //}
 
                     if **radius != new_radius {
                         **radius = new_radius;
@@ -224,9 +225,10 @@ fn convert_letters(
                         *decoration = new_decoration;
                     }
 
-                    if **letter_text != new_letter {
-                        **letter_text = new_letter;
-                    }
+                    // TODO text change
+                    //if **letter_text != new_letter {
+                    **letter_text = new_letter;
+                    //}
 
                     if **radius != new_radius {
                         **radius = new_radius;
