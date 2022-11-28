@@ -42,7 +42,7 @@ fn adjust_view_port(
     mut available_rect: Local<AvailableRect>,
 ) {
     let new_rect = egui_context.ctx_mut().available_rect();
-    
+
     if **available_rect != new_rect {
         **available_rect = new_rect;
 
@@ -66,7 +66,7 @@ fn adjust_view_port(
 }
 
 fn camera_pan(
-    mut camera_query: Query<(&OrthographicProjection, &mut Transform)>,
+    mut camera_query: Query<(&Camera, &OrthographicProjection, &mut Transform)>,
     mouse_button_input: Res<Input<MouseButton>>,
     windows: Res<Windows>,
     mut last_cursor_pos: Local<Option<Vec2>>,
@@ -78,20 +78,21 @@ fn camera_pan(
         None => return,
     };
 
-    let delta_device_pixels = current_cursor_pos - last_cursor_pos.unwrap_or(current_cursor_pos);
-
     if mouse_button_input.pressed(MouseButton::Left) {
-        let (projection, mut transform) = camera_query.single_mut();
+        let (camera, projection, mut transform) = camera_query.single_mut();
 
         let projection_size = Vec2::new(
             projection.right - projection.left,
             projection.top - projection.bottom,
         ) * projection.scale;
 
-        let window_size = Vec2::new(window.width(), window.height());
+        let viewport_size = camera
+            .logical_viewport_size()
+            .unwrap_or_else(|| Vec2::new(window.width(), window.height()));
 
-        let world_units_per_device_pixel = projection_size / window_size;
-
+        let world_units_per_device_pixel = projection_size / viewport_size;
+        let delta_device_pixels =
+            current_cursor_pos - last_cursor_pos.unwrap_or(current_cursor_pos);
         let delta_world = delta_device_pixels * world_units_per_device_pixel;
         let proposed_cam_transform = transform.translation - delta_world.extend(0.0);
 
@@ -102,7 +103,7 @@ fn camera_pan(
 }
 
 fn camera_zoom(
-    mut camera_query: Query<(&mut OrthographicProjection, &mut Transform)>,
+    mut camera_query: Query<(&Camera, &mut OrthographicProjection, &mut Transform)>,
     mut scroll_events: EventReader<MouseWheel>,
     windows: Res<Windows>,
 ) {
@@ -120,14 +121,22 @@ fn camera_zoom(
         return;
     }
 
-    let (mut projection, mut transform) = camera_query.single_mut();
+    let (camera, mut projection, mut transform) = camera_query.single_mut();
 
     let window = windows.primary();
-    let window_size = Vec2::new(window.width(), window.height());
+
+    let viewport_size = camera
+        .logical_viewport_size()
+        .unwrap_or_else(|| Vec2::new(window.width(), window.height()));
+
+    let viewport_pos = camera
+        .logical_viewport_rect()
+        .map(|(min, _max)| min)
+        .unwrap_or(Vec2::ZERO);
 
     let mouse_normalized_screen_pos = window
         .cursor_position()
-        .map(|cursor_pos| (cursor_pos / window_size) * 2.0 - Vec2::ONE);
+        .map(|cursor_pos| ((cursor_pos - viewport_pos) / viewport_size) * 2.0 - Vec2::ONE);
 
     let old_projection_scale = projection.scale;
 
