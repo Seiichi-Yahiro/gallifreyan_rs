@@ -14,6 +14,7 @@ impl Sentence {
         PositionData {
             angle: 0.0,
             distance: 0.0,
+            angle_placement: AnglePlacement::Absolute,
         }
     }
 }
@@ -38,6 +39,7 @@ impl Word {
                 0.0
             },
             angle: index as f32 * (360.0 / number_of_words as f32),
+            angle_placement: AnglePlacement::Absolute,
         }
     }
 }
@@ -84,7 +86,11 @@ impl Letter {
 
                 let angle = index as f32 * (360.0 / number_of_letters as f32);
 
-                PositionData { distance, angle }
+                PositionData {
+                    distance,
+                    angle,
+                    angle_placement: AnglePlacement::Relative,
+                }
             }
             Letter::Consonant => {
                 let distance = match placement {
@@ -107,7 +113,11 @@ impl Letter {
 
                 let angle = index as f32 * (360.0 / number_of_letters as f32);
 
-                PositionData { distance, angle }
+                PositionData {
+                    distance,
+                    angle,
+                    angle_placement: AnglePlacement::Relative,
+                }
             }
         }
     }
@@ -137,7 +147,11 @@ impl Dot {
         let angle = index as f32 * DOT_DISTANCE_ANGLE - center_dots_on_letter_side_angle
             + LETTER_SIDE_ANGLE;
 
-        PositionData { distance, angle }
+        PositionData {
+            distance,
+            angle,
+            angle_placement: AnglePlacement::Absolute,
+        }
     }
 }
 
@@ -161,7 +175,11 @@ impl LineSlot {
         let angle = index as f32 * LINE_DISTANCE_ANGLE - center_lines_on_letter_side_angle
             + letter_side_angle;
 
-        PositionData { distance, angle }
+        PositionData {
+            distance,
+            angle,
+            angle_placement: AnglePlacement::Absolute,
+        }
     }
 }
 
@@ -344,6 +362,19 @@ pub struct Radius(pub f32);
 pub struct PositionData {
     pub angle: f32,
     pub distance: f32,
+    pub angle_placement: AnglePlacement,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum AnglePlacement {
+    Absolute,
+    Relative,
+}
+
+impl Default for AnglePlacement {
+    fn default() -> Self {
+        Self::Absolute
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
