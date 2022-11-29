@@ -1,8 +1,9 @@
 mod text_converter;
 
+use crate::event_set::*;
 use crate::image_types::{CircleChildren, LineSlotChildren, Sentence, Text};
 use crate::sidebar::text_converter::{SetText, TextConverterPlugin};
-use crate::ui::tree::{render_tree, TreeNode};
+use crate::ui::tree::TreeNode;
 use bevy::ecs::query::QuerySingleError;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext};
@@ -11,12 +12,18 @@ pub struct SideBarPlugin;
 
 impl Plugin for SideBarPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<SidebarState>()
+        app.add_event_set::<Actions>()
+            .init_resource::<SidebarState>()
             .add_system(ui)
             .add_system_to_stage(CoreStage::PostUpdate, build_tree)
             .add_plugin(TextConverterPlugin);
     }
 }
+
+event_set!(Actions { Select, Hover });
+
+pub struct Select(pub Entity);
+pub struct Hover(pub Entity);
 
 #[derive(Resource, Default)]
 pub struct SidebarState {
@@ -29,6 +36,7 @@ pub fn ui(
     mut egui_context: ResMut<EguiContext>,
     mut ui_state: ResMut<SidebarState>,
     mut set_text_event: EventWriter<SetText>,
+    mut actions: Actions,
 ) {
     egui::SidePanel::left("sidebar")
         .resizable(true)
@@ -41,8 +49,8 @@ pub fn ui(
                 }
             }
 
-            if let Some(node) = &ui_state.tree {
-                render_tree(node, ui);
+            if let Some(node) = &mut ui_state.tree {
+                node.render(ui, &mut actions);
             }
         });
 }
