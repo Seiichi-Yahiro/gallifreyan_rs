@@ -10,8 +10,8 @@ impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ViewMode::Select)
             .add_startup_system(setup)
-            .add_system(ui.after(crate::sidebar::ui))
-            .add_system(adjust_view_port.after(crate::sidebar::ui))
+            .add_system(ui.after(crate::sidebar::UiSystemLabel))
+            .add_system(adjust_view_port.after(crate::sidebar::UiSystemLabel))
             .add_system_set(
                 SystemSet::new()
                     .after(ui)

@@ -1,10 +1,9 @@
 mod text_converter;
 
-use crate::event_set::*;
-use crate::image_types::{CircleChildren, LineSlotChildren, Sentence, Text};
+use crate::image_types::{CircleChildren, Letter, LineSlotChildren, Sentence, Text, Word};
 use crate::sidebar::text_converter::{SetText, TextConverterPlugin};
-use crate::ui::tree::TreeNode;
-use bevy::ecs::query::QuerySingleError;
+use crate::ui::tree::{CollapsingTreeItem, TreeItem};
+use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext};
 
@@ -12,124 +11,142 @@ pub struct SideBarPlugin;
 
 impl Plugin for SideBarPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event_set::<Actions>()
-            .init_resource::<SidebarState>()
-            .add_system(ui)
-            .add_system_to_stage(CoreStage::PostUpdate, build_tree)
+        app.init_resource::<SidebarState>()
+            .add_system(ui.label(UiSystemLabel))
+            .add_system(add_openness)
             .add_plugin(TextConverterPlugin);
     }
 }
-
-event_set!(Actions { Select, Hover });
-
-pub struct Select(pub Entity);
-pub struct Hover(pub Entity);
 
 #[derive(Resource, Default)]
 pub struct SidebarState {
     pub text: String,
     pub sanitized_text: String,
-    pub tree: Option<TreeNode<Entity>>,
 }
 
-pub fn ui(
+#[derive(SystemLabel)]
+pub struct UiSystemLabel;
+
+fn ui(
     mut egui_context: ResMut<EguiContext>,
-    mut ui_state: ResMut<SidebarState>,
-    mut set_text_event: EventWriter<SetText>,
-    mut actions: Actions,
+    text_input_system_params: TextInputSystemParams,
+    tree_system_params: TreeSystemParams,
 ) {
     egui::SidePanel::left("sidebar")
         .resizable(true)
         .show(egui_context.ctx_mut(), |ui| {
-            if ui.text_edit_singleline(&mut ui_state.text).changed() {
-                let new_sanitized_text = text_converter::sanitize_text_input(&ui_state.text);
-                if ui_state.sanitized_text != new_sanitized_text {
-                    ui_state.sanitized_text = new_sanitized_text;
-                    set_text_event.send(SetText(ui_state.sanitized_text.clone()));
-                }
-            }
+            ui_text_input(ui, text_input_system_params);
 
-            if let Some(node) = &mut ui_state.tree {
-                node.render(ui, &mut actions);
-            }
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                ui_tree(ui, tree_system_params);
+            });
         });
 }
 
-fn build_tree(
-    changed_query: Query<
-        Entity,
-        Or<(
-            Changed<Text>,
-            Changed<CircleChildren>,
-            Changed<LineSlotChildren>,
-        )>,
-    >,
-    sentence_query: Query<Entity, With<Sentence>>,
-    text_query: Query<(Entity, &Text, &CircleChildren, &LineSlotChildren)>,
-    mut ui_state: ResMut<SidebarState>,
+#[derive(SystemParam)]
+struct TextInputSystemParams<'w, 's> {
+    ui_state: ResMut<'w, SidebarState>,
+    set_text_event: EventWriter<'w, 's, SetText>,
+}
+
+fn ui_text_input(ui: &mut egui::Ui, mut params: TextInputSystemParams) {
+    if ui.text_edit_singleline(&mut params.ui_state.text).changed() {
+        let new_sanitized_text = text_converter::sanitize_text_input(&params.ui_state.text);
+        if params.ui_state.sanitized_text != new_sanitized_text {
+            params.ui_state.sanitized_text = new_sanitized_text;
+            params
+                .set_text_event
+                .send(SetText(params.ui_state.sanitized_text.clone()));
+        }
+    }
+}
+
+type WorldQuery = (
+    Entity,
+    &'static Text,
+    &'static CircleChildren,
+    &'static LineSlotChildren,
+    &'static mut Openness,
+);
+
+type SentenceQuery<'w, 's> =
+    Query<'w, 's, WorldQuery, (With<Sentence>, Without<Word>, Without<Letter>)>;
+type WordQuery<'w, 's> =
+    Query<'w, 's, WorldQuery, (With<Word>, Without<Sentence>, Without<Letter>)>;
+type LetterQuery<'w, 's> =
+    Query<'w, 's, WorldQuery, (With<Letter>, Without<Sentence>, Without<Word>)>;
+
+#[derive(SystemParam)]
+struct TreeSystemParams<'w, 's> {
+    sentence_query: SentenceQuery<'w, 's>,
+    word_query: WordQuery<'w, 's>,
+    letter_query: LetterQuery<'w, 's>,
+}
+
+fn ui_tree(ui: &mut egui::Ui, mut params: TreeSystemParams) {
+    for (sentence_entity, sentence_text, words, sentence_line_slots, mut openness) in
+        params.sentence_query.iter_mut()
+    {
+        CollapsingTreeItem::new(sentence_text, sentence_entity, &mut openness).show(ui, |ui| {
+            ui_words(ui, words, &mut params.word_query, &mut params.letter_query);
+            ui_line_slots(ui, sentence_line_slots);
+        });
+    }
+}
+
+fn ui_words(
+    ui: &mut egui::Ui,
+    words: &[Entity],
+    word_query: &mut WordQuery,
+    letter_query: &mut LetterQuery,
 ) {
-    match sentence_query.get_single() {
-        Ok(sentence_entity) if changed_query.iter().last().is_some() => {
-            if let Ok((_, sentence_text, words, sentence_line_slots)) =
-                text_query.get(sentence_entity)
-            {
-                let map_line_slots = |line_slot: &Entity| TreeNode {
-                    id: *line_slot,
-                    text: "LINE".to_string(),
-                    open: false,
-                    children: vec![],
-                };
+    let mut iter = word_query.iter_many_mut(words.iter());
 
-                let children = text_query
-                    .iter_many(words.iter())
-                    .map(|(word_entity, word_text, letters, word_line_slots)| {
-                        let children = text_query
-                            .iter_many(letters.iter())
-                            .map(|(letter_entity, letter_text, dots, letter_line_slots)| {
-                                let children = dots
-                                    .iter()
-                                    .map(|dot| TreeNode {
-                                        id: *dot,
-                                        text: "DOT".to_string(),
-                                        open: false,
-                                        children: vec![],
-                                    })
-                                    .chain(letter_line_slots.iter().map(map_line_slots))
-                                    .collect();
+    while let Some((word_entity, word_text, letters, word_line_slots, mut openness)) =
+        iter.fetch_next()
+    {
+        CollapsingTreeItem::new(word_text, word_entity, &mut openness).show(ui, |ui| {
+            ui_letters(ui, letters, letter_query);
+            ui_line_slots(ui, word_line_slots);
+        });
+    }
+}
 
-                                TreeNode {
-                                    id: letter_entity,
-                                    text: letter_text.to_string(),
-                                    open: false,
-                                    children,
-                                }
-                            })
-                            .chain(word_line_slots.iter().map(map_line_slots))
-                            .collect();
+fn ui_letters(ui: &mut egui::Ui, letters: &[Entity], letter_query: &mut LetterQuery) {
+    let mut iter = letter_query.iter_many_mut(letters.iter());
 
-                        TreeNode {
-                            id: word_entity,
-                            text: word_text.to_string(),
-                            open: false,
-                            children,
-                        }
-                    })
-                    .chain(sentence_line_slots.iter().map(map_line_slots))
-                    .collect();
-
-                ui_state.tree = Some(TreeNode {
-                    id: sentence_entity,
-                    text: sentence_text.to_string(),
-                    open: true,
-                    children,
-                });
-            }
+    while let Some((letter_entity, letter_text, dots, letter_line_slots, mut openness)) =
+        iter.fetch_next()
+    {
+        if dots.len() + letter_line_slots.len() == 0 {
+            let tree_item = TreeItem::new(letter_text);
+            ui.add(tree_item);
+        } else {
+            CollapsingTreeItem::new(letter_text, letter_entity, &mut openness).show(ui, |ui| {
+                ui_dots(ui, dots);
+                ui_line_slots(ui, letter_line_slots);
+            });
         }
-        Err(QuerySingleError::NoEntities(_)) => {
-            ui_state.tree = None;
-        }
-        error => {
-            error.unwrap();
-        }
+    }
+}
+
+fn ui_dots(ui: &mut egui::Ui, dots: &[Entity]) {
+    for _dot_entity in dots.iter() {
+        ui.add(TreeItem::new("Dot"));
+    }
+}
+
+fn ui_line_slots(ui: &mut egui::Ui, line_slots: &[Entity]) {
+    for _line_slot_entity in line_slots.iter() {
+        ui.add(TreeItem::new("LINE"));
+    }
+}
+
+#[derive(Component, Deref, DerefMut)]
+struct Openness(bool);
+
+fn add_openness(mut commands: Commands, query: Query<Entity, Added<CircleChildren>>) {
+    for entity in query.iter() {
+        commands.entity(entity).insert(Openness(false));
     }
 }

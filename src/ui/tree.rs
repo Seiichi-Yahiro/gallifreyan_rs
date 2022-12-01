@@ -1,62 +1,66 @@
-use crate::event_set::SendEvent;
-use crate::sidebar::{Actions, Hover, Select};
-use bevy::prelude::Entity;
 use bevy_egui::egui;
+use std::fmt::Debug;
+use std::hash::Hash;
 
-pub struct TreeNode<T> {
-    pub id: T,
-    pub text: String,
-    pub open: bool,
-    pub children: Vec<TreeNode<T>>,
+pub struct CollapsingTreeItem<'a, T: Hash + Debug> {
+    id: T,
+    text: &'a str,
+    open: &'a mut bool,
 }
 
-impl TreeNode<Entity> {
-    pub fn render(&mut self, ui: &mut egui::Ui, actions: &mut Actions) {
-        if self.children.is_empty() {
-            tree_item(ui, self.id, &self.text, actions);
-        } else {
-            let ui_id = ui.make_persistent_id(self.id);
+impl<'a, T: Hash + Debug> CollapsingTreeItem<'a, T> {
+    pub fn show<R>(
+        self,
+        ui: &mut egui::Ui,
+        add_body: impl FnOnce(&mut egui::Ui) -> R,
+    ) -> (
+        egui::InnerResponse<egui::Response>,
+        Option<egui::InnerResponse<R>>,
+    ) {
+        let ui_id = ui.make_persistent_id(self.id);
 
-            let mut collapsing_state =
-                egui::collapsing_header::CollapsingState::load_with_default_open(
-                    ui.ctx(),
-                    ui_id,
-                    false,
-                );
+        let mut collapsing_state = egui::collapsing_header::CollapsingState::load_with_default_open(
+            ui.ctx(),
+            ui_id,
+            false,
+        );
 
-            collapsing_state.set_open(self.open);
+        collapsing_state.set_open(*self.open);
 
-            let (collapse_response, _, _) = collapsing_state
-                .show_header(ui, |ui| {
-                    tree_item(ui, self.id, &self.text, actions);
-                })
-                .body(|ui| {
-                    for child in &mut self.children {
-                        child.render(ui, actions);
-                    }
-                });
+        let (collapse_response, header_response, body_response) = collapsing_state
+            .show_header(ui, |ui| {
+                let tree_item = TreeItem::new(self.text);
+                ui.add(tree_item)
+            })
+            .body(add_body);
 
-            if collapse_response.clicked() {
-                self.open = !self.open;
-            }
+        if collapse_response.clicked() {
+            *self.open = !*self.open;
         }
+
+        (header_response, body_response)
     }
 }
 
-fn tree_item(
-    ui: &mut egui::Ui,
-    id: Entity,
-    text: impl Into<egui::WidgetText>,
-    actions: &mut Actions,
-) {
-    let button = egui::Button::new(text).frame(false).wrap(true);
-    let response = ui.add(button);
-
-    if response.hovered() {
-        actions.dispatch(Hover(id));
+impl<'a, T: Hash + Debug> CollapsingTreeItem<'a, T> {
+    pub fn new(text: &'a str, id: T, open: &'a mut bool) -> Self {
+        Self { id, text, open }
     }
+}
 
-    if response.clicked() {
-        actions.dispatch(Select(id));
+pub struct TreeItem<'a> {
+    text: &'a str,
+}
+
+impl<'a> TreeItem<'a> {
+    pub fn new(text: &'a str) -> Self {
+        Self { text }
+    }
+}
+
+impl<'a> egui::Widget for TreeItem<'a> {
+    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+        let button = egui::Button::new(self.text).frame(false).wrap(true);
+        ui.add(button)
     }
 }
