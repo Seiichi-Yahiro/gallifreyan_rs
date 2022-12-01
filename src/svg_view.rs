@@ -1,4 +1,5 @@
 mod camera;
+mod selection;
 
 use crate::svg_view::camera::SVGViewCamera;
 use bevy::prelude::*;
@@ -10,8 +11,9 @@ pub struct SVGViewPlugin;
 impl Plugin for SVGViewPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ViewMode::Select)
+            .add_system(ui.after(crate::sidebar::UiSystemLabel))
             .add_plugin(camera::CameraPlugin)
-            .add_system(ui.after(crate::sidebar::UiSystemLabel));
+            .add_plugin(selection::SelectionPlugin);
     }
 }
 

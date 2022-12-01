@@ -1,9 +1,11 @@
 mod event_set;
+mod events;
 mod image_types;
 mod sidebar;
 mod svg_view;
 mod ui;
 
+use crate::events::EventPlugin;
 use crate::image_types::{AnglePlacement, LineSlot, PositionData, Radius};
 use crate::sidebar::SideBarPlugin;
 use crate::svg_view::SVGViewPlugin;
@@ -26,6 +28,7 @@ fn main() {
         }))
         .add_plugin(ShapePlugin)
         .add_plugin(EguiPlugin)
+        .add_plugin(EventPlugin)
         .add_plugin(SideBarPlugin)
         .add_plugin(SVGViewPlugin)
         .add_system(update_radius)

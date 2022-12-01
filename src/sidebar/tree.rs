@@ -1,3 +1,4 @@
+use crate::events::Select;
 use crate::image_types::{CircleChildren, Letter, LineSlotChildren, Sentence, Text, Word};
 use crate::ui::tree::{CollapsingTreeItem, TreeItem};
 use bevy::ecs::system::SystemParam;
@@ -24,16 +25,28 @@ pub struct TreeSystemParams<'w, 's> {
     sentence_query: SentenceQuery<'w, 's>,
     word_query: WordQuery<'w, 's>,
     letter_query: LetterQuery<'w, 's>,
+    select_event: EventWriter<'w, 's, Select>,
 }
 
 pub fn ui_tree(ui: &mut egui::Ui, mut params: TreeSystemParams) {
     for (sentence_entity, sentence_text, words, sentence_line_slots, mut openness) in
         params.sentence_query.iter_mut()
     {
-        CollapsingTreeItem::new(sentence_text, sentence_entity, &mut openness).show(ui, |ui| {
-            ui_words(ui, words, &mut params.word_query, &mut params.letter_query);
-            ui_line_slots(ui, sentence_line_slots);
-        });
+        let (header_response, _) =
+            CollapsingTreeItem::new(sentence_text, sentence_entity, &mut openness).show(ui, |ui| {
+                ui_words(
+                    ui,
+                    words,
+                    &mut params.word_query,
+                    &mut params.letter_query,
+                    &mut params.select_event,
+                );
+                ui_line_slots(ui, sentence_line_slots, &mut params.select_event);
+            });
+
+        if header_response.inner.clicked() {
+            params.select_event.send(Select(Some(sentence_entity)));
+        }
     }
 }
 
@@ -42,46 +55,68 @@ fn ui_words(
     words: &[Entity],
     word_query: &mut WordQuery,
     letter_query: &mut LetterQuery,
+    select_event: &mut EventWriter<Select>,
 ) {
     let mut iter = word_query.iter_many_mut(words.iter());
 
     while let Some((word_entity, word_text, letters, word_line_slots, mut openness)) =
         iter.fetch_next()
     {
-        CollapsingTreeItem::new(word_text, word_entity, &mut openness).show(ui, |ui| {
-            ui_letters(ui, letters, letter_query);
-            ui_line_slots(ui, word_line_slots);
-        });
+        let (header_response, _) = CollapsingTreeItem::new(word_text, word_entity, &mut openness)
+            .show(ui, |ui| {
+                ui_letters(ui, letters, letter_query, select_event);
+                ui_line_slots(ui, word_line_slots, select_event);
+            });
+
+        if header_response.inner.clicked() {
+            select_event.send(Select(Some(word_entity)));
+        }
     }
 }
 
-fn ui_letters(ui: &mut egui::Ui, letters: &[Entity], letter_query: &mut LetterQuery) {
+fn ui_letters(
+    ui: &mut egui::Ui,
+    letters: &[Entity],
+    letter_query: &mut LetterQuery,
+    select_event: &mut EventWriter<Select>,
+) {
     let mut iter = letter_query.iter_many_mut(letters.iter());
 
     while let Some((letter_entity, letter_text, dots, letter_line_slots, mut openness)) =
         iter.fetch_next()
     {
-        if dots.len() + letter_line_slots.len() == 0 {
+        let response = if dots.len() + letter_line_slots.len() == 0 {
             let tree_item = TreeItem::new(letter_text);
-            ui.add(tree_item);
+            ui.add(tree_item)
         } else {
-            CollapsingTreeItem::new(letter_text, letter_entity, &mut openness).show(ui, |ui| {
-                ui_dots(ui, dots);
-                ui_line_slots(ui, letter_line_slots);
-            });
+            let (header_response, _) =
+                CollapsingTreeItem::new(letter_text, letter_entity, &mut openness).show(ui, |ui| {
+                    ui_dots(ui, dots, select_event);
+                    ui_line_slots(ui, letter_line_slots, select_event);
+                });
+
+            header_response.inner
+        };
+
+        if response.clicked() {
+            select_event.send(Select(Some(letter_entity)));
         }
     }
 }
 
-fn ui_dots(ui: &mut egui::Ui, dots: &[Entity]) {
-    for _dot_entity in dots.iter() {
-        ui.add(TreeItem::new("Dot"));
+fn ui_dots(ui: &mut egui::Ui, dots: &[Entity], select_event: &mut EventWriter<Select>) {
+    for dot_entity in dots.iter() {
+        if ui.add(TreeItem::new("Dot")).clicked() {
+            select_event.send(Select(Some(*dot_entity)));
+        }
     }
 }
 
-fn ui_line_slots(ui: &mut egui::Ui, line_slots: &[Entity]) {
-    for _line_slot_entity in line_slots.iter() {
-        ui.add(TreeItem::new("LINE"));
+fn ui_line_slots(ui: &mut egui::Ui, line_slots: &[Entity], select_event: &mut EventWriter<Select>) {
+    for line_slot_entity in line_slots.iter() {
+        if ui.add(TreeItem::new("LINE")).clicked() {
+            select_event.send(Select(Some(*line_slot_entity)));
+        }
     }
 }
 
