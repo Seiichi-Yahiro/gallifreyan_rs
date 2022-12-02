@@ -26,9 +26,15 @@ fn ui(
     mut egui_context: ResMut<EguiContext>,
     text_input_system_params: TextInputSystemParams,
     tree_system_params: TreeSystemParams,
+    windows: Res<Windows>,
 ) {
+    let window = windows.primary();
+    let side_bar_width = window.width() * 0.2;
+
     egui::SidePanel::left("sidebar")
         .resizable(true)
+        .default_width(side_bar_width)
+        .width_range(100.0..=side_bar_width)
         .show(egui_context.ctx_mut(), |ui| {
             ui_text_input(ui, text_input_system_params);
 
