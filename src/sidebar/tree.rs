@@ -10,7 +10,7 @@ type WorldQuery = (
     &'static Text,
     &'static CircleChildren,
     &'static LineSlotChildren,
-    &'static mut Openness,
+    &'static mut IsOpen,
 );
 
 type SentenceQuery<'w, 's> =
@@ -29,11 +29,11 @@ pub struct TreeSystemParams<'w, 's> {
 }
 
 pub fn ui_tree(ui: &mut egui::Ui, mut params: TreeSystemParams) {
-    for (sentence_entity, sentence_text, words, sentence_line_slots, mut openness) in
+    for (sentence_entity, sentence_text, words, sentence_line_slots, mut is_open) in
         params.sentence_query.iter_mut()
     {
         let (header_response, _) =
-            CollapsingTreeItem::new(sentence_text, sentence_entity, &mut openness).show(ui, |ui| {
+            CollapsingTreeItem::new(sentence_text, sentence_entity, &mut is_open).show(ui, |ui| {
                 ui_words(
                     ui,
                     words,
@@ -59,10 +59,10 @@ fn ui_words(
 ) {
     let mut iter = word_query.iter_many_mut(words.iter());
 
-    while let Some((word_entity, word_text, letters, word_line_slots, mut openness)) =
+    while let Some((word_entity, word_text, letters, word_line_slots, mut is_open)) =
         iter.fetch_next()
     {
-        let (header_response, _) = CollapsingTreeItem::new(word_text, word_entity, &mut openness)
+        let (header_response, _) = CollapsingTreeItem::new(word_text, word_entity, &mut is_open)
             .show(ui, |ui| {
                 ui_letters(ui, letters, letter_query, select_event);
                 ui_line_slots(ui, word_line_slots, select_event);
@@ -82,14 +82,14 @@ fn ui_letters(
 ) {
     let mut iter = letter_query.iter_many_mut(letters.iter());
 
-    while let Some((letter_entity, letter_text, dots, letter_line_slots, mut openness)) =
+    while let Some((letter_entity, letter_text, dots, letter_line_slots, mut is_open)) =
         iter.fetch_next()
     {
         let header_response = if dots.len() + letter_line_slots.len() == 0 {
             CollapsingTreeItem::new_empty(ui, letter_text, letter_entity)
         } else {
             let (header_response, _) =
-                CollapsingTreeItem::new(letter_text, letter_entity, &mut openness).show(ui, |ui| {
+                CollapsingTreeItem::new(letter_text, letter_entity, &mut is_open).show(ui, |ui| {
                     ui_dots(ui, dots, select_event);
                     ui_line_slots(ui, letter_line_slots, select_event);
                 });
@@ -122,10 +122,10 @@ fn ui_line_slots(ui: &mut egui::Ui, line_slots: &[Entity], select_event: &mut Ev
 }
 
 #[derive(Component, Deref, DerefMut)]
-pub struct Openness(bool);
+pub struct IsOpen(bool);
 
-pub fn add_openness(mut commands: Commands, query: Query<Entity, Added<CircleChildren>>) {
+pub fn add_is_open_component(mut commands: Commands, query: Query<Entity, Added<CircleChildren>>) {
     for entity in query.iter() {
-        commands.entity(entity).insert(Openness(false));
+        commands.entity(entity).insert(IsOpen(false));
     }
 }

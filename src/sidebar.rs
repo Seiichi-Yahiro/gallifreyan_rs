@@ -4,7 +4,7 @@ mod tree;
 
 use crate::sidebar::text_converter::TextConverterPlugin;
 use crate::sidebar::text_input::{ui_text_input, TextInputSystemParams, TextState};
-use crate::sidebar::tree::{add_openness, ui_tree, TreeSystemParams};
+use crate::sidebar::tree::{add_is_open_component, ui_tree, TreeSystemParams};
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext};
 
@@ -14,7 +14,7 @@ impl Plugin for SideBarPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TextState>()
             .add_system(ui.label(UiSystemLabel))
-            .add_system(add_openness)
+            .add_system(add_is_open_component)
             .add_plugin(TextConverterPlugin);
     }
 }
