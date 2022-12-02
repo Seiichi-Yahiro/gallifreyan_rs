@@ -1,4 +1,4 @@
-use crate::events::Select;
+use crate::events::{Select, Selection};
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::DrawMode;
 
@@ -11,23 +11,18 @@ impl Plugin for SelectionPlugin {
 }
 
 fn set_select_color(
-    mut select_events: EventReader<Select>,
     mut draw_mode_query: Query<&mut DrawMode>,
     children_query: Query<&Children, With<DrawMode>>,
-    mut previous_selection: Local<Option<Entity>>,
+    selection: Res<Selection>,
 ) {
-    for &Select(selection) in select_events.iter() {
-        if selection == *previous_selection {
-            continue;
-        } else {
-            *previous_selection = selection;
-        }
+    if !selection.is_changed() {
+        return;
+    }
 
-        reset_select_color(&mut draw_mode_query);
+    reset_select_color(&mut draw_mode_query);
 
-        if let Some(selected_entity) = selection {
-            set_select_color_recursive(selected_entity, &mut draw_mode_query, &children_query);
-        }
+    if let Some(selected_entity) = **selection {
+        set_select_color_recursive(selected_entity, &mut draw_mode_query, &children_query);
     }
 }
 
