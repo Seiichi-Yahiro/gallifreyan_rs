@@ -1,4 +1,5 @@
 mod camera;
+mod render;
 mod selection;
 
 use crate::svg_view::camera::CenterView;
@@ -13,6 +14,7 @@ impl Plugin for SVGViewPlugin {
         app.insert_resource(ViewMode::Select)
             .add_system(ui.after(crate::sidebar::UiSystemLabel))
             .add_plugin(camera::CameraPlugin)
+            .add_plugin(render::RenderPlugin)
             .add_plugin(selection::SelectionPlugin);
     }
 }
