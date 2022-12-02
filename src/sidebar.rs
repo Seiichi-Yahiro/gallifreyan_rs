@@ -1,7 +1,9 @@
+mod selection;
 mod text_converter;
 mod text_input;
 mod tree;
 
+use crate::sidebar::selection::{ui_selection, SelectionSystemParams};
 use crate::sidebar::text_converter::TextConverterPlugin;
 use crate::sidebar::text_input::{ui_text_input, TextInputSystemParams, TextState};
 use crate::sidebar::tree::{add_is_open_component, ui_tree, TreeSystemParams};
@@ -26,6 +28,7 @@ fn ui(
     mut egui_context: ResMut<EguiContext>,
     text_input_system_params: TextInputSystemParams,
     tree_system_params: TreeSystemParams,
+    selection_system_params: SelectionSystemParams,
     windows: Res<Windows>,
 ) {
     let window = windows.primary();
@@ -36,10 +39,20 @@ fn ui(
         .default_width(side_bar_width)
         .width_range(100.0..=side_bar_width)
         .show(egui_context.ctx_mut(), |ui| {
-            ui_text_input(ui, text_input_system_params);
+            egui::TopBottomPanel::top("text_input")
+                .frame(egui::Frame::none())
+                .show_inside(ui, |ui| {
+                    ui_text_input(ui, text_input_system_params);
+                });
 
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                ui_tree(ui, tree_system_params);
+            ui_selection(ui, selection_system_params);
+
+            egui::CentralPanel::default().show_inside(ui, |ui| {
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false; 2])
+                    .show(ui, |ui| {
+                        ui_tree(ui, tree_system_params);
+                    });
             });
         });
 }
