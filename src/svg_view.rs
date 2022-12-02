@@ -1,7 +1,7 @@
 mod camera;
 mod selection;
 
-use crate::svg_view::camera::SVGViewCamera;
+use crate::svg_view::camera::CenterView;
 use bevy::prelude::*;
 use bevy_egui::egui::epaint::Shadow;
 use bevy_egui::{egui, EguiContext};
@@ -26,7 +26,7 @@ pub enum ViewMode {
 fn ui(
     mut egui_context: ResMut<EguiContext>,
     mut view_mode: ResMut<ViewMode>,
-    mut camera_query: Query<(&mut OrthographicProjection, &mut Transform), With<SVGViewCamera>>,
+    mut center_view_events: EventWriter<CenterView>,
 ) {
     egui::Window::new("svg controls")
         .resizable(false)
@@ -59,10 +59,7 @@ fn ui(
                 }
 
                 if ui.button("⛶").on_hover_text("Center view").clicked() {
-                    let (mut orthographic_projection, mut transform) = camera_query.single_mut();
-
-                    orthographic_projection.scale = 1.0;
-                    transform.translation = Vec3::new(0.0, 0.0, transform.translation.z);
+                    center_view_events.send_default();
                 }
             });
         });

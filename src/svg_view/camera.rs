@@ -1,3 +1,4 @@
+use crate::image_types::SVG_SIZE;
 use crate::svg_view::ViewMode;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
@@ -8,12 +9,14 @@ pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup)
+        app.add_event::<CenterView>()
+            .add_startup_system(setup)
             .add_system(adjust_view_port.after(crate::sidebar::UiSystemLabel))
             .add_system_set(
                 SystemSet::new()
                     .after(super::ui)
                     .after(adjust_view_port)
+                    .with_system(center_view)
                     .with_system(camera_pan)
                     .with_system(camera_zoom),
             );
@@ -23,8 +26,12 @@ impl Plugin for CameraPlugin {
 #[derive(Component)]
 pub struct SVGViewCamera;
 
-fn setup(mut commands: Commands) {
+#[derive(Default)]
+pub struct CenterView;
+
+fn setup(mut commands: Commands, mut center_view_events: EventWriter<CenterView>) {
     commands.spawn((Camera2dBundle::default(), SVGViewCamera));
+    center_view_events.send_default();
 }
 
 #[derive(Deref, DerefMut)]
@@ -182,5 +189,26 @@ fn camera_zoom(
         transform.translation = (mouse_world_pos
             - mouse_normalized_screen_pos * projection_size * projection.scale)
             .extend(transform.translation.z);
+    }
+}
+
+fn center_view(
+    mut events: EventReader<CenterView>,
+    mut camera_query: Query<
+        (&Camera, &mut OrthographicProjection, &mut Transform),
+        With<SVGViewCamera>,
+    >,
+    windows: Res<Windows>,
+) {
+    if events.iter().last().is_some() {
+        let (camera, mut orthographic_projection, mut transform) = camera_query.single_mut();
+
+        let viewport_size = camera.logical_viewport_size().unwrap_or_else(|| {
+            let window = windows.primary();
+            Vec2::new(window.width(), window.height())
+        });
+
+        orthographic_projection.scale = SVG_SIZE / viewport_size.min_element();
+        transform.translation = Vec3::new(0.0, 0.0, transform.translation.z);
     }
 }

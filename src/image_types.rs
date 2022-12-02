@@ -2,12 +2,14 @@ use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::{DrawMode, FillMode, StrokeMode};
 
+pub const SVG_SIZE: f32 = 1000.0;
+
 #[derive(Debug, Copy, Clone, Component)]
 pub struct Sentence;
 
 impl Sentence {
     pub fn radius() -> f32 {
-        (1000.0 / 2.0) * 0.9
+        SVG_SIZE * 0.9 / 2.0
     }
 
     pub fn position_data() -> PositionData {
