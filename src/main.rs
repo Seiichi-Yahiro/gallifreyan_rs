@@ -1,6 +1,7 @@
 mod event_set;
 mod events;
 mod image_types;
+mod math;
 mod sidebar;
 mod svg_view;
 mod ui;
