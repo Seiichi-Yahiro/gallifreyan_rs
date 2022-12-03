@@ -56,6 +56,11 @@ pub fn ui_tree(ui: &mut egui::Ui, mut params: TreeSystemParams) {
                     }
                 }
             });
+
+        let free_space_response = ui.allocate_response(ui.available_size(), egui::Sense::click());
+        if free_space_response.clicked() {
+            params.select_event.send(Select(None));
+        }
     });
 }
 
