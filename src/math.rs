@@ -205,3 +205,50 @@ mod circle_circle_intersection_test {
         assert_eq!(result, expected);
     }
 }
+
+#[cfg(test)]
+mod angle_test {
+    use super::*;
+
+    #[test]
+    fn should_clamp_angles_closer_to_max() {
+        let result = clamp_angle(90.0, 270.0, 360.0);
+        assert_eq!(result, 360.0);
+    }
+
+    #[test]
+    fn should_clamp_angles_closer_to_min() {
+        let result = clamp_angle(270.0, 0.0, 90.0);
+        assert_eq!(result, 0.0);
+    }
+
+    #[test]
+    fn should_not_clamp_angles_in_range() {
+        let result = clamp_angle(180.0, 90.0, 270.0);
+        assert_eq!(result, 180.0);
+    }
+
+    #[test]
+    fn should_clamp_angles_closer_to_min_when_min_greater_than_max() {
+        let result = clamp_angle(260.0, 270.0, 90.0);
+        assert_eq!(result, 270.0);
+    }
+
+    #[test]
+    fn should_clamp_angles_closer_to_max_when_min_greater_than_max() {
+        let result = clamp_angle(100.0, 270.0, 90.0);
+        assert_eq!(result, 90.0);
+    }
+
+    #[test]
+    fn should_not_clamp_angles_in_range_when_min_greater_than_max_1() {
+        let result = clamp_angle(10.0, 270.0, 90.0);
+        assert_eq!(result, 10.0);
+    }
+
+    #[test]
+    fn should_not_clamp_angles_in_range_when_min_greater_than_max_2() {
+        let result = clamp_angle(350.0, 270.0, 90.0);
+        assert_eq!(result, 350.0);
+    }
+}
