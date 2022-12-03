@@ -88,6 +88,26 @@ impl Intersection<Circle> for Circle {
     }
 }
 
+pub fn clamp_angle(angle: f32, min: f32, max: f32) -> f32 {
+    if min > max && ((angle >= min && angle < 360.0) || (angle >= 0.0 && angle <= max)) {
+        angle
+    } else if angle < min || angle > max {
+        let min_diff = (angle - min).abs();
+        let min_distance = min_diff.min(360.0 - min_diff);
+
+        let max_diff = (angle - max).abs();
+        let max_distance = max_diff.min(360.0 - max_diff);
+
+        if min_distance < max_distance {
+            min
+        } else {
+            max
+        }
+    } else {
+        angle
+    }
+}
+
 #[cfg(test)]
 mod circle_circle_intersection_test {
     use super::*;

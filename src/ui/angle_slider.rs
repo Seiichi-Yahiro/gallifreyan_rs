@@ -1,3 +1,4 @@
+use crate::math;
 use bevy_egui::egui;
 use bevy_egui::egui::{NumExt, WidgetInfo};
 use std::ops::RangeInclusive;
@@ -46,7 +47,7 @@ impl<'a> AngleSlider<'a> {
     }
 
     fn clamp_angle(&mut self) {
-        *self.angle = clamp_angle(
+        *self.angle = math::clamp_angle(
             *self.angle,
             *self.angle_range.start(),
             *self.angle_range.end(),
@@ -55,8 +56,10 @@ impl<'a> AngleSlider<'a> {
 
     fn calculate_new_angle(&mut self, pointer_position_2d: egui::Pos2, rect: egui::Rect) {
         let pointer_vec = pointer_position_2d - rect.center();
-        let zero_degree_vec = egui::Vec2::new(0.0, 1.0);
-        let angle = angle_between(pointer_vec, zero_degree_vec).to_degrees();
+        let pointer_vec = bevy::math::Vec2::new(pointer_vec.x, pointer_vec.y);
+        let zero_degree_vec = bevy::math::Vec2::new(0.0, 1.0);
+
+        let angle = pointer_vec.angle_between(zero_degree_vec).to_degrees();
         let angle = if angle < 0.0 { angle + 360.0 } else { angle };
         *self.angle = angle;
         self.clamp_angle();
@@ -109,12 +112,12 @@ impl<'a> AngleSlider<'a> {
             egui::Stroke::new(rail_thickness, ui.visuals().widgets.inactive.bg_fill),
         );
 
-        let zero_degree = egui::Pos2::new(0.0, rail_radius);
+        let zero_degree = bevy::math::Vec2::new(0.0, rail_radius);
         let [current_angle, start_angle, end_angle] =
             [self.angle, self.angle_range.start(), self.angle_range.end()]
                 .map(|angle| -angle.to_radians())
-                .map(|angle| rotate(zero_degree, angle))
-                .map(|pos| pos + rect_center.to_vec2());
+                .map(|angle| bevy::math::Vec2::from_angle(angle).rotate(zero_degree))
+                .map(|pos| egui::Pos2::from(pos.to_array()) + rect_center.to_vec2());
 
         if (*self.angle_range.end() - *self.angle_range.start()).abs() < 360.0 {
             let angle_range_stroke = egui::Stroke::new(1.0, ui.visuals().widgets.inactive.bg_fill);
@@ -135,36 +138,5 @@ impl<'a> AngleSlider<'a> {
             handle_visuals.bg_fill,
             handle_visuals.fg_stroke,
         );
-    }
-}
-
-fn angle_between(v1: egui::Vec2, v2: egui::Vec2) -> f32 {
-    let det = v1.x * v2.y - v1.y * v2.x;
-    let dot = v1.dot(v2);
-    det.atan2(dot)
-}
-
-fn rotate(v: egui::Pos2, angle: f32) -> egui::Pos2 {
-    let (sin, cos) = angle.sin_cos();
-    egui::Pos2::new(v.x * cos - v.y * sin, v.x * sin + v.y * cos)
-}
-
-fn clamp_angle(angle: f32, min: f32, max: f32) -> f32 {
-    if min > max && ((angle >= min && angle < 360.0) || (angle >= 0.0 && angle <= max)) {
-        angle
-    } else if angle < min || angle > max {
-        let min_diff = (angle - min).abs();
-        let min_distance = min_diff.min(360.0 - min_diff);
-
-        let max_diff = (angle - max).abs();
-        let max_distance = max_diff.min(360.0 - max_diff);
-
-        if min_distance < max_distance {
-            min
-        } else {
-            max
-        }
-    } else {
-        angle
     }
 }
