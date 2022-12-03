@@ -39,20 +39,8 @@ fn ui(
         .default_width(side_bar_width)
         .width_range(100.0..=side_bar_width)
         .show(egui_context.ctx_mut(), |ui| {
-            egui::TopBottomPanel::top("text_input")
-                .frame(egui::Frame::none())
-                .show_inside(ui, |ui| {
-                    ui_text_input(ui, text_input_system_params);
-                });
-
+            ui_text_input(ui, text_input_system_params);
             ui_selection(ui, selection_system_params);
-
-            egui::CentralPanel::default().show_inside(ui, |ui| {
-                egui::ScrollArea::vertical()
-                    .auto_shrink([false; 2])
-                    .show(ui, |ui| {
-                        ui_tree(ui, tree_system_params);
-                    });
-            });
+            ui_tree(ui, tree_system_params);
         });
 }

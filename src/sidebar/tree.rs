@@ -29,25 +29,34 @@ pub struct TreeSystemParams<'w, 's> {
 }
 
 pub fn ui_tree(ui: &mut egui::Ui, mut params: TreeSystemParams) {
-    for (sentence_entity, sentence_text, words, sentence_line_slots, mut is_open) in
-        params.sentence_query.iter_mut()
-    {
-        let (header_response, _) =
-            CollapsingTreeItem::new(sentence_text, sentence_entity, &mut is_open).show(ui, |ui| {
-                ui_words(
-                    ui,
-                    words,
-                    &mut params.word_query,
-                    &mut params.letter_query,
-                    &mut params.select_event,
-                );
-                ui_line_slots(ui, sentence_line_slots, &mut params.select_event);
-            });
+    egui::CentralPanel::default().show_inside(ui, |ui| {
+        egui::ScrollArea::vertical()
+            .auto_shrink([false, true])
+            .show(ui, |ui| {
+                for (sentence_entity, sentence_text, words, sentence_line_slots, mut is_open) in
+                    params.sentence_query.iter_mut()
+                {
+                    let (header_response, _) =
+                        CollapsingTreeItem::new(sentence_text, sentence_entity, &mut is_open).show(
+                            ui,
+                            |ui| {
+                                ui_words(
+                                    ui,
+                                    words,
+                                    &mut params.word_query,
+                                    &mut params.letter_query,
+                                    &mut params.select_event,
+                                );
+                                ui_line_slots(ui, sentence_line_slots, &mut params.select_event);
+                            },
+                        );
 
-        if header_response.clicked() {
-            params.select_event.send(Select(Some(sentence_entity)));
-        }
-    }
+                    if header_response.clicked() {
+                        params.select_event.send(Select(Some(sentence_entity)));
+                    }
+                }
+            });
+    });
 }
 
 fn ui_words(
