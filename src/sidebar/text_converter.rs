@@ -17,16 +17,41 @@ lazy_static! {
         .unwrap();
 }
 
+#[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
+enum TextConverterStage {
+    Sentence,
+    Word,
+    Letter,
+    Decoration,
+}
+
 pub struct TextConverterPlugin;
 
 impl Plugin for TextConverterPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<SetText>()
-            .add_system(convert_sentence)
-            .add_system(convert_words.after(convert_sentence))
-            .add_system(convert_letters.after(convert_words))
-            .add_system(convert_dots.after(convert_letters))
-            .add_system(convert_line_slots.after(convert_letters));
+            .add_stage_before(
+                CoreStage::Update,
+                TextConverterStage::Sentence,
+                SystemStage::single(convert_sentence),
+            )
+            .add_stage_after(
+                TextConverterStage::Sentence,
+                TextConverterStage::Word,
+                SystemStage::single(convert_words),
+            )
+            .add_stage_after(
+                TextConverterStage::Word,
+                TextConverterStage::Letter,
+                SystemStage::single(convert_letters),
+            )
+            .add_stage_after(
+                TextConverterStage::Letter,
+                TextConverterStage::Decoration,
+                SystemStage::parallel()
+                    .with_system(convert_dots)
+                    .with_system(convert_line_slots),
+            );
     }
 }
 
