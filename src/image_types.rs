@@ -475,6 +475,6 @@ impl Decoration {
     }
 
     pub fn line_points_outside(&self) -> bool {
-        *self != Decoration::LineInside
+        *self == Decoration::LineOutside
     }
 }
