@@ -392,7 +392,7 @@ impl TryFrom<&str> for Placement {
     type Error = String;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let placement = match value {
+        let placement = match value.to_ascii_lowercase().as_str() {
             "b" | "ch" | "d" | "g" | "h" | "f" => Placement::DeepCut,
             "j" | "ph" | "k" | "l" | "c" | "n" | "p" | "m" => Placement::Inside,
             "t" | "wh" | "sh" | "r" | "v" | "w" | "s" => Placement::ShallowCut,
@@ -430,7 +430,7 @@ impl TryFrom<&str> for Decoration {
     type Error = String;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let decoration = match value {
+        let decoration = match value.to_ascii_lowercase().as_str() {
             "b" | "j" | "t" | "th" => Decoration::None,
             "ph" | "wh" | "gh" => Decoration::SingleDot,
             "ch" | "k" | "sh" | "y" => Decoration::DoubleDot,
