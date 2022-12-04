@@ -33,7 +33,7 @@ impl<'a, T: Hash + Debug> CollapsingTreeItem<'a, T> {
             if self.is_selected {
                 ui.painter().rect_filled(
                     ui.max_rect(),
-                    egui::Rounding::none(),
+                    ui.visuals().widgets.active.rounding,
                     ui.style().visuals.selection.bg_fill,
                 );
             }
