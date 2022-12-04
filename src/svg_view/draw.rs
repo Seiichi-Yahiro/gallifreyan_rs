@@ -7,24 +7,9 @@ pub struct RenderPlugin;
 
 impl Plugin for RenderPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(update_radius)
-            .add_system(update_position_data)
-            .add_system(update_line_slot.after(update_position_data));
-    }
-}
-
-fn update_radius(mut query: Query<(&mut Path, &Radius), Changed<Radius>>) {
-    for (mut path, radius) in query.iter_mut() {
-        let mut path_builder = Builder::new();
-
-        let circle = shapes::Circle {
-            radius: **radius,
-            center: Default::default(),
-        };
-
-        circle.add_geometry(&mut path_builder);
-
-        *path = Path(path_builder.build());
+        app.add_system(update_position_data)
+            .add_system(draw_circle)
+            .add_system(draw_line_slot.after(update_position_data));
     }
 }
 
@@ -45,7 +30,22 @@ fn update_position_data(mut query: Query<(&mut Transform, &PositionData), Change
     }
 }
 
-fn update_line_slot(
+fn draw_circle(mut query: Query<(&mut Path, &Radius), Changed<Radius>>) {
+    for (mut path, radius) in query.iter_mut() {
+        let mut path_builder = Builder::new();
+
+        let circle = shapes::Circle {
+            radius: **radius,
+            center: Default::default(),
+        };
+
+        circle.add_geometry(&mut path_builder);
+
+        *path = Path(path_builder.build());
+    }
+}
+
+fn draw_line_slot(
     mut query: Query<(&mut Path, &Transform), (With<LineSlot>, Changed<PositionData>)>,
 ) {
     for (mut path, transform) in query.iter_mut() {
