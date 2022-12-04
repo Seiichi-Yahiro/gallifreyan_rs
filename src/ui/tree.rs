@@ -7,6 +7,7 @@ pub struct CollapsingTreeItem<'a, T: Hash + Debug> {
     id: T,
     text: &'a str,
     open: Option<&'a mut bool>,
+    is_selected: bool,
     empty: bool,
 }
 
@@ -29,6 +30,14 @@ impl<'a, T: Hash + Debug> CollapsingTreeItem<'a, T> {
         }
 
         let header_response = ui.horizontal(|ui| {
+            if self.is_selected {
+                ui.painter().rect_filled(
+                    ui.max_rect(),
+                    egui::Rounding::none(),
+                    ui.style().visuals.selection.bg_fill,
+                );
+            }
+
             if self.empty {
                 let size = egui::vec2(ui.spacing().indent, ui.spacing().icon_width);
                 let (_id, rect) = ui.allocate_space(size);
@@ -62,20 +71,22 @@ impl<'a, T: Hash + Debug> CollapsingTreeItem<'a, T> {
 }
 
 impl<'a, T: Hash + Debug> CollapsingTreeItem<'a, T> {
-    pub fn new(text: &'a str, id: T, open: &'a mut bool) -> Self {
+    pub fn new(text: &'a str, id: T, open: &'a mut bool, is_selected: bool) -> Self {
         Self {
             id,
             text,
             open: Some(open),
+            is_selected,
             empty: false,
         }
     }
 
-    pub fn new_empty(ui: &mut egui::Ui, text: &'a str, id: T) -> egui::Response {
+    pub fn new_empty(ui: &mut egui::Ui, text: &'a str, id: T, is_selected: bool) -> egui::Response {
         let (header_response, _) = Self {
             id,
             text,
             open: None,
+            is_selected,
             empty: true,
         }
         .show(ui, |_| {});
