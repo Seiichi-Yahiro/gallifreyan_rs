@@ -10,7 +10,7 @@ pub struct AngleSlider<'a> {
 
 impl<'a> egui::Widget for AngleSlider<'a> {
     fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
-        let size = egui::Vec2::splat(ui.spacing().slider_width);
+        let size = egui::Vec2::splat(self.slider_width(ui) + self.handle_radius(ui) * 2.0);
         let mut response = ui.allocate_response(size, egui::Sense::click_and_drag());
         let rect = response.rect;
 
@@ -87,20 +87,8 @@ impl<'a> AngleSlider<'a> {
     fn paint(&self, ui: &mut egui::Ui, response: &egui::Response) {
         let rect_center = response.rect.center();
 
-        // normal slider and rect width
-        let slider_width = ui.spacing().slider_width;
-
-        let slider_rect_height = ui
-            .text_style_height(&egui::TextStyle::Body)
-            .at_least(ui.spacing().interact_size.y);
-
-        // normal slider height / 2.0
-        let slider_radius = ui
-            .painter()
-            .round_to_pixel((slider_rect_height / 4.0).at_least(2.0));
-
-        // normal slider height
-        let slider_height = 2.0 * slider_radius;
+        let slider_width = self.slider_width(ui);
+        let slider_height = self.slider_height(ui);
 
         let rail_position = rect_center;
         let rail_radius = (slider_width - slider_height) / 2.0;
@@ -129,7 +117,7 @@ impl<'a> AngleSlider<'a> {
         }
 
         let handle_position = current_angle;
-        let handle_radius = slider_rect_height / 2.5;
+        let handle_radius = self.handle_radius(ui);
         let handle_visuals = ui.style().interact(response);
 
         ui.painter().circle(
@@ -138,5 +126,30 @@ impl<'a> AngleSlider<'a> {
             handle_visuals.bg_fill,
             handle_visuals.fg_stroke,
         );
+    }
+
+    // normal slider and rect width
+    fn slider_width(&self, ui: &egui::Ui) -> f32 {
+        ui.spacing().slider_width
+    }
+
+    // normal slider height / 2.0
+    fn slider_radius(&self, ui: &egui::Ui) -> f32 {
+        ui.painter()
+            .round_to_pixel((self.slider_rect_height(ui) / 4.0).at_least(2.0))
+    }
+
+    // normal slider height
+    fn slider_height(&self, ui: &egui::Ui) -> f32 {
+        2.0 * self.slider_radius(ui)
+    }
+
+    fn slider_rect_height(&self, ui: &egui::Ui) -> f32 {
+        ui.text_style_height(&egui::TextStyle::Body)
+            .at_least(ui.spacing().interact_size.y)
+    }
+
+    fn handle_radius(&self, ui: &egui::Ui) -> f32 {
+        self.slider_rect_height(ui) / 2.5
     }
 }
