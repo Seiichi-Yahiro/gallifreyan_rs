@@ -1,4 +1,5 @@
 use bevy::math::{Quat, Vec2};
+use std::cmp::Ordering;
 
 pub trait Intersection<T> {
     fn intersection(&self, other: &T) -> IntersectionResult;
@@ -106,6 +107,55 @@ pub fn clamp_angle(angle: f32, min: f32, max: f32) -> f32 {
     } else {
         angle
     }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Angle(f32);
+
+impl Angle {
+    pub fn new_degrees(angle: f32) -> Self {
+        Self(adjust_angle(angle))
+    }
+
+    pub fn new_radian(angle: f32) -> Self {
+        Self(adjust_angle(angle.to_degrees()))
+    }
+
+    pub fn to_radian(self) -> f32 {
+        self.0.to_radians()
+    }
+
+    pub fn to_degrees(self) -> f32 {
+        self.0
+    }
+}
+
+impl PartialEq for Angle {
+    fn eq(&self, other: &Self) -> bool {
+        self.to_degrees() == other.to_degrees()
+    }
+}
+
+impl PartialOrd for Angle {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.to_degrees().partial_cmp(&other.to_degrees())
+    }
+}
+
+pub fn angle_from_position(position: Vec2) -> Angle {
+    Angle::new_radian(-position.angle_between(Vec2::NEG_Y))
+}
+
+fn adjust_angle(mut angle: f32) -> f32 {
+    while angle > 360.0 {
+        angle -= 360.0;
+    }
+
+    while angle < 0.0 {
+        angle += 360.0;
+    }
+
+    angle
 }
 
 #[cfg(test)]

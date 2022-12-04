@@ -1,4 +1,4 @@
-use crate::events::{Select, Selection};
+use crate::events::Selection;
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::DrawMode;
 
