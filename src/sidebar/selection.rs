@@ -1,5 +1,6 @@
 use crate::events::Selection;
 use crate::image_types::{PositionData, Radius};
+use crate::math::Angle;
 use crate::ui::angle_slider::AngleSlider;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
@@ -61,12 +62,12 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                         ui.spacing_mut().slider_width /= 2.0;
 
                         ui.label("Angle");
-                        let mut new_angle = position_data.angle;
+                        let mut new_angle = position_data.angle.as_degrees();
                         let angle = AngleSlider::new(&mut new_angle, 0.0..=360.0); // TODO angle constraints
                         ui.add(angle);
 
-                        if new_angle != position_data.angle {
-                            position_data.angle = new_angle;
+                        if new_angle != position_data.angle.as_degrees() {
+                            position_data.angle = Angle::new_degree(new_angle);
                         }
 
                         ui.spacing_mut().slider_width = original_slider_width;

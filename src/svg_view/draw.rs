@@ -22,7 +22,7 @@ impl Plugin for RenderPlugin {
 fn update_position_data(mut query: Query<(&mut Transform, &PositionData), Changed<PositionData>>) {
     for (mut transform, position_data) in query.iter_mut() {
         let translation = Vec3::new(0.0, -position_data.distance, 0.0);
-        let rotation = Quat::from_rotation_z(position_data.angle.to_radians());
+        let rotation = Quat::from_rotation_z(position_data.angle.as_radians());
 
         match position_data.angle_placement {
             AnglePlacement::Absolute => {
@@ -129,8 +129,8 @@ fn generate_word_path(word_radius: f32, intersections: Vec<Vec2>) -> Path {
             .skip(1)
             .step_by(2)
             .map(|(start, end)| {
-                let start_angle = angle_from_position(start).to_degrees();
-                let end_angle = angle_from_position(end).to_degrees();
+                let start_angle = angle_from_position(start).as_degrees();
+                let end_angle = angle_from_position(end).as_degrees();
 
                 let is_large_arc = (end_angle - start_angle).abs() > 180.0;
                 let large_arc_flag = i32::from(!(is_large_arc ^ (start_angle < end_angle)));

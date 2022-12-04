@@ -109,11 +109,11 @@ pub fn clamp_angle(angle: f32, min: f32, max: f32) -> f32 {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone)]
 pub struct Angle(f32);
 
 impl Angle {
-    pub fn new_degrees(angle: f32) -> Self {
+    pub fn new_degree(angle: f32) -> Self {
         Self(adjust_angle(angle))
     }
 
@@ -121,24 +121,24 @@ impl Angle {
         Self(adjust_angle(angle.to_degrees()))
     }
 
-    pub fn to_radian(self) -> f32 {
+    pub fn as_radians(self) -> f32 {
         self.0.to_radians()
     }
 
-    pub fn to_degrees(self) -> f32 {
+    pub fn as_degrees(self) -> f32 {
         self.0
     }
 }
 
 impl PartialEq for Angle {
     fn eq(&self, other: &Self) -> bool {
-        self.to_degrees() == other.to_degrees()
+        self.as_degrees() == other.as_degrees()
     }
 }
 
 impl PartialOrd for Angle {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.to_degrees().partial_cmp(&other.to_degrees())
+        self.as_degrees().partial_cmp(&other.as_degrees())
     }
 }
 

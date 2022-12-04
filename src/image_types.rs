@@ -1,3 +1,4 @@
+use crate::math::Angle;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::{DrawMode, FillMode, StrokeMode};
@@ -14,7 +15,7 @@ impl Sentence {
 
     pub fn position_data() -> PositionData {
         PositionData {
-            angle: 0.0,
+            angle: Angle::new_degree(0.0),
             distance: 0.0,
             angle_placement: AnglePlacement::Absolute,
         }
@@ -40,7 +41,7 @@ impl Word {
             } else {
                 0.0
             },
-            angle: index as f32 * (360.0 / number_of_words as f32),
+            angle: Angle::new_degree(index as f32 * (360.0 / number_of_words as f32)),
             angle_placement: AnglePlacement::Absolute,
         }
     }
@@ -90,7 +91,7 @@ impl Letter {
 
                 PositionData {
                     distance,
-                    angle,
+                    angle: Angle::new_degree(angle),
                     angle_placement: AnglePlacement::Relative,
                 }
             }
@@ -117,7 +118,7 @@ impl Letter {
 
                 PositionData {
                     distance,
-                    angle,
+                    angle: Angle::new_degree(angle),
                     angle_placement: AnglePlacement::Relative,
                 }
             }
@@ -151,7 +152,7 @@ impl Dot {
 
         PositionData {
             distance,
-            angle,
+            angle: Angle::new_degree(angle),
             angle_placement: AnglePlacement::Absolute,
         }
     }
@@ -179,7 +180,7 @@ impl LineSlot {
 
         PositionData {
             distance,
-            angle,
+            angle: Angle::new_degree(angle),
             angle_placement: AnglePlacement::Absolute,
         }
     }
@@ -362,7 +363,7 @@ pub struct Radius(pub f32);
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Component)]
 pub struct PositionData {
-    pub angle: f32,
+    pub angle: Angle,
     pub distance: f32,
     pub angle_placement: AnglePlacement,
 }
