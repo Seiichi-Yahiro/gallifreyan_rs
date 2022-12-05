@@ -1,9 +1,25 @@
 use crate::math::Angle;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
-use bevy_prototype_lyon::prelude::{DrawMode, FillMode, StrokeMode};
+use bevy_prototype_lyon::prelude::{
+    DrawMode, FillMode, FillOptions, LineCap, LineJoin, StrokeMode, StrokeOptions,
+};
 
 pub const SVG_SIZE: f32 = 1000.0;
+const STROKE_OPTIONS: StrokeOptions = StrokeOptions::DEFAULT
+    .with_line_cap(LineCap::Round)
+    .with_line_join(LineJoin::Round)
+    .with_line_width(1.0);
+
+const STROKE_MODE: StrokeMode = StrokeMode {
+    options: STROKE_OPTIONS,
+    color: Color::BLACK,
+};
+
+const FILL_MODE: FillMode = FillMode {
+    options: FillOptions::DEFAULT,
+    color: Color::BLACK,
+};
 
 #[derive(Debug, Copy, Clone, Component)]
 pub struct Sentence;
@@ -192,8 +208,6 @@ pub struct CircleChildren(pub Vec<Entity>);
 #[derive(Default, Component, Deref, DerefMut)]
 pub struct LineSlotChildren(pub Vec<Entity>);
 
-const LINE_WIDTH: f32 = 1.0;
-
 #[derive(Bundle)]
 pub struct SentenceBundle {
     pub sentence: Sentence,
@@ -215,7 +229,7 @@ impl SentenceBundle {
             words: CircleChildren::default(),
             line_slots: LineSlotChildren::default(),
             shape: ShapeBundle {
-                mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                mode: DrawMode::Stroke(STROKE_MODE),
                 transform: Transform::from_xyz(0.0, 0.0, 0.0),
                 ..default()
             },
@@ -244,7 +258,7 @@ impl WordBundle {
             letters: CircleChildren::default(),
             line_slots: LineSlotChildren::default(),
             shape: ShapeBundle {
-                mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                mode: DrawMode::Stroke(STROKE_MODE),
                 transform: Transform::from_xyz(0.0, 0.0, 0.1),
                 ..default()
             },
@@ -284,7 +298,7 @@ impl LetterBundle {
             dots: Default::default(),
             text: Text(letter_text),
             shape: ShapeBundle {
-                mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                mode: DrawMode::Stroke(STROKE_MODE),
                 transform: Transform::from_xyz(0.0, 0.0, 0.2),
                 ..default()
             },
@@ -308,7 +322,7 @@ impl DotBundle {
             radius: Radius(Dot::radius(consonant_radius)),
             position_data: Dot::position_data(consonant_radius, number_of_dots, index),
             shape: ShapeBundle {
-                mode: DrawMode::Fill(FillMode::color(Color::BLACK)),
+                mode: DrawMode::Fill(FILL_MODE),
                 transform: Transform::from_xyz(0.0, 0.0, 0.3),
                 ..default()
             },
@@ -329,7 +343,7 @@ impl Default for LineSlotBundle {
             line_slot: LineSlot,
             position_data: PositionData::default(),
             shape: ShapeBundle {
-                mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                mode: DrawMode::Stroke(STROKE_MODE),
                 transform: Transform::from_xyz(0.0, 0.0, 0.4),
                 ..default()
             },
@@ -353,7 +367,7 @@ impl LineSlotBundle {
                 point_outside,
             ),
             shape: ShapeBundle {
-                mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                mode: DrawMode::Stroke(STROKE_MODE),
                 ..default()
             },
         }
