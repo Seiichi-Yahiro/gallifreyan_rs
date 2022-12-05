@@ -29,44 +29,69 @@ impl<'a, T: Hash + Debug> CollapsingTreeItem<'a, T> {
             collapsing_state.set_open(**open);
         }
 
-        let header_response = ui.horizontal(|ui| {
-            if self.is_selected {
-                ui.painter().rect_filled(
-                    ui.max_rect(),
-                    ui.visuals().widgets.active.rounding,
-                    ui.style().visuals.selection.bg_fill,
-                );
-            }
-
-            if self.empty {
-                let size = egui::vec2(ui.spacing().indent, ui.spacing().icon_width);
-                let (_id, rect) = ui.allocate_space(size);
-
-                let visuals = ui.style().noninteractive();
-                let fill_color = visuals.fg_stroke.color;
-
-                ui.painter().circle_filled(rect.center(), 2.0, fill_color);
+        let frame = egui::Frame {
+            inner_margin: Default::default(),
+            outer_margin: Default::default(),
+            rounding: ui.visuals().widgets.hovered.rounding,
+            shadow: Default::default(),
+            fill: if self.is_selected {
+                ui.visuals().selection.bg_fill
             } else {
-                let toggle_button_response =
-                    collapsing_state.show_toggle_button(ui, paint_default_icon);
+                Default::default()
+            },
+            stroke: Default::default(),
+        };
 
-                if toggle_button_response.clicked() {
-                    if let Some(open) = self.open.as_mut() {
-                        **open = !**open;
+        let header_response = frame.show(ui, |ui| {
+            ui.horizontal(|ui| {
+                if self.empty {
+                    let size = egui::vec2(ui.spacing().indent, ui.spacing().icon_width);
+                    let (_id, rect) = ui.allocate_space(size);
+
+                    let visuals = ui.style().noninteractive();
+                    let fill_color = visuals.fg_stroke.color;
+
+                    ui.painter().circle_filled(rect.center(), 2.0, fill_color);
+                } else {
+                    let toggle_button_response =
+                        collapsing_state.show_toggle_button(ui, paint_default_icon);
+
+                    if toggle_button_response.clicked() {
+                        if let Some(open) = self.open.as_mut() {
+                            **open = !**open;
+                        }
                     }
-                }
-            };
+                };
 
-            let tree_item = TreeItem::new(self.text);
-            ui.add(tree_item)
+                let galley = egui::WidgetText::from(self.text).into_galley(
+                    ui,
+                    Some(true),
+                    ui.available_width(),
+                    egui::TextStyle::Button,
+                );
+
+                let header_text_response = ui.allocate_response(
+                    egui::Vec2::new(ui.available_width(), galley.size().y),
+                    egui::Sense::click(),
+                );
+
+                ui.allocate_ui_at_rect(header_text_response.rect, |ui| {
+                    let visuals = ui.style().interact(&header_text_response);
+                    let pos = header_text_response.rect.left_top();
+                    galley.paint_with_visuals(ui.painter(), pos, visuals);
+                });
+
+                header_text_response
+            })
+            .inner
         });
 
-        let tree_item_response = header_response.inner;
+        let header_text_response = header_response.inner;
 
         let body_response =
             collapsing_state.show_body_indented(&header_response.response, ui, add_body);
 
-        (tree_item_response, body_response)
+        (header_text_response, body_response)
     }
 }
 
@@ -92,22 +117,5 @@ impl<'a, T: Hash + Debug> CollapsingTreeItem<'a, T> {
         .show(ui, |_| {});
 
         header_response
-    }
-}
-
-pub struct TreeItem<'a> {
-    text: &'a str,
-}
-
-impl<'a> TreeItem<'a> {
-    pub fn new(text: &'a str) -> Self {
-        Self { text }
-    }
-}
-
-impl<'a> egui::Widget for TreeItem<'a> {
-    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
-        let button = egui::Button::new(self.text).frame(false).wrap(true);
-        ui.add(button)
     }
 }
