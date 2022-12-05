@@ -3,7 +3,7 @@ use bevy_egui::egui::collapsing_header::paint_default_icon;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-pub struct CollapsingTreeItem<'a, T: Hash + Debug> {
+pub struct CollapsingTreeItem<'a, T: Copy + Hash + Debug> {
     id: T,
     text: &'a str,
     open: Option<&'a mut bool>,
@@ -11,23 +11,30 @@ pub struct CollapsingTreeItem<'a, T: Hash + Debug> {
     empty: bool,
 }
 
-impl<'a, T: Hash + Debug> CollapsingTreeItem<'a, T> {
+impl<'a, T: Copy + Hash + Debug> CollapsingTreeItem<'a, T> {
     pub fn show<R>(
         mut self,
         ui: &mut egui::Ui,
         add_body: impl FnOnce(&mut egui::Ui) -> R,
     ) -> (egui::Response, Option<egui::InnerResponse<R>>) {
-        let ui_id = ui.make_persistent_id(self.id);
+        let collapsing_id = ui.make_persistent_id(self.id);
 
         let mut collapsing_state = egui::collapsing_header::CollapsingState::load_with_default_open(
             ui.ctx(),
-            ui_id,
+            collapsing_id,
             false,
         );
 
         if let Some(open) = self.open.as_ref() {
             collapsing_state.set_open(**open);
         }
+
+        let hover_id = ui.make_persistent_id(format!("{:?}_hover", self.id));
+        let is_hovered = ui
+            .ctx()
+            .data()
+            .get_temp::<bool>(hover_id)
+            .unwrap_or_default();
 
         let frame = egui::Frame {
             inner_margin: Default::default(),
@@ -36,6 +43,8 @@ impl<'a, T: Hash + Debug> CollapsingTreeItem<'a, T> {
             shadow: Default::default(),
             fill: if self.is_selected {
                 ui.visuals().selection.bg_fill
+            } else if is_hovered {
+                ui.visuals().widgets.hovered.bg_fill
             } else {
                 Default::default()
             },
@@ -63,15 +72,17 @@ impl<'a, T: Hash + Debug> CollapsingTreeItem<'a, T> {
                     }
                 };
 
+                let available_width = ui.available_width();
+
                 let galley = egui::WidgetText::from(self.text).into_galley(
                     ui,
                     Some(true),
-                    ui.available_width(),
+                    available_width,
                     egui::TextStyle::Button,
                 );
 
                 let header_text_response = ui.allocate_response(
-                    egui::Vec2::new(ui.available_width(), galley.size().y),
+                    egui::Vec2::new(available_width, galley.size().y),
                     egui::Sense::click(),
                 );
 
@@ -86,6 +97,10 @@ impl<'a, T: Hash + Debug> CollapsingTreeItem<'a, T> {
             .inner
         });
 
+        ui.ctx()
+            .data()
+            .insert_temp(hover_id, header_response.response.hovered());
+
         let header_text_response = header_response.inner;
 
         let body_response =
@@ -95,7 +110,7 @@ impl<'a, T: Hash + Debug> CollapsingTreeItem<'a, T> {
     }
 }
 
-impl<'a, T: Hash + Debug> CollapsingTreeItem<'a, T> {
+impl<'a, T: Copy + Hash + Debug> CollapsingTreeItem<'a, T> {
     pub fn new(text: &'a str, id: T, open: &'a mut bool, is_selected: bool) -> Self {
         Self {
             id,
