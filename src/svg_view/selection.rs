@@ -1,5 +1,6 @@
 use crate::events::{Select, Selection};
 use crate::image_types::Radius;
+use crate::style::Styles;
 use crate::svg_view::camera::SVGViewCamera;
 use crate::svg_view::ViewMode;
 use bevy::prelude::*;
@@ -19,15 +20,21 @@ fn set_select_color(
     mut draw_mode_query: Query<&mut DrawMode>,
     children_query: Query<&Children, With<DrawMode>>,
     selection: Res<Selection>,
+    styles: Res<Styles>,
 ) {
     if !selection.is_changed() {
         return;
     }
 
-    reset_select_color(&mut draw_mode_query);
+    reset_select_color(&mut draw_mode_query, styles.svg_color);
 
     if let Some(selected_entity) = **selection {
-        set_select_color_recursive(selected_entity, &mut draw_mode_query, &children_query);
+        set_select_color_recursive(
+            selected_entity,
+            &mut draw_mode_query,
+            &children_query,
+            styles.selection_color,
+        );
     }
 }
 
@@ -35,15 +42,16 @@ fn set_select_color_recursive(
     entity: Entity,
     draw_mode_query: &mut Query<&mut DrawMode>,
     children_query: &Query<&Children, With<DrawMode>>,
+    color: Color,
 ) {
     if let Ok(mut draw_mode) = draw_mode_query.get_mut(entity) {
         *draw_mode = match *draw_mode {
             DrawMode::Fill(mut fill_mode) => {
-                fill_mode.color = Color::rgb_u8(144, 202, 249);
+                fill_mode.color = color;
                 DrawMode::Fill(fill_mode)
             }
             DrawMode::Stroke(mut stroke_mode) => {
-                stroke_mode.color = Color::rgb_u8(144, 202, 249);
+                stroke_mode.color = color;
                 DrawMode::Stroke(stroke_mode)
             }
             DrawMode::Outlined { .. } => *draw_mode,
@@ -54,20 +62,20 @@ fn set_select_color_recursive(
 
     if let Ok(children) = children_query.get(entity) {
         for child in children {
-            set_select_color_recursive(*child, draw_mode_query, children_query);
+            set_select_color_recursive(*child, draw_mode_query, children_query, color);
         }
     }
 }
 
-fn reset_select_color(draw_mode_query: &mut Query<&mut DrawMode>) {
+fn reset_select_color(draw_mode_query: &mut Query<&mut DrawMode>, color: Color) {
     for mut draw_mode in draw_mode_query.iter_mut() {
         *draw_mode = match *draw_mode {
             DrawMode::Fill(mut fill_mode) => {
-                fill_mode.color = Color::BLACK;
+                fill_mode.color = color;
                 DrawMode::Fill(fill_mode)
             }
             DrawMode::Stroke(mut stroke_mode) => {
-                stroke_mode.color = Color::BLACK;
+                stroke_mode.color = color;
                 DrawMode::Stroke(stroke_mode)
             }
             DrawMode::Outlined { .. } => *draw_mode,

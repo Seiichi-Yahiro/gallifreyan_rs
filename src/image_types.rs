@@ -1,4 +1,5 @@
 use crate::math::Angle;
+use crate::style::SVG_COLOR;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::{
@@ -13,12 +14,12 @@ const STROKE_OPTIONS: StrokeOptions = StrokeOptions::DEFAULT
 
 const STROKE_MODE: StrokeMode = StrokeMode {
     options: STROKE_OPTIONS,
-    color: Color::BLACK,
+    color: SVG_COLOR,
 };
 
 const FILL_MODE: FillMode = FillMode {
     options: FillOptions::DEFAULT,
-    color: Color::BLACK,
+    color: SVG_COLOR,
 };
 
 #[derive(Debug, Copy, Clone, Component)]
