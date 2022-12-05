@@ -216,6 +216,7 @@ impl SentenceBundle {
             line_slots: LineSlotChildren::default(),
             shape: ShapeBundle {
                 mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                transform: Transform::from_xyz(0.0, 0.0, 0.0),
                 ..default()
             },
         }
@@ -244,6 +245,7 @@ impl WordBundle {
             line_slots: LineSlotChildren::default(),
             shape: ShapeBundle {
                 mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                transform: Transform::from_xyz(0.0, 0.0, 0.1),
                 ..default()
             },
         }
@@ -283,6 +285,7 @@ impl LetterBundle {
             text: Text(letter_text),
             shape: ShapeBundle {
                 mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                transform: Transform::from_xyz(0.0, 0.0, 0.2),
                 ..default()
             },
             line_slots: Default::default(),
@@ -306,6 +309,7 @@ impl DotBundle {
             position_data: Dot::position_data(consonant_radius, number_of_dots, index),
             shape: ShapeBundle {
                 mode: DrawMode::Fill(FillMode::color(Color::BLACK)),
+                transform: Transform::from_xyz(0.0, 0.0, 0.3),
                 ..default()
             },
         }
@@ -326,6 +330,7 @@ impl Default for LineSlotBundle {
             position_data: PositionData::default(),
             shape: ShapeBundle {
                 mode: DrawMode::Stroke(StrokeMode::new(Color::BLACK, LINE_WIDTH)),
+                transform: Transform::from_xyz(0.0, 0.0, 0.4),
                 ..default()
             },
         }

@@ -21,7 +21,7 @@ impl Plugin for RenderPlugin {
 
 fn update_position_data(mut query: Query<(&mut Transform, &PositionData), Changed<PositionData>>) {
     for (mut transform, position_data) in query.iter_mut() {
-        let translation = Vec3::new(0.0, -position_data.distance, 0.0);
+        let translation = Vec3::new(0.0, -position_data.distance, transform.translation.z);
         let rotation = Quat::from_rotation_z(position_data.angle.as_radians());
 
         match position_data.angle_placement {
