@@ -13,11 +13,16 @@ impl Plugin for CameraPlugin {
             .add_startup_system(setup)
             .add_system(adjust_view_port.after(crate::sidebar::UiSystemLabel))
             .add_system_set(
+                SystemSet::on_update(ViewMode::Pan)
+                    .with_system(camera_pan)
+                    .after(super::ui)
+                    .after(adjust_view_port),
+            )
+            .add_system_set(
                 SystemSet::new()
                     .after(super::ui)
                     .after(adjust_view_port)
                     .with_system(center_view)
-                    .with_system(camera_pan)
                     .with_system(camera_zoom),
             );
     }
@@ -82,13 +87,8 @@ fn camera_pan(
     windows: Res<Windows>,
     mut last_cursor_pos: Local<Option<Vec2>>,
     mut is_panning: Local<bool>,
-    view_mode: Res<ViewMode>,
     mut egui_context: ResMut<EguiContext>,
 ) {
-    if *view_mode == ViewMode::Select {
-        return;
-    }
-
     if mouse_button_input.just_pressed(MouseButton::Left) {
         let ctx = egui_context.ctx_mut();
         *is_panning =

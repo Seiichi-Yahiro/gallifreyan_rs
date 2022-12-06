@@ -11,8 +11,11 @@ pub struct SelectionPlugin;
 
 impl Plugin for SelectionPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(set_select_color)
-            .add_system(select_on_click.after(super::ui));
+        app.add_system(set_select_color).add_system_set(
+            SystemSet::on_update(ViewMode::Select)
+                .with_system(select_on_click)
+                .after(super::ui),
+        );
     }
 }
 
@@ -85,14 +88,13 @@ fn reset_select_color(draw_mode_query: &mut Query<&mut DrawMode>, color: Color) 
 
 fn select_on_click(
     mut events: EventWriter<Select>,
-    view_mode: Res<ViewMode>,
     mut egui_context: ResMut<EguiContext>,
     mouse_button_input: Res<Input<MouseButton>>,
     windows: Res<Windows>,
     camera_query: Query<(&Camera, &GlobalTransform), With<SVGViewCamera>>,
     circle_query: Query<(Entity, &Radius, &GlobalTransform)>,
 ) {
-    if *view_mode != ViewMode::Select || egui_context.ctx_mut().is_pointer_over_area() {
+    if egui_context.ctx_mut().is_pointer_over_area() {
         return;
     }
 

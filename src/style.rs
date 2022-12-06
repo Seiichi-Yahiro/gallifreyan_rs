@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_egui::egui::Color32;
-use bevy_egui::{egui, EguiContext};
+use bevy_egui::EguiContext;
 
 pub struct StylePlugin;
 

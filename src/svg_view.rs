@@ -11,7 +11,7 @@ pub struct SVGViewPlugin;
 
 impl Plugin for SVGViewPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ViewMode::Select)
+        app.add_state(ViewMode::Select)
             .add_system(ui.after(crate::sidebar::UiSystemLabel))
             .add_plugin(camera::CameraPlugin)
             .add_plugin(draw::RenderPlugin)
@@ -19,7 +19,7 @@ impl Plugin for SVGViewPlugin {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Resource)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum ViewMode {
     Select,
     Pan,
@@ -27,7 +27,7 @@ pub enum ViewMode {
 
 fn ui(
     mut egui_context: ResMut<EguiContext>,
-    mut view_mode: ResMut<ViewMode>,
+    mut view_mode: ResMut<State<ViewMode>>,
     mut center_view_events: EventWriter<CenterView>,
 ) {
     egui::Window::new("svg controls")
@@ -44,20 +44,22 @@ fn ui(
         .anchor(egui::Align2::LEFT_TOP, egui::Vec2::splat(5.0))
         .show(egui_context.ctx_mut(), |ui| {
             ui.vertical_centered_justified(|ui| {
+                let current_view_mode = *view_mode.current();
+
                 if ui
-                    .selectable_label(*view_mode == ViewMode::Select, "☝")
+                    .selectable_label(current_view_mode == ViewMode::Select, "☝")
                     .on_hover_text("Select mode")
                     .clicked()
                 {
-                    *view_mode = ViewMode::Select;
+                    view_mode.set(ViewMode::Select).ok();
                 }
 
                 if ui
-                    .selectable_label(*view_mode == ViewMode::Pan, "✋")
+                    .selectable_label(current_view_mode == ViewMode::Pan, "✋")
                     .on_hover_text("Pan mode")
                     .clicked()
                 {
-                    *view_mode = ViewMode::Pan;
+                    view_mode.set(ViewMode::Pan).ok();
                 }
 
                 if ui.button("⛶").on_hover_text("Center view").clicked() {
