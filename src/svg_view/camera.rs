@@ -11,20 +11,14 @@ impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<CenterView>()
             .add_startup_system(setup)
-            .add_system(adjust_view_port.after(crate::sidebar::UiSystemLabel))
+            .add_system(adjust_view_port)
             .add_system_set(
                 SystemSet::on_update(ViewMode::Pan)
                     .with_system(camera_pan)
-                    .after(super::ui)
                     .after(adjust_view_port),
             )
-            .add_system_set(
-                SystemSet::new()
-                    .after(super::ui)
-                    .after(adjust_view_port)
-                    .with_system(center_view)
-                    .with_system(camera_zoom),
-            );
+            .add_system(camera_zoom.after(adjust_view_port))
+            .add_system(center_view.after(adjust_view_port));
     }
 }
 
@@ -49,12 +43,12 @@ impl Default for AvailableRect {
 }
 
 fn adjust_view_port(
-    mut egui_context: ResMut<EguiContext>,
+    egui_context: Res<EguiContext>,
     windows: Res<Windows>,
     mut camera_query: Query<&mut Camera, With<SVGViewCamera>>,
     mut available_rect: Local<AvailableRect>,
 ) {
-    let new_rect = egui_context.ctx_mut().available_rect();
+    let new_rect = egui_context.ctx().available_rect();
 
     if **available_rect != new_rect {
         **available_rect = new_rect;
@@ -87,10 +81,10 @@ fn camera_pan(
     windows: Res<Windows>,
     mut last_cursor_pos: Local<Option<Vec2>>,
     mut is_panning: Local<bool>,
-    mut egui_context: ResMut<EguiContext>,
+    egui_context: Res<EguiContext>,
 ) {
     if mouse_button_input.just_pressed(MouseButton::Left) {
-        let ctx = egui_context.ctx_mut();
+        let ctx = egui_context.ctx();
         *is_panning =
             !(ctx.is_pointer_over_area() || ctx.is_using_pointer() || ctx.wants_keyboard_input());
     }
@@ -137,11 +131,9 @@ fn camera_zoom(
     >,
     mut scroll_events: EventReader<MouseWheel>,
     windows: Res<Windows>,
-    mut egui_context: ResMut<EguiContext>,
+    egui_ctx: Res<EguiContext>,
 ) {
-    let ctx = egui_context.ctx_mut();
-
-    if ctx.is_pointer_over_area() {
+    if egui_ctx.ctx().is_pointer_over_area() {
         return;
     }
 

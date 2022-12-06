@@ -3,6 +3,7 @@ mod draw;
 mod selection;
 
 use crate::svg_view::camera::CenterView;
+use crate::ui::UiStage;
 use bevy::prelude::*;
 use bevy_egui::egui::epaint::Shadow;
 use bevy_egui::{egui, EguiContext};
@@ -12,7 +13,7 @@ pub struct SVGViewPlugin;
 impl Plugin for SVGViewPlugin {
     fn build(&self, app: &mut App) {
         app.add_state(ViewMode::Select)
-            .add_system(ui.after(crate::sidebar::UiSystemLabel))
+            .add_system_to_stage(UiStage, ui.after(crate::sidebar::UiSystemLabel))
             .add_plugin(camera::CameraPlugin)
             .add_plugin(draw::RenderPlugin)
             .add_plugin(selection::SelectionPlugin);

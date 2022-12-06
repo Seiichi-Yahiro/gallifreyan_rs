@@ -11,6 +11,7 @@ use crate::events::EventPlugin;
 use crate::sidebar::SideBarPlugin;
 use crate::style::StylePlugin;
 use crate::svg_view::SVGViewPlugin;
+use crate::ui::UiPlugin;
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_egui::EguiPlugin;
@@ -29,6 +30,7 @@ fn main() {
         }))
         .add_plugin(ShapePlugin)
         .add_plugin(EguiPlugin)
+        .add_plugin(UiPlugin)
         .add_plugin(StylePlugin)
         .add_plugin(EventPlugin)
         .add_plugin(SideBarPlugin)
