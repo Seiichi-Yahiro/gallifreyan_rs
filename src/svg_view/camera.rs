@@ -1,5 +1,6 @@
 use crate::image_types::SVG_SIZE;
 use crate::svg_view::ViewMode;
+use crate::world_cursor::WorldCursor;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 use bevy::render::camera::Viewport;
@@ -73,13 +74,9 @@ fn adjust_view_port(
 }
 
 fn camera_pan(
-    mut camera_query: Query<
-        (&Camera, &OrthographicProjection, &mut Transform),
-        With<SVGViewCamera>,
-    >,
+    mut camera_query: Query<&mut Transform, With<SVGViewCamera>>,
+    world_cursor: Res<WorldCursor>,
     mouse_button_input: Res<Input<MouseButton>>,
-    windows: Res<Windows>,
-    mut last_cursor_pos: Local<Option<Vec2>>,
     mut is_panning: Local<bool>,
     egui_context: Res<EguiContext>,
 ) {
@@ -93,44 +90,20 @@ fn camera_pan(
         *is_panning = false;
     }
 
-    let window = windows.primary();
-
-    let current_cursor_pos = match window.cursor_position() {
-        Some(current_pos) => current_pos,
-        None => return,
-    };
-
-    if *is_panning {
-        let (camera, projection, mut transform) = camera_query.single_mut();
-
-        let projection_size = Vec2::new(
-            projection.right - projection.left,
-            projection.top - projection.bottom,
-        ) * projection.scale;
-
-        let viewport_size = camera
-            .logical_viewport_size()
-            .unwrap_or_else(|| Vec2::new(window.width(), window.height()));
-
-        let world_units_per_device_pixel = projection_size / viewport_size;
-        let delta_device_pixels =
-            current_cursor_pos - last_cursor_pos.unwrap_or(current_cursor_pos);
-        let delta_world = delta_device_pixels * world_units_per_device_pixel;
-        let proposed_cam_transform = transform.translation - delta_world.extend(0.0);
-
-        transform.translation = proposed_cam_transform;
+    if !*is_panning {
+        return;
     }
 
-    *last_cursor_pos = Some(current_cursor_pos);
+    if let Ok(mut transform) = camera_query.get_single_mut() {
+        let proposed_cam_transform = transform.translation - world_cursor.delta.extend(0.0);
+        transform.translation = proposed_cam_transform;
+    }
 }
 
 fn camera_zoom(
-    mut camera_query: Query<
-        (&Camera, &mut OrthographicProjection, &mut Transform),
-        With<SVGViewCamera>,
-    >,
+    world_cursor: Res<WorldCursor>,
+    mut camera_query: Query<(&mut OrthographicProjection, &mut Transform), With<SVGViewCamera>>,
     mut scroll_events: EventReader<MouseWheel>,
-    windows: Res<Windows>,
     egui_ctx: Res<EguiContext>,
 ) {
     if egui_ctx.ctx().is_pointer_over_area() {
@@ -151,35 +124,13 @@ fn camera_zoom(
         return;
     }
 
-    let (camera, mut projection, mut transform) = camera_query.single_mut();
+    if let Ok((mut projection, mut transform)) = camera_query.get_single_mut() {
+        projection.scale *= 1.0 - scroll * 0.001;
 
-    let window = windows.primary();
-
-    let viewport_size = camera
-        .logical_viewport_size()
-        .unwrap_or_else(|| Vec2::new(window.width(), window.height()));
-
-    let viewport_pos = camera
-        .logical_viewport_rect()
-        .map(|(min, _max)| min)
-        .unwrap_or(Vec2::ZERO);
-
-    let mouse_normalized_screen_pos = window
-        .cursor_position()
-        .map(|cursor_pos| ((cursor_pos - viewport_pos) / viewport_size) * 2.0 - Vec2::ONE);
-
-    let old_projection_scale = projection.scale;
-
-    projection.scale *= 1.0 - scroll * 0.001;
-
-    if let Some(mouse_normalized_screen_pos) = mouse_normalized_screen_pos {
         let projection_size = Vec2::new(projection.right, projection.top);
 
-        let mouse_world_pos = transform.translation.truncate()
-            + mouse_normalized_screen_pos * projection_size * old_projection_scale;
-
-        transform.translation = (mouse_world_pos
-            - mouse_normalized_screen_pos * projection_size * projection.scale)
+        transform.translation = (world_cursor.pos
+            - world_cursor.ndc * projection_size * projection.scale)
             .extend(transform.translation.z);
     }
 }
