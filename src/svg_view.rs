@@ -1,5 +1,6 @@
 mod camera;
 mod draw;
+mod interaction;
 mod selection;
 
 use crate::svg_view::camera::CenterView;
@@ -7,6 +8,7 @@ use crate::ui::UiStage;
 use bevy::prelude::*;
 use bevy_egui::egui::epaint::Shadow;
 use bevy_egui::{egui, EguiContext};
+pub use interaction::Interaction;
 
 pub struct SVGViewPlugin;
 
@@ -16,6 +18,7 @@ impl Plugin for SVGViewPlugin {
             .add_system_to_stage(UiStage, ui.after(crate::sidebar::UiSystemLabel))
             .add_plugin(camera::CameraPlugin)
             .add_plugin(draw::RenderPlugin)
+            .add_plugin(interaction::InteractionPlugin)
             .add_plugin(selection::SelectionPlugin);
     }
 }

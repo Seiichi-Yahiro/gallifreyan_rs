@@ -1,5 +1,5 @@
+use super::interaction::Interaction;
 use crate::events::{Select, Selection};
-use crate::image_types::Radius;
 use crate::style::Styles;
 use crate::svg_view::ViewMode;
 use crate::world_cursor::WorldCursor;
@@ -82,7 +82,7 @@ fn select_on_click(
     world_cursor: Res<WorldCursor>,
     egui_context: Res<EguiContext>,
     mouse_button_input: Res<Input<MouseButton>>,
-    circle_query: Query<(Entity, &Radius, &GlobalTransform)>,
+    hit_box_query: Query<(Entity, &Interaction)>,
 ) {
     if !mouse_button_input.just_pressed(MouseButton::Left) {
         return;
@@ -94,19 +94,17 @@ fn select_on_click(
         return;
     }
 
-    let clicked_entity: Option<Entity> = circle_query
+    let clicked_entity: Option<Entity> = hit_box_query
         .iter()
-        .map(|(entity, radius, global_transform)| {
-            let circle_translation = global_transform.translation();
-            let circle_pos = circle_translation.truncate();
-
-            let distance: f32 = (circle_pos - world_cursor.pos).length() - **radius;
-
-            (entity, distance, circle_translation.z)
+        .filter_map(|(entity, interaction)| {
+            if interaction.hit_box.is_inside(world_cursor.pos) {
+                Some((entity, interaction.z))
+            } else {
+                None
+            }
         })
-        .filter(|(_, distance, _)| *distance <= 0.0)
-        .max_by(|(_, _, za), (_, _, zb)| za.partial_cmp(zb).unwrap())
-        .map(|(entity, _, _)| entity);
+        .max_by(|(_, za), (_, zb)| za.partial_cmp(zb).unwrap())
+        .map(|(entity, _)| entity);
 
     if let Some(entity) = clicked_entity {
         events.send(Select(Some(entity)));

@@ -1,5 +1,6 @@
-use crate::math::Angle;
+use crate::math::{Angle, Circle};
 use crate::style::SVG_COLOR;
+use crate::svg_view::Interaction;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::{
@@ -218,6 +219,7 @@ pub struct SentenceBundle {
     pub words: CircleChildren,
     pub line_slots: LineSlotChildren,
     pub shape: ShapeBundle,
+    pub interaction: Interaction,
 }
 
 impl SentenceBundle {
@@ -234,6 +236,7 @@ impl SentenceBundle {
                 transform: Transform::from_xyz(0.0, 0.0, 0.0),
                 ..default()
             },
+            interaction: Interaction::new(Circle::default()),
         }
     }
 }
@@ -247,6 +250,7 @@ pub struct WordBundle {
     pub letters: CircleChildren,
     pub line_slots: LineSlotChildren,
     pub shape: ShapeBundle,
+    pub interaction: Interaction,
 }
 
 impl WordBundle {
@@ -263,6 +267,7 @@ impl WordBundle {
                 transform: Transform::from_xyz(0.0, 0.0, 0.1),
                 ..default()
             },
+            interaction: Interaction::new(Circle::default()),
         }
     }
 }
@@ -278,6 +283,7 @@ pub struct LetterBundle {
     pub dots: CircleChildren,
     pub line_slots: LineSlotChildren,
     pub shape: ShapeBundle,
+    pub interaction: Interaction,
 }
 
 impl LetterBundle {
@@ -304,6 +310,7 @@ impl LetterBundle {
                 ..default()
             },
             line_slots: Default::default(),
+            interaction: Interaction::new(Circle::default()),
         }
     }
 }
@@ -314,6 +321,7 @@ pub struct DotBundle {
     pub radius: Radius,
     pub position_data: PositionData,
     pub shape: ShapeBundle,
+    pub interaction: Interaction,
 }
 
 impl DotBundle {
@@ -327,6 +335,7 @@ impl DotBundle {
                 transform: Transform::from_xyz(0.0, 0.0, 0.3),
                 ..default()
             },
+            interaction: Interaction::new(Circle::default()),
         }
     }
 }
@@ -336,20 +345,7 @@ pub struct LineSlotBundle {
     pub line_slot: LineSlot,
     pub position_data: PositionData,
     pub shape: ShapeBundle,
-}
-
-impl Default for LineSlotBundle {
-    fn default() -> Self {
-        Self {
-            line_slot: LineSlot,
-            position_data: PositionData::default(),
-            shape: ShapeBundle {
-                mode: DrawMode::Stroke(STROKE_MODE),
-                transform: Transform::from_xyz(0.0, 0.0, 0.4),
-                ..default()
-            },
-        }
-    }
+    pub interaction: Interaction,
 }
 
 impl LineSlotBundle {
@@ -369,8 +365,10 @@ impl LineSlotBundle {
             ),
             shape: ShapeBundle {
                 mode: DrawMode::Stroke(STROKE_MODE),
+                transform: Transform::from_xyz(0.0, 0.0, 0.4),
                 ..default()
             },
+            interaction: Interaction::new(Circle::default()),
         }
     }
 }
