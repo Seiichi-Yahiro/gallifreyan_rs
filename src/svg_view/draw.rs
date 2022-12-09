@@ -48,7 +48,10 @@ fn draw_word_and_letter(
     changed_word_query: Query<Entity, (With<Word>, Changed<Radius>)>,
     changed_letter_query: Query<
         &Parent,
-        (With<Letter>, Or<(Changed<Radius>, Changed<PositionData>)>),
+        (
+            With<Letter>,
+            Or<(Changed<Radius>, Changed<PositionData>, Changed<Placement>)>,
+        ),
     >,
     mut word_query: Query<(&Radius, &CircleChildren, &mut Path), (With<Word>, Without<Letter>)>,
     mut letter_query: Query<
