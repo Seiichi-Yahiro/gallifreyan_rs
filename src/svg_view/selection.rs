@@ -1,6 +1,8 @@
 use super::camera::WorldCursor;
 use super::interaction::Interaction;
 use crate::events::{Select, Selection};
+use crate::image_types::PositionData;
+use crate::math::angle_from_position;
 use crate::style::Styles;
 use crate::svg_view::ViewMode;
 use bevy::prelude::*;
@@ -11,8 +13,11 @@ pub struct SelectionPlugin;
 
 impl Plugin for SelectionPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(set_select_color)
-            .add_system_set(SystemSet::on_update(ViewMode::Select).with_system(select_on_click));
+        app.add_system(set_select_color).add_system_set(
+            SystemSet::on_update(ViewMode::Select)
+                .with_system(select_on_click)
+                .with_system(drag.before(select_on_click)),
+        );
     }
 }
 
@@ -110,5 +115,62 @@ fn select_on_click(
         events.send(Select(Some(entity)));
     } else {
         events.send(Select(None));
+    }
+}
+
+fn drag(
+    world_cursor: Res<WorldCursor>,
+    egui_context: Res<EguiContext>,
+    mut selected_query: Query<(
+        &Interaction,
+        &Transform,
+        &GlobalTransform,
+        &mut PositionData,
+    )>,
+    selection: Res<Selection>,
+    mouse_button_input: Res<Input<MouseButton>>,
+    mut is_dragging: Local<bool>,
+) {
+    if selection.is_none() {
+        return;
+    }
+
+    if mouse_button_input.just_pressed(MouseButton::Left) {
+        let ctx = egui_context.ctx();
+        let is_ui_blocking =
+            ctx.is_pointer_over_area() || ctx.is_using_pointer() || ctx.wants_keyboard_input();
+
+        if is_ui_blocking {
+            return;
+        }
+
+        if let Ok(interaction) = selected_query.get_component::<Interaction>(selection.unwrap()) {
+            *is_dragging = interaction.hit_box.is_inside(world_cursor.pos);
+        }
+    }
+
+    if mouse_button_input.just_released(MouseButton::Left) {
+        *is_dragging = false;
+    }
+
+    if !*is_dragging || world_cursor.delta.length_squared() == 0.0 {
+        return;
+    }
+
+    if let Ok((_interaction, transform, global_transform, mut position_data)) =
+        selected_query.get_mut(selection.unwrap())
+    {
+        let global_translation = global_transform.translation().truncate();
+
+        let new_position = global_translation + world_cursor.delta;
+        let parent_position = global_translation - transform.translation.truncate();
+
+        let distance_vec = new_position - parent_position;
+
+        position_data.distance = distance_vec.length();
+
+        if position_data.distance != 0.0 {
+            position_data.angle = angle_from_position(distance_vec);
+        }
     }
 }
