@@ -95,14 +95,21 @@ fn camera_pan(
     }
 
     if let Ok(mut transform) = camera_query.get_single_mut() {
-        let proposed_cam_transform = transform.translation - world_cursor.delta.extend(0.0);
-        transform.translation = proposed_cam_transform;
+        transform.translation -= world_cursor.delta.extend(0.0);
     }
 }
 
 fn camera_zoom(
     world_cursor: Res<WorldCursor>,
-    mut camera_query: Query<(&mut OrthographicProjection, &mut Transform), With<SVGViewCamera>>,
+    mut camera_query: Query<
+        (
+            &Camera,
+            &mut OrthographicProjection,
+            &mut Transform,
+            &GlobalTransform,
+        ),
+        With<SVGViewCamera>,
+    >,
     mut scroll_events: EventReader<MouseWheel>,
     egui_ctx: Res<EguiContext>,
 ) {
@@ -124,14 +131,19 @@ fn camera_zoom(
         return;
     }
 
-    if let Ok((mut projection, mut transform)) = camera_query.get_single_mut() {
+    if let Ok((camera, mut projection, mut transform, global_transform)) =
+        camera_query.get_single_mut()
+    {
         projection.scale *= 1.0 - scroll * 0.001;
 
         let projection_size = Vec2::new(projection.right, projection.top);
+        let ndc = camera.world_to_ndc(global_transform, world_cursor.pos.extend(0.0));
 
-        transform.translation = (world_cursor.pos
-            - world_cursor.ndc * projection_size * projection.scale)
-            .extend(transform.translation.z);
+        if let Some(ndc) = ndc {
+            transform.translation = (world_cursor.pos
+                - ndc.truncate() * projection_size * projection.scale)
+                .extend(transform.translation.z);
+        }
     }
 }
 

@@ -1,4 +1,3 @@
-use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 
 pub struct WorldCursorPlugin;
@@ -6,7 +5,7 @@ pub struct WorldCursorPlugin;
 impl Plugin for WorldCursorPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<WorldCursor>()
-            .add_system(calculate_world_cursor);
+            .add_system_to_stage(CoreStage::PreUpdate, calculate_world_cursor);
     }
 }
 
@@ -14,7 +13,6 @@ impl Plugin for WorldCursorPlugin {
 pub struct WorldCursor {
     pub delta: Vec2,
     pub pos: Vec2,
-    pub ndc: Vec2,
 }
 
 fn calculate_world_cursor(
@@ -22,12 +20,7 @@ fn calculate_world_cursor(
     windows: Res<Windows>,
     camera_query: Query<(&Camera, &OrthographicProjection, &GlobalTransform)>,
     mut last_cursor_pos: Local<Option<Vec2>>,
-    mut mouse_motion_events: EventReader<MouseMotion>,
 ) {
-    if mouse_motion_events.iter().last().is_none() {
-        return;
-    }
-
     let window = windows.primary();
 
     let current_cursor_pos = match window.cursor_position() {
@@ -59,14 +52,8 @@ fn calculate_world_cursor(
 
         if let Some(ray) = ray {
             world_cursor.pos = ray.origin.truncate();
-
-            let ndc = camera.world_to_ndc(global_transform, world_cursor.pos.extend(0.0));
-
-            if let Some(ndc) = ndc {
-                world_cursor.ndc = ndc.truncate();
-            }
         }
-
-        *last_cursor_pos = Some(current_cursor_pos);
     }
+
+    *last_cursor_pos = Some(current_cursor_pos);
 }
