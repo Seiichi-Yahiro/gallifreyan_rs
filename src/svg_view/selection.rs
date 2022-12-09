@@ -1,8 +1,8 @@
+use super::camera::WorldCursor;
 use super::interaction::Interaction;
 use crate::events::{Select, Selection};
 use crate::style::Styles;
 use crate::svg_view::ViewMode;
-use crate::world_cursor::WorldCursor;
 use bevy::prelude::*;
 use bevy_egui::EguiContext;
 use bevy_prototype_lyon::prelude::DrawMode;
