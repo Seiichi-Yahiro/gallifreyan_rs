@@ -8,9 +8,9 @@ use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use bevy_prototype_lyon::prelude::*;
 use itertools::Itertools;
 
-pub struct RenderPlugin;
+pub struct DrawPlugin;
 
-impl Plugin for RenderPlugin {
+impl Plugin for DrawPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(update_position_data)
             .add_system(draw_circle)

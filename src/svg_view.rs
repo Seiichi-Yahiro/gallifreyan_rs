@@ -17,7 +17,7 @@ impl Plugin for SVGViewPlugin {
         app.add_state(ViewMode::Select)
             .add_system_to_stage(UiStage, ui.after(crate::sidebar::UiSystemLabel))
             .add_plugin(camera::CameraPlugin)
-            .add_plugin(draw::RenderPlugin)
+            .add_plugin(draw::DrawPlugin)
             .add_plugin(interaction::InteractionPlugin)
             .add_plugin(selection::SelectionPlugin);
     }
