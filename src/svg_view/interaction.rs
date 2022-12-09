@@ -39,7 +39,7 @@ impl HitBox for Circle {
 fn update_circle_hitbox(
     mut with_radius_query: Query<
         (&mut Interaction, &Radius, &GlobalTransform),
-        Or<(Changed<Radius>, Changed<PositionData>)>,
+        Or<(Changed<Radius>, Changed<GlobalTransform>)>,
     >,
 ) {
     for (mut interaction, radius, global_transform) in with_radius_query.iter_mut() {
@@ -58,7 +58,7 @@ fn update_circle_hitbox(
 fn update_line_slot_hitbox(
     mut line_slot_query: Query<
         (&mut Interaction, &GlobalTransform),
-        (With<LineSlot>, Changed<PositionData>),
+        (With<LineSlot>, Changed<GlobalTransform>),
     >,
 ) {
     for (mut interaction, global_transform) in line_slot_query.iter_mut() {
