@@ -99,17 +99,7 @@ fn select_on_click(
         return;
     }
 
-    let clicked_entity: Option<Entity> = hit_box_query
-        .iter()
-        .filter_map(|(entity, interaction)| {
-            if interaction.hit_box.is_inside(world_cursor.pos) {
-                Some((entity, interaction.z))
-            } else {
-                None
-            }
-        })
-        .max_by(|(_, za), (_, zb)| za.partial_cmp(zb).unwrap())
-        .map(|(entity, _)| entity);
+    let clicked_entity = get_clicked_entity(&hit_box_query, world_cursor.pos);
 
     if let Some(entity) = clicked_entity {
         events.send(Select(Some(entity)));
@@ -121,12 +111,8 @@ fn select_on_click(
 fn drag(
     world_cursor: Res<WorldCursor>,
     egui_context: Res<EguiContext>,
-    mut selected_query: Query<(
-        &Interaction,
-        &Transform,
-        &GlobalTransform,
-        &mut PositionData,
-    )>,
+    hit_box_query: Query<(Entity, &Interaction)>,
+    mut selected_query: Query<(&Transform, &GlobalTransform, &mut PositionData)>,
     selection: Res<Selection>,
     mouse_button_input: Res<Input<MouseButton>>,
     mut is_dragging: Local<bool>,
@@ -144,9 +130,8 @@ fn drag(
             return;
         }
 
-        if let Ok(interaction) = selected_query.get_component::<Interaction>(selection.unwrap()) {
-            *is_dragging = interaction.hit_box.is_inside(world_cursor.pos);
-        }
+        let clicked_entity = get_clicked_entity(&hit_box_query, world_cursor.pos);
+        *is_dragging = clicked_entity.contains(&selection.unwrap());
     }
 
     if mouse_button_input.just_released(MouseButton::Left) {
@@ -157,7 +142,7 @@ fn drag(
         return;
     }
 
-    if let Ok((_interaction, transform, global_transform, mut position_data)) =
+    if let Ok((transform, global_transform, mut position_data)) =
         selected_query.get_mut(selection.unwrap())
     {
         let global_translation = global_transform.translation().truncate();
@@ -173,4 +158,21 @@ fn drag(
             position_data.angle = angle_from_position(distance_vec);
         }
     }
+}
+
+fn get_clicked_entity(
+    hit_box_query: &Query<(Entity, &Interaction)>,
+    world_cursor_pos: Vec2,
+) -> Option<Entity> {
+    hit_box_query
+        .iter()
+        .filter_map(|(entity, interaction)| {
+            if interaction.hit_box.is_inside(world_cursor_pos) {
+                Some((entity, interaction.z))
+            } else {
+                None
+            }
+        })
+        .max_by(|(_, za), (_, zb)| za.partial_cmp(zb).unwrap())
+        .map(|(entity, _)| entity)
 }
