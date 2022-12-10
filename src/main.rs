@@ -1,3 +1,5 @@
+#![feature(option_result_contains)]
+
 mod event_set;
 mod events;
 mod image_types;

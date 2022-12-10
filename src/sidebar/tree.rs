@@ -4,7 +4,6 @@ use crate::ui::tree::CollapsingTreeItem;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy_egui::egui;
-use itertools::Itertools;
 
 type WorldQuery = (
     Entity,
@@ -42,7 +41,7 @@ pub fn ui_tree(ui: &mut egui::Ui, mut params: TreeSystemParams) {
                         sentence_text,
                         sentence_entity,
                         &mut is_open,
-                        params.selection.iter().contains(&sentence_entity),
+                        params.selection.contains(&sentence_entity),
                     )
                     .show(ui, |ui| {
                         ui_words(
@@ -91,7 +90,7 @@ fn ui_words(
             word_text,
             word_entity,
             &mut is_open,
-            selection.iter().contains(&word_entity),
+            selection.contains(&word_entity),
         )
         .show(ui, |ui| {
             ui_letters(ui, letters, letter_query, select_event, selection);
@@ -116,7 +115,7 @@ fn ui_letters(
     while let Some((letter_entity, letter_text, dots, letter_line_slots, mut is_open)) =
         iter.fetch_next()
     {
-        let is_selected = selection.iter().contains(&letter_entity);
+        let is_selected = selection.contains(&letter_entity);
 
         let header_response = if dots.len() + letter_line_slots.len() == 0 {
             CollapsingTreeItem::new_empty(ui, letter_text, letter_entity, is_selected)
@@ -144,12 +143,8 @@ fn ui_dots(
     selection: &Res<Selection>,
 ) {
     for dot_entity in dots.iter() {
-        let header_response = CollapsingTreeItem::new_empty(
-            ui,
-            "DOT",
-            dot_entity,
-            selection.iter().contains(&dot_entity),
-        );
+        let header_response =
+            CollapsingTreeItem::new_empty(ui, "DOT", dot_entity, selection.contains(dot_entity));
         if header_response.clicked() {
             select_event.send(Select(Some(*dot_entity)));
         }
@@ -167,7 +162,7 @@ fn ui_line_slots(
             ui,
             "LINE",
             line_slot_entity,
-            selection.iter().contains(&line_slot_entity),
+            selection.contains(line_slot_entity),
         );
         if header_response.clicked() {
             select_event.send(Select(Some(*line_slot_entity)));
