@@ -1,4 +1,4 @@
-use crate::image_types::{LineSlot, PositionData, Radius};
+use crate::image_types::{LineSlot, Radius};
 use crate::math::Circle;
 use bevy::prelude::*;
 

@@ -112,7 +112,8 @@ fn drag(
     world_cursor: Res<WorldCursor>,
     egui_context: Res<EguiContext>,
     hit_box_query: Query<(Entity, &Interaction)>,
-    mut selected_query: Query<(&Transform, &GlobalTransform, &mut PositionData)>,
+    mut selected_query: Query<(Option<&Parent>, &Transform, &mut PositionData)>,
+    global_transform_query: Query<&GlobalTransform>,
     selection: Res<Selection>,
     mouse_button_input: Res<Input<MouseButton>>,
     mut is_dragging: Local<bool>,
@@ -142,20 +143,26 @@ fn drag(
         return;
     }
 
-    if let Ok((transform, global_transform, mut position_data)) =
-        selected_query.get_mut(selection.unwrap())
-    {
-        let global_translation = global_transform.translation().truncate();
+    if let Ok((parent, transform, mut position_data)) = selected_query.get_mut(selection.unwrap()) {
+        let parent_rotation = parent
+            .and_then(|parent| global_transform_query.get(parent.get()).ok())
+            .map(|parent_global_transform| {
+                parent_global_transform
+                    .compute_transform()
+                    .rotation
+                    .inverse()
+            })
+            .unwrap_or(Quat::IDENTITY);
 
-        let new_position = global_translation + world_cursor.delta;
-        let parent_position = global_translation - transform.translation.truncate();
+        let rotated_mouse_delta = parent_rotation * world_cursor.delta.extend(0.0);
 
-        let distance_vec = new_position - parent_position;
+        let new_transform = Transform::from_translation(rotated_mouse_delta) * *transform;
+        let new_position = new_transform.translation.truncate();
 
-        position_data.distance = distance_vec.length();
+        position_data.distance = new_position.length();
 
         if position_data.distance != 0.0 {
-            position_data.angle = angle_from_position(distance_vec);
+            position_data.angle = angle_from_position(new_position);
         }
     }
 }
