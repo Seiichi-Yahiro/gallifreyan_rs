@@ -36,34 +36,14 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                         ui.spacing_mut().slider_width = ui.available_width();
 
                         if let Some(radius) = &mut radius {
-                            ui.label("Radius");
-
-                            let mut new_radius: f32 = ***radius;
-                            let range = 0.0..=1000.0;
-                            let step = (range.end() - range.start()) as f64 / 100.0;
-
-                            let radius_slider = egui::Slider::new(&mut new_radius, range)
-                                .show_value(false)
-                                .step_by(step); // TODO radius constraints
-
-                            ui.add(radius_slider);
+                            let new_radius = ui_radius(ui, ***radius);
 
                             if new_radius != ***radius {
                                 ***radius = new_radius;
                             }
                         }
 
-                        ui.label("Distance");
-                        let mut new_distance = position_data.distance;
-
-                        let range = 0.0..=1000.0;
-                        let step = (range.end() - range.start()) / 100.0;
-
-                        let distance = egui::Slider::new(&mut new_distance, 0.0..=1000.0)
-                            .show_value(false)
-                            .step_by(step); // TODO distance constraints
-
-                        ui.add(distance);
+                        let new_distance = ui_distance(ui, position_data.distance);
 
                         if new_distance != position_data.distance {
                             position_data.distance = new_distance;
@@ -71,25 +51,12 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
 
                         ui.spacing_mut().slider_width /= 2.0;
 
-                        ui.label("Angle");
-
-                        let angle_offset = parent
-                            .map(|it| it.get())
-                            .and_then(|parent| params.global_transform_query.get(parent).ok())
-                            .map(|parent_global_transform| {
-                                parent_global_transform
-                                    .compute_transform()
-                                    .rotation
-                                    .to_euler(EulerRot::XYZ)
-                                    .2
-                            })
-                            .map(Angle::new_radian)
-                            .map(Angle::as_degrees)
-                            .unwrap_or(0.0);
-
-                        let mut new_angle = position_data.angle.as_degrees();
-                        let angle = AngleSlider::new(&mut new_angle, 0.0..=360.0, angle_offset); // TODO angle constraints
-                        ui.add(angle);
+                        let new_angle = ui_angle(
+                            ui,
+                            position_data.angle.as_degrees(),
+                            &parent,
+                            &params.global_transform_query,
+                        );
 
                         if new_angle != position_data.angle.as_degrees() {
                             position_data.angle = Angle::new_degree(new_angle);
@@ -100,4 +67,65 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                 });
         }
     }
+}
+
+fn ui_radius(ui: &mut egui::Ui, radius: f32) -> f32 {
+    ui.label("Radius");
+
+    let mut new_radius = radius;
+    let range = 0.0..=1000.0;
+    let step = (range.end() - range.start()) as f64 / 100.0;
+
+    let radius_slider = egui::Slider::new(&mut new_radius, range)
+        .show_value(false)
+        .step_by(step); // TODO radius constraints
+
+    ui.add(radius_slider);
+
+    new_radius
+}
+
+fn ui_distance(ui: &mut egui::Ui, distance: f32) -> f32 {
+    ui.label("Distance");
+    let mut new_distance = distance;
+
+    let range = 0.0..=1000.0;
+    let step = (range.end() - range.start()) / 100.0;
+
+    let distance = egui::Slider::new(&mut new_distance, 0.0..=1000.0)
+        .show_value(false)
+        .step_by(step); // TODO distance constraints
+
+    ui.add(distance);
+
+    new_distance
+}
+
+fn ui_angle(
+    ui: &mut egui::Ui,
+    angle: f32,
+    parent: &Option<&Parent>,
+    global_transform_query: &Query<&GlobalTransform>,
+) -> f32 {
+    ui.label("Angle");
+
+    let angle_offset = parent
+        .map(|it| it.get())
+        .and_then(|parent| global_transform_query.get(parent).ok())
+        .map(|parent_global_transform| {
+            parent_global_transform
+                .compute_transform()
+                .rotation
+                .to_euler(EulerRot::XYZ)
+                .2
+        })
+        .map(Angle::new_radian)
+        .map(Angle::as_degrees)
+        .unwrap_or(0.0);
+
+    let mut new_angle = angle;
+    let angle = AngleSlider::new(&mut new_angle, 0.0..=360.0, angle_offset); // TODO angle constraints
+    ui.add(angle);
+
+    new_angle
 }
