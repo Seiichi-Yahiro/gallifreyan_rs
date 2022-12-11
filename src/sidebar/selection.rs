@@ -9,12 +9,22 @@ use bevy_egui::egui;
 #[derive(SystemParam)]
 pub struct SelectionSystemParams<'w, 's> {
     selection: Res<'w, Selection>,
-    selection_query: Query<'w, 's, (Option<&'static mut Radius>, &'static mut PositionData)>,
+    selection_query: Query<
+        'w,
+        's,
+        (
+            Option<&'static Parent>,
+            Option<&'static mut Radius>,
+            &'static mut PositionData,
+        ),
+    >,
+    global_transform_query: Query<'w, 's, &'static GlobalTransform>,
 }
 
 pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
     if let Some(selected_entity) = **params.selection {
-        if let Ok((mut radius, mut position_data)) = params.selection_query.get_mut(selected_entity)
+        if let Ok((parent, mut radius, mut position_data)) =
+            params.selection_query.get_mut(selected_entity)
         {
             egui::TopBottomPanel::bottom("selection")
                 .frame(egui::Frame::none())
@@ -47,7 +57,7 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                         let mut new_distance = position_data.distance;
 
                         let range = 0.0..=1000.0;
-                        let step = (range.end() - range.start()) as f64 / 100.0;
+                        let step = (range.end() - range.start()) / 100.0;
 
                         let distance = egui::Slider::new(&mut new_distance, 0.0..=1000.0)
                             .show_value(false)
@@ -62,8 +72,23 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                         ui.spacing_mut().slider_width /= 2.0;
 
                         ui.label("Angle");
+
+                        let angle_offset = parent
+                            .map(|it| it.get())
+                            .and_then(|parent| params.global_transform_query.get(parent).ok())
+                            .map(|parent_global_transform| {
+                                parent_global_transform
+                                    .compute_transform()
+                                    .rotation
+                                    .to_euler(EulerRot::XYZ)
+                                    .2
+                            })
+                            .map(Angle::new_radian)
+                            .map(Angle::as_degrees)
+                            .unwrap_or(0.0);
+
                         let mut new_angle = position_data.angle.as_degrees();
-                        let angle = AngleSlider::new(&mut new_angle, 0.0..=360.0); // TODO angle constraints
+                        let angle = AngleSlider::new(&mut new_angle, 0.0..=360.0, angle_offset); // TODO angle constraints
                         ui.add(angle);
 
                         if new_angle != position_data.angle.as_degrees() {

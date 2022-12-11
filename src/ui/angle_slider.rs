@@ -6,6 +6,7 @@ use std::ops::RangeInclusive;
 pub struct AngleSlider<'a> {
     angle: &'a mut f32,
     angle_range: RangeInclusive<f32>,
+    angle_offset: f32,
 }
 
 impl<'a> egui::Widget for AngleSlider<'a> {
@@ -36,11 +37,15 @@ impl<'a> egui::Widget for AngleSlider<'a> {
 }
 
 impl<'a> AngleSlider<'a> {
-    pub fn new(angle: &'a mut f32, angle_range: RangeInclusive<f32>) -> Self {
+    pub fn new(angle: &'a mut f32, angle_range: RangeInclusive<f32>, angle_offset: f32) -> Self {
         assert!(angle_range.start().is_sign_positive());
         assert!(angle_range.end().is_sign_positive());
 
-        let mut slf = Self { angle, angle_range };
+        let mut slf = Self {
+            angle,
+            angle_range,
+            angle_offset,
+        };
 
         slf.clamp_angle();
         slf
@@ -59,7 +64,7 @@ impl<'a> AngleSlider<'a> {
         let pointer_vec = bevy::math::Vec2::new(pointer_vec.x, pointer_vec.y);
         let zero_degree_vec = bevy::math::Vec2::new(0.0, 1.0);
 
-        let angle = pointer_vec.angle_between(zero_degree_vec).to_degrees();
+        let angle = pointer_vec.angle_between(zero_degree_vec).to_degrees() - self.angle_offset;
         let angle = if angle < 0.0 { angle + 360.0 } else { angle };
         *self.angle = angle;
         self.clamp_angle();
@@ -101,11 +106,14 @@ impl<'a> AngleSlider<'a> {
         );
 
         let zero_degree = bevy::math::Vec2::new(0.0, rail_radius);
-        let [current_angle, start_angle, end_angle] =
-            [self.angle, self.angle_range.start(), self.angle_range.end()]
-                .map(|angle| -angle.to_radians())
-                .map(|angle| bevy::math::Vec2::from_angle(angle).rotate(zero_degree))
-                .map(|pos| egui::Pos2::from(pos.to_array()) + rect_center.to_vec2());
+        let [current_angle, start_angle, end_angle] = [
+            *self.angle + self.angle_offset,
+            *self.angle_range.start(),
+            *self.angle_range.end(),
+        ]
+        .map(|angle| -angle.to_radians())
+        .map(|angle| bevy::math::Vec2::from_angle(angle).rotate(zero_degree))
+        .map(|pos| egui::Pos2::from(pos.to_array()) + rect_center.to_vec2());
 
         if (*self.angle_range.end() - *self.angle_range.start()).abs() < 360.0 {
             let angle_range_stroke = egui::Stroke::new(1.0, ui.visuals().widgets.inactive.bg_fill);
