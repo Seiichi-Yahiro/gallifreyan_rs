@@ -16,7 +16,11 @@ pub struct SideBarPlugin;
 impl Plugin for SideBarPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TextState>()
-            .add_system_to_stage(UiStage, ui.label(UiSystemLabel))
+            .add_system_to_stage(
+                UiStage,
+                ui.label(UiSystemLabel)
+                    .after(crate::menu_bar::UiSystemLabel),
+            )
             .add_system(add_is_open_component)
             .add_plugin(TextConverterPlugin);
     }

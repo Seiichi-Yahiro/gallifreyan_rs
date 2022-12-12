@@ -4,12 +4,14 @@ mod event_set;
 mod events;
 mod image_types;
 mod math;
+mod menu_bar;
 mod sidebar;
 mod style;
 mod svg_view;
 mod ui;
 
 use crate::events::EventPlugin;
+use crate::menu_bar::MenuBarPlugin;
 use crate::sidebar::SideBarPlugin;
 use crate::style::StylePlugin;
 use crate::svg_view::SVGViewPlugin;
@@ -35,6 +37,7 @@ fn main() {
         .add_plugin(UiPlugin)
         .add_plugin(StylePlugin)
         .add_plugin(EventPlugin)
+        .add_plugin(MenuBarPlugin)
         .add_plugin(SideBarPlugin)
         .add_plugin(SVGViewPlugin)
         .run();

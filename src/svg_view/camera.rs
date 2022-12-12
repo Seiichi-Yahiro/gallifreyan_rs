@@ -113,7 +113,10 @@ fn calculate_world_cursor(
         let cursor_delta = current_cursor_pos - last_cursor_pos.unwrap_or(current_cursor_pos);
         world_cursor.delta = cursor_delta * world_units_per_device_pixel;
 
-        let ray = camera.viewport_to_world(global_transform, current_cursor_pos - viewport_pos);
+        let ray = camera.viewport_to_world(
+            global_transform,
+            current_cursor_pos - Vec2::new(viewport_pos.x, 0.0), // TODO find out why only x seems to be necessary?
+        );
 
         if let Some(ray) = ray {
             world_cursor.pos = ray.origin.truncate();
