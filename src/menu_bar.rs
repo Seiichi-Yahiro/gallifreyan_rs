@@ -1,45 +1,31 @@
 use crate::ui::UiStage;
 use bevy::prelude::*;
-use bevy::tasks::{AsyncComputeTaskPool, Task};
+use bevy::tasks::AsyncComputeTaskPool;
 use bevy_egui::{egui, EguiContext};
-use futures_lite::future;
-use std::path::PathBuf;
+use futures::channel::oneshot::{channel, Receiver};
+use rfd::AsyncFileDialog;
 
 pub struct MenuBarPlugin;
 
 impl Plugin for MenuBarPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_to_stage(UiStage, ui.label(UiSystemLabel))
-            .add_system(open_file)
-            .add_system(save_as)
-            .add_system(export);
+            .add_system(load_file);
     }
 }
 
 #[derive(SystemLabel)]
 pub struct UiSystemLabel;
 
-#[derive(Component)]
-struct OpenFile(Task<Option<PathBuf>>);
-#[derive(Component)]
-struct SaveAs(Task<Option<PathBuf>>);
-#[derive(Component)]
-struct Export(Task<Option<PathBuf>>);
+#[derive(Component, Deref, DerefMut)]
+struct LoadFile(Receiver<String>);
 
 fn ui(mut commands: Commands, mut egui_context: ResMut<EguiContext>) {
     egui::TopBottomPanel::top("top_bar").show(egui_context.ctx_mut(), |ui| {
         ui.menu_button("File", |ui| {
             if ui.button("Open...").clicked() {
-                let thread_pool = AsyncComputeTaskPool::get();
-                let task = thread_pool.spawn(async move {
-                    rfd::FileDialog::new()
-                        .add_filter("ron", &["ron"])
-                        .pick_file()
-                });
-
-                commands.spawn(OpenFile(task));
-
                 ui.close_menu();
+                open_file(&mut commands);
             }
 
             if ui.button("Save").clicked() {
@@ -47,57 +33,51 @@ fn ui(mut commands: Commands, mut egui_context: ResMut<EguiContext>) {
             }
 
             if ui.button("Save as...").clicked() {
-                let thread_pool = AsyncComputeTaskPool::get();
-                let task = thread_pool.spawn(async move {
-                    rfd::FileDialog::new()
-                        .add_filter("ron", &["ron"])
-                        .save_file()
-                });
-
-                commands.spawn(SaveAs(task));
-
                 ui.close_menu();
             }
 
             if ui.button("Export as SVG...").clicked() {
-                let thread_pool = AsyncComputeTaskPool::get();
-                let task = thread_pool.spawn(async move {
-                    rfd::FileDialog::new()
-                        .add_filter("svg", &["svg"])
-                        .save_file()
-                });
-
-                commands.spawn(Export(task));
-
                 ui.close_menu();
             }
         });
     });
 }
 
-fn open_file(mut commands: Commands, mut tasks: Query<(Entity, &mut OpenFile)>) {
-    for (entity, mut open_file) in tasks.iter_mut() {
-        if let Some(result) = future::block_on(future::poll_once(&mut open_file.0)) {
-            println!("{:?}", result);
-            commands.entity(entity).despawn();
+fn open_file(commands: &mut Commands) {
+    let (sender, receiver) = channel::<String>();
+
+    let task = async move {
+        let file = AsyncFileDialog::new()
+            .add_filter("ron", &["ron"])
+            .pick_file()
+            .await;
+
+        if let Some(file) = file {
+            let data = file.read().await;
+
+            if let Ok(file_content) = String::from_utf8(data) {
+                sender.send(file_content).ok();
+            }
         }
-    }
+    };
+
+    let thread_pool = AsyncComputeTaskPool::get();
+    thread_pool.spawn(task).detach();
+
+    commands.spawn(LoadFile(receiver));
 }
 
-fn save_as(mut commands: Commands, mut tasks: Query<(Entity, &mut SaveAs)>) {
-    for (entity, mut open_file) in tasks.iter_mut() {
-        if let Some(result) = future::block_on(future::poll_once(&mut open_file.0)) {
-            println!("{:?}", result);
-            commands.entity(entity).despawn();
-        }
-    }
-}
-
-fn export(mut commands: Commands, mut tasks: Query<(Entity, &mut Export)>) {
-    for (entity, mut open_file) in tasks.iter_mut() {
-        if let Some(result) = future::block_on(future::poll_once(&mut open_file.0)) {
-            println!("{:?}", result);
-            commands.entity(entity).despawn();
+fn load_file(mut commands: Commands, mut query: Query<(Entity, &mut LoadFile)>) {
+    for (entity, mut open_file) in query.iter_mut() {
+        match open_file.try_recv() {
+            Ok(Some(file_content)) => {
+                debug!("{}", file_content);
+                commands.entity(entity).despawn();
+            }
+            Ok(None) => { /*not yet received*/ }
+            Err(_canceled) => {
+                commands.entity(entity).despawn();
+            }
         }
     }
 }

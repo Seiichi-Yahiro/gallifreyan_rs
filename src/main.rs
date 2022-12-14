@@ -28,6 +28,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {
                 title: "Gallifreyan".to_string(),
+                fit_canvas_to_parent: true,
                 ..default()
             },
             ..default()
