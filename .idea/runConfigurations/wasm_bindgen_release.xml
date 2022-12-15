@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="wasm-bindgen release" type="ShConfigurationType">
-    <option name="SCRIPT_TEXT" value="wasm-bindgen --out-name gallifreyan_wasm --out-dir wasm/src --target web .\target\wasm32-unknown-unknown\wasm-release\gallifreyan_rs.wasm" />
+    <option name="SCRIPT_TEXT" value="wasm-bindgen --out-name gallifreyan_wasm --out-dir wasm/build --target web .\target\wasm32-unknown-unknown\wasm-release\gallifreyan_rs.wasm" />
     <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
     <option name="SCRIPT_PATH" value="" />
     <option name="SCRIPT_OPTIONS" value="" />
