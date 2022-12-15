@@ -3,7 +3,8 @@ use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
 use bevy_egui::{egui, EguiContext};
 use futures::channel::oneshot::{channel, Receiver};
-use rfd::AsyncFileDialog;
+use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::JsValue;
 
 pub struct MenuBarPlugin;
 
@@ -46,14 +47,27 @@ fn ui(mut commands: Commands, mut egui_context: ResMut<EguiContext>) {
 fn open_file(commands: &mut Commands) {
     let (sender, receiver) = channel::<String>();
 
+    #[cfg(not(target_arch = "wasm32"))]
     let task = async move {
-        let file = AsyncFileDialog::new()
+        let file = rfd::AsyncFileDialog::new()
             .add_filter("ron", &["ron"])
             .pick_file()
             .await;
 
         if let Some(file) = file {
             let data = file.read().await;
+
+            if let Ok(file_content) = String::from_utf8(data) {
+                sender.send(file_content).ok();
+            }
+        }
+    };
+
+    #[cfg(target_arch = "wasm32")]
+    let task = async move {
+        if let Ok(array_buffer) = openFile().await {
+            let buffer = js_sys::Uint8Array::new(&array_buffer);
+            let data: Vec<u8> = buffer.to_vec();
 
             if let Ok(file_content) = String::from_utf8(data) {
                 sender.send(file_content).ok();
@@ -71,7 +85,7 @@ fn load_file(mut commands: Commands, mut query: Query<(Entity, &mut LoadFile)>) 
     for (entity, mut open_file) in query.iter_mut() {
         match open_file.try_recv() {
             Ok(Some(file_content)) => {
-                debug!("{}", file_content);
+                info!("{}", file_content);
                 commands.entity(entity).despawn();
             }
             Ok(None) => { /*not yet received*/ }
@@ -80,4 +94,10 @@ fn load_file(mut commands: Commands, mut query: Query<(Entity, &mut LoadFile)>) 
             }
         }
     }
+}
+
+#[wasm_bindgen(module = "/wasm/web.js")]
+extern "C" {
+    #[wasm_bindgen(catch)]
+    async fn openFile() -> Result<JsValue, JsValue>;
 }

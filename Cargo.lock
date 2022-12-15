@@ -1687,9 +1687,12 @@ dependencies = [
  "bevy_prototype_lyon",
  "futures",
  "itertools",
+ "js-sys",
  "lazy_static",
  "regex",
  "rfd",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
