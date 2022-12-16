@@ -20,10 +20,10 @@ impl AddEventSet for App {
 }
 
 macro_rules! event_set {
-    ($name:ident {$($event:ident),+}) => {
+    ($vis:vis $name:ident {$($event:ident),+}) => {
         #[allow(non_snake_case)]
         #[derive(bevy::ecs::system::SystemParam)]
-        pub struct $name<'w, 's> {
+        $vis struct $name<'w, 's> {
             $(
                 $event: bevy::prelude::EventWriter<'w, 's, $event>
             ),+
