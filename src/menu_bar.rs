@@ -1,50 +1,83 @@
+#[cfg(not(target_arch = "wasm32"))]
+mod native;
+
+//#[cfg(target_arch = "wasm32")]
+mod wasm;
+
+use crate::event_set::*;
 use crate::ui::UiStage;
 use bevy::prelude::*;
-use bevy::tasks::AsyncComputeTaskPool;
 use bevy_egui::{egui, EguiContext};
-use futures::channel::oneshot::{channel, Receiver};
-use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen::JsValue;
 
 pub struct MenuBarPlugin;
 
 impl Plugin for MenuBarPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_to_stage(UiStage, ui.label(UiSystemLabel))
-            .add_system(load_file);
+        app.add_event_set::<FileActions>()
+            .add_system_to_stage(UiStage, ui.label(UiSystemLabel));
+
+        #[cfg(not(target_arch = "wasm32"))]
+        app.add_plugin(native::NativePlugin);
+
+        #[cfg(target_arch = "wasm32")]
+        app.add_plugin(wasm::WasmPlugin);
     }
 }
 
 #[derive(SystemLabel)]
 pub struct UiSystemLabel;
 
-#[derive(Component, Deref, DerefMut)]
-struct LoadFile(Receiver<String>);
+event_set!(FileActions {
+    FileHandleAction,
+    Load,
+    Save,
+    Export
+});
 
-fn ui(mut commands: Commands, mut egui_context: ResMut<EguiContext>) {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum FileHandleAction {
+    Open,
+    Save,
+    Export,
+}
+
+#[derive(Debug, Copy, Clone)]
+struct Load;
+
+#[derive(Debug, Copy, Clone)]
+struct Save;
+
+#[derive(Debug, Copy, Clone)]
+struct Export;
+
+fn ui(mut egui_context: ResMut<EguiContext>, mut file_actions: FileActions) {
     egui::TopBottomPanel::top("top_bar").show(egui_context.ctx_mut(), |ui| {
         ui.menu_button("File", |ui| {
             if ui.button("Open...").clicked() {
                 ui.close_menu();
-                open_file(&mut commands);
+                file_actions.dispatch(FileHandleAction::Open);
             }
 
+            // TODO disable when no file handle
             if ui.button("Save").clicked() {
                 ui.close_menu();
+                file_actions.dispatch(Save);
             }
 
             if ui.button("Save as...").clicked() {
                 ui.close_menu();
+                file_actions.dispatch(FileHandleAction::Save);
             }
 
             if ui.button("Export as SVG...").clicked() {
                 ui.close_menu();
+                file_actions.dispatch(FileHandleAction::Export);
             }
         });
     });
 }
 
-fn open_file(commands: &mut Commands) {
+/*fn open_file(commands: &mut Commands) {
     let (sender, receiver) = channel::<String>();
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -94,10 +127,4 @@ fn load_file(mut commands: Commands, mut query: Query<(Entity, &mut LoadFile)>) 
             }
         }
     }
-}
-
-#[wasm_bindgen(module = "/wasm/web.js")]
-extern "C" {
-    #[wasm_bindgen(catch)]
-    async fn openFile() -> Result<JsValue, JsValue>;
-}
+}*/
