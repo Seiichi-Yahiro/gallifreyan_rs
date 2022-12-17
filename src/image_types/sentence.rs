@@ -34,7 +34,6 @@ pub struct SentenceBundle {
     pub position_data: PositionData,
     pub words: CircleChildren,
     pub line_slots: LineSlotChildren,
-    pub shape: ShapeBundle,
     pub interaction: Interaction,
 }
 
@@ -47,12 +46,18 @@ impl SentenceBundle {
             position_data: Sentence::position_data(),
             words: CircleChildren::default(),
             line_slots: LineSlotChildren::default(),
-            shape: ShapeBundle {
-                mode: DrawMode::Stroke(STROKE_MODE),
-                transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                ..default()
-            },
             interaction: Interaction::default(),
         }
+    }
+}
+
+// needed for reflection
+pub fn add_shape_for_sentence(mut commands: Commands, query: Query<Entity, Added<Sentence>>) {
+    for entity in query.iter() {
+        commands.entity(entity).insert(ShapeBundle {
+            mode: DrawMode::Stroke(STROKE_MODE),
+            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            ..default()
+        });
     }
 }

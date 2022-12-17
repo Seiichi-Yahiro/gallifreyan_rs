@@ -98,7 +98,6 @@ pub struct LetterBundle {
     pub decoration: Decoration,
     pub dots: CircleChildren,
     pub line_slots: LineSlotChildren,
-    pub shape: ShapeBundle,
     pub interaction: Interaction,
 }
 
@@ -120,14 +119,20 @@ impl LetterBundle {
             decoration: Decoration::try_from(letter_text.as_str()).unwrap(),
             dots: Default::default(),
             text: Text(letter_text),
-            shape: ShapeBundle {
-                mode: DrawMode::Stroke(STROKE_MODE),
-                transform: Transform::from_xyz(0.0, 0.0, 0.2),
-                ..default()
-            },
             line_slots: Default::default(),
             interaction: Interaction::default(),
         }
+    }
+}
+
+// needed for reflection
+pub fn add_shape_for_letter(mut commands: Commands, query: Query<Entity, Added<Letter>>) {
+    for entity in query.iter() {
+        commands.entity(entity).insert(ShapeBundle {
+            mode: DrawMode::Stroke(STROKE_MODE),
+            transform: Transform::from_xyz(0.0, 0.0, 0.1),
+            ..default()
+        });
     }
 }
 

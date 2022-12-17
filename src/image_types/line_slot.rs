@@ -38,7 +38,6 @@ impl LineSlot {
 pub struct LineSlotBundle {
     pub line_slot: LineSlot,
     pub position_data: PositionData,
-    pub shape: ShapeBundle,
     pub interaction: Interaction,
 }
 
@@ -57,12 +56,18 @@ impl LineSlotBundle {
                 index,
                 point_outside,
             ),
-            shape: ShapeBundle {
-                mode: DrawMode::Stroke(STROKE_MODE),
-                transform: Transform::from_xyz(0.0, 0.0, 0.4),
-                ..default()
-            },
             interaction: Interaction::default(),
         }
+    }
+}
+
+// needed for reflection
+pub fn add_shape_for_line_slot(mut commands: Commands, query: Query<Entity, Added<LineSlot>>) {
+    for entity in query.iter() {
+        commands.entity(entity).insert(ShapeBundle {
+            mode: DrawMode::Stroke(STROKE_MODE),
+            transform: Transform::from_xyz(0.0, 0.0, 0.1),
+            ..default()
+        });
     }
 }

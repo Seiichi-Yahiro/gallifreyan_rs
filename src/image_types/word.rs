@@ -41,7 +41,6 @@ pub struct WordBundle {
     pub position_data: PositionData,
     pub letters: CircleChildren,
     pub line_slots: LineSlotChildren,
-    pub shape: ShapeBundle,
     pub interaction: Interaction,
 }
 
@@ -54,12 +53,18 @@ impl WordBundle {
             position_data: Word::position_data(sentence_radius, number_of_words, index),
             letters: CircleChildren::default(),
             line_slots: LineSlotChildren::default(),
-            shape: ShapeBundle {
-                mode: DrawMode::Stroke(STROKE_MODE),
-                transform: Transform::from_xyz(0.0, 0.0, 0.1),
-                ..default()
-            },
             interaction: Interaction::default(),
         }
+    }
+}
+
+// needed for reflection
+pub fn add_shape_for_word(mut commands: Commands, query: Query<Entity, Added<Word>>) {
+    for entity in query.iter() {
+        commands.entity(entity).insert(ShapeBundle {
+            mode: DrawMode::Stroke(STROKE_MODE),
+            transform: Transform::from_xyz(0.0, 0.0, 0.1),
+            ..default()
+        });
     }
 }

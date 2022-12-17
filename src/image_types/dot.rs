@@ -43,7 +43,6 @@ pub struct DotBundle {
     pub dot: Dot,
     pub radius: Radius,
     pub position_data: PositionData,
-    pub shape: ShapeBundle,
     pub interaction: Interaction,
 }
 
@@ -53,12 +52,18 @@ impl DotBundle {
             dot: Dot,
             radius: Radius(Dot::radius(consonant_radius)),
             position_data: Dot::position_data(consonant_radius, number_of_dots, index),
-            shape: ShapeBundle {
-                mode: DrawMode::Fill(FILL_MODE),
-                transform: Transform::from_xyz(0.0, 0.0, 0.3),
-                ..default()
-            },
             interaction: Interaction::default(),
         }
+    }
+}
+
+// needed for reflection
+pub fn add_shape_for_dot(mut commands: Commands, query: Query<Entity, Added<Dot>>) {
+    for entity in query.iter() {
+        commands.entity(entity).insert(ShapeBundle {
+            mode: DrawMode::Fill(FILL_MODE),
+            transform: Transform::from_xyz(0.0, 0.0, 0.1),
+            ..default()
+        });
     }
 }
