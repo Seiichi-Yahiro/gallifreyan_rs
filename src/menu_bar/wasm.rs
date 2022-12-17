@@ -34,9 +34,15 @@ extern "C" {
 }
 
 #[derive(Default)]
-struct FileHandles {
+pub struct FileHandles {
     ron: Option<JsValue>,
     svg: Option<JsValue>,
+}
+
+impl FileHandles {
+    pub fn has_ron(&self) -> bool {
+        self.ron.is_some()
+    }
 }
 
 type ReceiverType = (JsValue, super::FileHandleAction);

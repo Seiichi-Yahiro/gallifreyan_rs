@@ -18,9 +18,15 @@ impl Plugin for NativePlugin {
 }
 
 #[derive(Default, Resource)]
-struct FileHandles {
+pub struct FileHandles {
     ron: Option<PathBuf>,
     svg: Option<PathBuf>,
+}
+
+impl FileHandles {
+    pub fn has_ron(&self) -> bool {
+        self.ron.is_some()
+    }
 }
 
 type FileHandleReceiverType = (PathBuf, super::FileHandleAction);
