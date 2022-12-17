@@ -122,11 +122,19 @@ fn handle_save_event(
 
             match scene.serialize_ron(type_registry) {
                 Ok(data) => {
-                    // TODO notify user on error
                     IoTaskPool::get()
                         .spawn(async move {
                             if let Err(error) = std::fs::write(path_buffer, data) {
-                                error!("{}", error);
+                                let msg = format!("{}", error);
+
+                                error!(msg);
+
+                                rfd::MessageDialog::new()
+                                    .set_title("Failed to save file")
+                                    .set_description(&msg)
+                                    .set_buttons(rfd::MessageButtons::Ok)
+                                    .set_level(rfd::MessageLevel::Error)
+                                    .show();
                             }
                         })
                         .detach();

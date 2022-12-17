@@ -142,11 +142,20 @@ fn handle_save_event(
             let type_registry = world.resource::<AppTypeRegistry>();
             match scene.serialize_ron(type_registry) {
                 Ok(data) => {
-                    // TODO notify user on error
                     AsyncComputeTaskPool::get()
                         .spawn_local(async move {
                             if let Err(error) = saveToFile(file_handle, data).await {
-                                error!("{:?}", error);
+                                let msg = format!("{:?}", error);
+
+                                error!(msg);
+
+                                rfd::AsyncMessageDialog::new()
+                                    .set_title("Failed to save file")
+                                    .set_description(&msg)
+                                    .set_buttons(rfd::MessageButtons::Ok)
+                                    .set_level(rfd::MessageLevel::Error)
+                                    .show()
+                                    .await;
                             }
                         })
                         .detach();
