@@ -119,6 +119,7 @@ fn handle_save_event(
             let scene = builder.build();
 
             let type_registry = world.resource::<AppTypeRegistry>();
+
             match scene.serialize_ron(type_registry) {
                 Ok(data) => {
                     // TODO notify user on error

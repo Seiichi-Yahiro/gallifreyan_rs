@@ -8,7 +8,8 @@ use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::DrawMode;
 
-#[derive(Debug, Copy, Clone, Component)]
+#[derive(Debug, Copy, Clone, Default, Component, Reflect)]
+#[reflect(Component)]
 pub struct Sentence;
 
 impl Sentence {

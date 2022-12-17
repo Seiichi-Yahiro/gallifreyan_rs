@@ -11,6 +11,7 @@ impl Plugin for InteractionPlugin {
     }
 }
 
+// TODO reflect
 #[derive(Component)]
 pub struct Interaction {
     pub hit_box: Box<dyn HitBox>,

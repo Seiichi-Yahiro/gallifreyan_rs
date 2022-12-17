@@ -1,5 +1,6 @@
 use bevy::math::{Quat, Vec2};
 use std::cmp::Ordering;
+use bevy::prelude::Reflect;
 
 pub trait Intersection<T> {
     fn intersection(&self, other: &T) -> IntersectionResult;
@@ -109,7 +110,7 @@ pub fn clamp_angle(angle: f32, min: f32, max: f32) -> f32 {
     }
 }
 
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone, Reflect)]
 pub struct Angle(f32);
 
 impl Angle {

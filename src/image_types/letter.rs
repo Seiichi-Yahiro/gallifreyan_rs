@@ -7,9 +7,11 @@ use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::DrawMode;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default, Component, Reflect)]
+#[reflect(Component)]
 pub enum Letter {
     Vocal,
+    #[default]
     Consonant,
 }
 
@@ -129,11 +131,13 @@ impl LetterBundle {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default, Component, Reflect)]
+#[reflect(Component)]
 pub enum Placement {
     DeepCut,    // c
     Inside,     // cv
     ShallowCut, // c
+    #[default]
     OnLine,     // cv
     Outside,    // v
 }
@@ -162,8 +166,10 @@ impl TryFrom<&str> for Placement {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default, Component, Reflect)]
+#[reflect(Component)]
 pub enum Decoration {
+    #[default]
     None,         // cv
     SingleDot,    // c
     DoubleDot,    // c
