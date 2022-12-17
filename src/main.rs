@@ -54,6 +54,8 @@ fn main() {
         .register_type::<image_types::AnglePlacement>()
         .register_type::<image_types::Placement>()
         .register_type::<image_types::Decoration>()
+        .register_type::<svg_view::Interaction>()
+        .register_type::<math::Circle>()
         .register_type::<math::Angle>()
         .run();
 }

@@ -1,7 +1,7 @@
 use crate::image_types::{
     AnglePlacement, CircleChildren, LineSlotChildren, PositionData, Radius, Text, STROKE_MODE,
 };
-use crate::math::{Angle, Circle};
+use crate::math::Angle;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
@@ -126,7 +126,7 @@ impl LetterBundle {
                 ..default()
             },
             line_slots: Default::default(),
-            interaction: Interaction::new(Circle::default()),
+            interaction: Interaction::default(),
         }
     }
 }
@@ -138,7 +138,7 @@ pub enum Placement {
     Inside,     // cv
     ShallowCut, // c
     #[default]
-    OnLine,     // cv
+    OnLine, // cv
     Outside,    // v
 }
 
@@ -170,7 +170,7 @@ impl TryFrom<&str> for Placement {
 #[reflect(Component)]
 pub enum Decoration {
     #[default]
-    None,         // cv
+    None, // cv
     SingleDot,    // c
     DoubleDot,    // c
     TripleDot,    // c

@@ -11,29 +11,16 @@ impl Plugin for InteractionPlugin {
     }
 }
 
-// TODO reflect
-#[derive(Component)]
+#[derive(Default, Component, Reflect)]
+#[reflect(Component)]
 pub struct Interaction {
-    pub hit_box: Box<dyn HitBox>,
+    pub hit_box: Circle,
     pub z: f32,
 }
 
 impl Interaction {
-    pub fn new(hit_box: impl HitBox) -> Self {
-        Self {
-            hit_box: Box::new(hit_box),
-            z: 0.0,
-        }
-    }
-}
-
-pub trait HitBox: Send + Sync + 'static {
-    fn is_inside(&self, cursor_pos: Vec2) -> bool;
-}
-
-impl HitBox for Circle {
-    fn is_inside(&self, cursor_pos: Vec2) -> bool {
-        (self.position - cursor_pos).length() - self.radius <= 0.0
+    pub fn is_inside(&self, cursor_pos: Vec2) -> bool {
+        (self.hit_box.position - cursor_pos).length() - self.hit_box.radius <= 0.0
     }
 }
 
@@ -47,10 +34,10 @@ fn update_circle_hitbox(
         let translation = global_transform.translation();
 
         *interaction = Interaction {
-            hit_box: Box::new(Circle {
+            hit_box: Circle {
                 position: translation.truncate(),
                 radius: **radius,
-            }),
+            },
             z: translation.z,
         }
     }
@@ -66,10 +53,10 @@ fn update_line_slot_hitbox(
         let translation = global_transform.translation();
 
         *interaction = Interaction {
-            hit_box: Box::new(Circle {
+            hit_box: Circle {
                 position: translation.truncate(),
                 radius: 5.0,
-            }),
+            },
             z: translation.z,
         }
     }

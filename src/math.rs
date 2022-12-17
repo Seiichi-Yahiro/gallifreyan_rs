@@ -14,7 +14,7 @@ pub enum IntersectionResult {
     Two(Vec2, Vec2),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Default, Reflect)]
 pub struct Circle {
     pub radius: f32,
     pub position: Vec2,

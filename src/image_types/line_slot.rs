@@ -1,5 +1,5 @@
 use crate::image_types::{AnglePlacement, PositionData, STROKE_MODE};
-use crate::math::{Angle, Circle};
+use crate::math::Angle;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
@@ -62,7 +62,7 @@ impl LineSlotBundle {
                 transform: Transform::from_xyz(0.0, 0.0, 0.4),
                 ..default()
             },
-            interaction: Interaction::new(Circle::default()),
+            interaction: Interaction::default(),
         }
     }
 }

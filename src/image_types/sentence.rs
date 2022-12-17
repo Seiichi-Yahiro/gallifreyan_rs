@@ -2,7 +2,7 @@ use crate::image_types::{
     AnglePlacement, CircleChildren, LineSlotChildren, PositionData, Radius, Text, STROKE_MODE,
     SVG_SIZE,
 };
-use crate::math::{Angle, Circle};
+use crate::math::Angle;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
@@ -52,7 +52,7 @@ impl SentenceBundle {
                 transform: Transform::from_xyz(0.0, 0.0, 0.0),
                 ..default()
             },
-            interaction: Interaction::new(Circle::default()),
+            interaction: Interaction::default(),
         }
     }
 }
