@@ -7,6 +7,7 @@ mod math;
 mod menu_bar;
 mod sidebar;
 mod style;
+mod svg;
 mod svg_view;
 mod ui;
 

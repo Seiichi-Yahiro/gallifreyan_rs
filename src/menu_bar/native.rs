@@ -1,5 +1,9 @@
 use crate::event_set::SendEvent;
-use crate::image_types::{Dot, Letter, LineSlot, Sentence, Word};
+use crate::image_types::{
+    CircleChildren, Dot, Letter, LineSlot, Placement, Radius, Sentence, Word, SVG_SIZE,
+};
+use crate::svg::{CircleBuilder, Fill, GroupBuilder, MaskBuilder, SVGBuilder, Stroke};
+use bevy::math::Affine2;
 use bevy::prelude::*;
 use bevy::tasks::{AsyncComputeTaskPool, IoTaskPool};
 use futures::channel::oneshot;
@@ -13,7 +17,8 @@ impl Plugin for NativePlugin {
             .init_resource::<FileHandleReceiver>()
             .add_system(handle_file_handle_action_event)
             .add_system(receive_file_handle.after(handle_file_handle_action_event))
-            .add_system(handle_save_event.after(receive_file_handle));
+            .add_system(handle_save_event.after(receive_file_handle))
+            .add_system(handle_export_event);
     }
 }
 
@@ -83,7 +88,7 @@ fn receive_file_handle(
         match receiver.try_recv() {
             Ok(Some((path_buffer, action))) => match action {
                 super::FileHandleAction::Open => {
-                    file_handles.ron = Some(path_buffer.clone());
+                    file_handles.ron = Some(path_buffer);
                     file_actions.dispatch(super::Load);
                 }
                 super::FileHandleAction::Save => {
@@ -151,4 +156,155 @@ fn handle_save_event(
             }
         }
     }
+}
+
+fn handle_export_event(
+    mut events: EventReader<super::Export>,
+    file_handles: Res<FileHandles>,
+    sentence_query: Query<(&Radius, &Transform, &CircleChildren), With<Sentence>>,
+    word_query: Query<(Entity, &Radius, &Transform, &CircleChildren), With<Word>>,
+    letter_query: Query<(Entity, &Radius, &Transform, &Placement, &CircleChildren), With<Letter>>,
+    dot_query: Query<(&Radius, &Transform), With<Dot>>,
+) {
+    if events.iter().last().is_some() {
+        if let Some(path_buffer) = file_handles.svg.clone() {
+            let mut svg = SVGBuilder::new(SVG_SIZE);
+
+            let group_transform = Affine2 {
+                translation: Vec2::ZERO,
+                matrix2: Mat2::from_cols(Vec2::X, Vec2::NEG_Y),
+            }
+            .into();
+
+            let mut group = GroupBuilder::new().with_transform(group_transform);
+
+            for (sentence_radius, sentence_transform, words) in sentence_query.iter() {
+                let mut sentence_group = GroupBuilder::new()
+                    .with_transform(mat4_to_mat3(sentence_transform.compute_matrix()));
+
+                let sentence = CircleBuilder::new(sentence_radius.0)
+                    .with_stroke(Stroke::Black)
+                    .with_fill(Fill::None);
+                sentence_group.add(sentence);
+
+                for (word_entity, word_radius, word_transform, letters) in
+                    word_query.iter_many(words.iter())
+                {
+                    let mut word_group = GroupBuilder::new()
+                        .with_transform(mat4_to_mat3(word_transform.compute_matrix()));
+
+                    let cutting_letters = letter_query
+                        .iter_many(letters.iter())
+                        .filter(|(_, _, _, placement, _)| {
+                            **placement == Placement::DeepCut
+                                || **placement == Placement::ShallowCut
+                        })
+                        .collect::<Vec<_>>();
+
+                    let word = CircleBuilder::new(word_radius.0).with_stroke(Stroke::Black);
+
+                    if cutting_letters.is_empty() {
+                        word_group.add(word.with_fill(Fill::None));
+                    } else {
+                        let id = format!("{:?}", word_entity);
+                        let mut mask = MaskBuilder::new(id.clone());
+
+                        let word_mask = CircleBuilder::new(word_radius.0)
+                            .with_stroke(Stroke::White)
+                            .with_fill(Fill::Black);
+
+                        mask.add(word_mask);
+
+                        for (_, letter_radius, letter_transform, _, _) in cutting_letters {
+                            let letter_mask = CircleBuilder::new(letter_radius.0)
+                                .with_stroke(Stroke::Black)
+                                .with_fill(Fill::Black)
+                                .with_transform(mat4_to_mat3(letter_transform.compute_matrix()));
+
+                            mask.add(letter_mask);
+                        }
+
+                        word_group.add(mask);
+                        word_group.add(word.with_fill(Fill::Black).with_mask(Some(id)));
+                    }
+
+                    for (letter_entity, letter_radius, letter_transform, placement, dots) in
+                        letter_query.iter_many(letters.iter())
+                    {
+                        let mut letter_group = GroupBuilder::new()
+                            .with_transform(mat4_to_mat3(letter_transform.compute_matrix()));
+
+                        match placement {
+                            Placement::Inside | Placement::OnLine | Placement::Outside => {
+                                let letter = CircleBuilder::new(letter_radius.0)
+                                    .with_stroke(Stroke::Black)
+                                    .with_fill(Fill::None);
+
+                                letter_group.add(letter);
+                            }
+                            Placement::DeepCut | Placement::ShallowCut => {
+                                let mut inverse_group = GroupBuilder::new().with_transform(
+                                    mat4_to_mat3(letter_transform.compute_matrix().inverse()),
+                                );
+
+                                let id = format!("{:?}", letter_entity);
+                                let mut mask = MaskBuilder::new(id.clone());
+
+                                let letter_mask = CircleBuilder::new(letter_radius.0)
+                                    .with_stroke(Stroke::White)
+                                    .with_fill(Fill::Black)
+                                    .with_transform(mat4_to_mat3(
+                                        letter_transform.compute_matrix(),
+                                    ));
+
+                                mask.add(letter_mask);
+
+                                let letter = CircleBuilder::new(word_radius.0)
+                                    .with_stroke(Stroke::Black)
+                                    .with_fill(Fill::Black)
+                                    .with_mask(Some(id));
+
+                                inverse_group.add(mask);
+                                inverse_group.add(letter);
+                                letter_group.add(inverse_group);
+                            }
+                        }
+
+                        for (dot_radius, dot_transform) in dot_query.iter_many(dots.iter()) {
+                            let mut dot_group = GroupBuilder::new()
+                                .with_transform(mat4_to_mat3(dot_transform.compute_matrix()));
+
+                            let dot = CircleBuilder::new(dot_radius.0)
+                                .with_stroke(Stroke::Black)
+                                .with_fill(Fill::Black);
+                            dot_group.add(dot);
+
+                            letter_group.add(dot_group);
+                        }
+
+                        word_group.add(letter_group);
+                    }
+
+                    sentence_group.add(word_group);
+                }
+
+                group.add(sentence_group);
+            }
+
+            svg.add(group);
+
+            let svg = svg.build();
+
+            IoTaskPool::get()
+                .spawn(async move {
+                    std::fs::write(path_buffer, svg).unwrap();
+                })
+                .detach();
+        }
+    }
+}
+
+fn mat4_to_mat3(mat4: Mat4) -> Mat3 {
+    use bevy::math::swizzles::Vec4Swizzles;
+    Mat3::from_cols(mat4.x_axis.xyz(), mat4.y_axis.xyz(), mat4.w_axis.xyz())
 }
