@@ -1,17 +1,16 @@
 use crate::image_types::SVG_SIZE;
 use bevy::math::Mat3;
-use bevy::reflect::Array;
 use itertools::Itertools;
 use std::fmt::{Display, Formatter};
 use std::ops::Add;
 
-pub trait SVG: Display {
+pub trait SvgItem: Display {
     fn build(&self, indentation_level: usize) -> String;
 }
 
 pub struct SVGBuilder {
     size: f32,
-    content: Vec<Box<dyn SVG + 'static>>,
+    content: Vec<Box<dyn SvgItem + 'static>>,
 }
 
 impl SVGBuilder {
@@ -22,7 +21,7 @@ impl SVGBuilder {
         }
     }
 
-    pub fn add<T: SVG + 'static>(&mut self, svg: T) -> &mut Self {
+    pub fn add<T: SvgItem + 'static>(&mut self, svg: T) -> &mut Self {
         self.content.push(Box::new(svg));
         self
     }
@@ -66,7 +65,7 @@ impl Display for SVGBuilder {
 
 pub struct GroupBuilder {
     transform: Mat3,
-    content: Vec<Box<dyn SVG>>,
+    content: Vec<Box<dyn SvgItem>>,
 }
 
 impl GroupBuilder {
@@ -82,13 +81,13 @@ impl GroupBuilder {
         self
     }
 
-    pub fn add<T: SVG + 'static>(&mut self, svg: T) -> &mut Self {
+    pub fn add<T: SvgItem + 'static>(&mut self, svg: T) -> &mut Self {
         self.content.push(Box::new(svg));
         self
     }
 }
 
-impl SVG for GroupBuilder {
+impl SvgItem for GroupBuilder {
     fn build(&self, indentation_level: usize) -> String {
         let indentation = "    ".repeat(indentation_level);
 
@@ -156,7 +155,7 @@ pub struct CircleBuilder {
     mask: Option<String>,
 }
 
-impl SVG for CircleBuilder {
+impl SvgItem for CircleBuilder {
     fn build(&self, indentation_level: usize) -> String {
         let indentation = "    ".repeat(indentation_level);
 
@@ -220,7 +219,7 @@ impl CircleBuilder {
 
 pub struct MaskBuilder {
     id: String,
-    content: Vec<Box<dyn SVG>>,
+    content: Vec<Box<dyn SvgItem>>,
 }
 
 impl MaskBuilder {
@@ -231,13 +230,13 @@ impl MaskBuilder {
         }
     }
 
-    pub fn add<T: SVG + 'static>(&mut self, svg: T) -> &mut Self {
+    pub fn add<T: SvgItem + 'static>(&mut self, svg: T) -> &mut Self {
         self.content.push(Box::new(svg));
         self
     }
 }
 
-impl SVG for MaskBuilder {
+impl SvgItem for MaskBuilder {
     fn build(&self, indentation_level: usize) -> String {
         let indentation = "    ".repeat(indentation_level);
 
