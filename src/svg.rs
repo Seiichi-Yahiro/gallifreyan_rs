@@ -1,4 +1,3 @@
-use crate::image_types::SVG_SIZE;
 use bevy::math::Mat3;
 use itertools::Itertools;
 use std::fmt::{Display, Formatter};
@@ -37,10 +36,10 @@ impl SVGBuilder {
             "baseProfile=\"full\"",
             &format!(
                 "viewBox=\"{} {} {} {}\"",
-                -SVG_SIZE / 2.0,
-                -SVG_SIZE / 2.0,
-                SVG_SIZE,
-                SVG_SIZE
+                -self.size / 2.0,
+                -self.size / 2.0,
+                self.size,
+                self.size
             ),
         ]
         .join("\n  ")
