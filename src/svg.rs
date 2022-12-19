@@ -1,4 +1,5 @@
 use bevy::math::Mat3;
+use bevy::prelude::Transform;
 use itertools::Itertools;
 use std::fmt::{Display, Formatter};
 use std::ops::Add;
@@ -263,4 +264,20 @@ fn mat3_to_string(mat3: Mat3) -> String {
         "matrix({} {} {} {} {} {})",
         mat3.x_axis.x, mat3.x_axis.y, mat3.y_axis.x, mat3.y_axis.y, mat3.z_axis.x, mat3.z_axis.y
     )
+}
+
+pub trait AsMat3 {
+    fn as_mat3(&self, inverse: bool) -> Mat3;
+}
+
+impl AsMat3 for Transform {
+    fn as_mat3(&self, inverse: bool) -> Mat3 {
+        use bevy::math::swizzles::Vec4Swizzles;
+        let mat4 = if inverse {
+            self.compute_matrix().inverse()
+        } else {
+            self.compute_matrix()
+        };
+        Mat3::from_cols(mat4.x_axis.xyz(), mat4.y_axis.xyz(), mat4.w_axis.xyz())
+    }
 }

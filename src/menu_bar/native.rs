@@ -2,7 +2,7 @@ use crate::event_set::SendEvent;
 use crate::image_types::{
     CircleChildren, Dot, Letter, LineSlot, Placement, Radius, Sentence, Word, SVG_SIZE,
 };
-use crate::svg::{CircleBuilder, Fill, GroupBuilder, MaskBuilder, SVGBuilder, Stroke};
+use crate::svg::{AsMat3, CircleBuilder, Fill, GroupBuilder, MaskBuilder, SVGBuilder, Stroke};
 use bevy::math::Affine2;
 use bevy::prelude::*;
 use bevy::tasks::{AsyncComputeTaskPool, IoTaskPool};
@@ -179,8 +179,8 @@ fn handle_export_event(
             let mut group = GroupBuilder::new().with_transform(group_transform);
 
             for (sentence_radius, sentence_transform, words) in sentence_query.iter() {
-                let mut sentence_group = GroupBuilder::new()
-                    .with_transform(mat4_to_mat3(sentence_transform.compute_matrix()));
+                let mut sentence_group =
+                    GroupBuilder::new().with_transform(sentence_transform.as_mat3(false));
 
                 let sentence = CircleBuilder::new(sentence_radius.0)
                     .with_stroke(Stroke::Black)
@@ -190,8 +190,8 @@ fn handle_export_event(
                 for (word_entity, word_radius, word_transform, letters) in
                     word_query.iter_many(words.iter())
                 {
-                    let mut word_group = GroupBuilder::new()
-                        .with_transform(mat4_to_mat3(word_transform.compute_matrix()));
+                    let mut word_group =
+                        GroupBuilder::new().with_transform(word_transform.as_mat3(false));
 
                     let cutting_letters = letter_query
                         .iter_many(letters.iter())
@@ -219,7 +219,7 @@ fn handle_export_event(
                             let letter_mask = CircleBuilder::new(letter_radius.0)
                                 .with_stroke(Stroke::Black)
                                 .with_fill(Fill::Black)
-                                .with_transform(mat4_to_mat3(letter_transform.compute_matrix()));
+                                .with_transform(letter_transform.as_mat3(false));
 
                             mask.add(letter_mask);
                         }
@@ -231,8 +231,8 @@ fn handle_export_event(
                     for (letter_entity, letter_radius, letter_transform, placement, dots) in
                         letter_query.iter_many(letters.iter())
                     {
-                        let mut letter_group = GroupBuilder::new()
-                            .with_transform(mat4_to_mat3(letter_transform.compute_matrix()));
+                        let mut letter_group =
+                            GroupBuilder::new().with_transform(letter_transform.as_mat3(false));
 
                         match placement {
                             Placement::Inside | Placement::OnLine | Placement::Outside => {
@@ -243,9 +243,8 @@ fn handle_export_event(
                                 letter_group.add(letter);
                             }
                             Placement::DeepCut | Placement::ShallowCut => {
-                                let mut inverse_group = GroupBuilder::new().with_transform(
-                                    mat4_to_mat3(letter_transform.compute_matrix().inverse()),
-                                );
+                                let mut inverse_group = GroupBuilder::new()
+                                    .with_transform(letter_transform.as_mat3(true));
 
                                 let id = format!("{:?}", letter_entity);
                                 let mut mask = MaskBuilder::new(id.clone());
@@ -253,9 +252,7 @@ fn handle_export_event(
                                 let letter_mask = CircleBuilder::new(letter_radius.0)
                                     .with_stroke(Stroke::White)
                                     .with_fill(Fill::Black)
-                                    .with_transform(mat4_to_mat3(
-                                        letter_transform.compute_matrix(),
-                                    ));
+                                    .with_transform(letter_transform.as_mat3(false));
 
                                 mask.add(letter_mask);
 
@@ -271,8 +268,8 @@ fn handle_export_event(
                         }
 
                         for (dot_radius, dot_transform) in dot_query.iter_many(dots.iter()) {
-                            let mut dot_group = GroupBuilder::new()
-                                .with_transform(mat4_to_mat3(dot_transform.compute_matrix()));
+                            let mut dot_group =
+                                GroupBuilder::new().with_transform(dot_transform.as_mat3(false));
 
                             let dot = CircleBuilder::new(dot_radius.0)
                                 .with_stroke(Stroke::Black)
@@ -302,9 +299,4 @@ fn handle_export_event(
                 .detach();
         }
     }
-}
-
-fn mat4_to_mat3(mat4: Mat4) -> Mat3 {
-    use bevy::math::swizzles::Vec4Swizzles;
-    Mat3::from_cols(mat4.x_axis.xyz(), mat4.y_axis.xyz(), mat4.w_axis.xyz())
 }
