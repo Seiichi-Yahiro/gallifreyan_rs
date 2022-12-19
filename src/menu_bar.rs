@@ -4,6 +4,8 @@ mod native;
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
+mod svg_export;
+
 use crate::event_set::*;
 use crate::ui::UiStage;
 use bevy::prelude::*;
