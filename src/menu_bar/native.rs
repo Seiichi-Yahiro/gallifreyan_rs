@@ -15,7 +15,7 @@ impl Plugin for NativePlugin {
             .add_system(handle_file_handle_action_event)
             .add_system(receive_file_handle.after(handle_file_handle_action_event))
             .add_system(handle_save_event.after(receive_file_handle))
-            .add_system(handle_export_event);
+            .add_system(handle_export_event.after(receive_file_handle));
     }
 }
 
@@ -130,7 +130,7 @@ fn handle_save_event(
 
             match scene.serialize_ron(type_registry) {
                 Ok(data) => {
-                    save_to(path_buffer, data);
+                    save_to_file(path_buffer, data);
                 }
                 Err(error) => {
                     error!("{}", error);
@@ -148,12 +148,12 @@ fn handle_export_event(
     if events.iter().last().is_some() {
         if let Some(path_buffer) = file_handles.svg.clone() {
             let svg = convert_to_svg(svg_queries).build();
-            save_to(path_buffer, svg);
+            save_to_file(path_buffer, svg);
         }
     }
 }
 
-fn save_to(path_buffer: PathBuf, content: String) {
+fn save_to_file(path_buffer: PathBuf, content: String) {
     IoTaskPool::get()
         .spawn(async move {
             if let Err(error) = std::fs::write(path_buffer, content) {

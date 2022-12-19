@@ -1,5 +1,6 @@
 use crate::event_set::SendEvent;
 use crate::image_types::{Dot, Letter, LineSlot, Sentence, Word};
+use crate::menu_bar::svg_export::{convert_to_svg, SVGQueries};
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
@@ -14,7 +15,8 @@ impl Plugin for WasmPlugin {
             .init_non_send_resource::<FileHandleReceiver>()
             .add_system(handle_file_handle_action_event)
             .add_system(receive_file_handle.after(handle_file_handle_action_event))
-            .add_system(handle_save_event.after(receive_file_handle));
+            .add_system(handle_save_event.after(receive_file_handle))
+            .add_system(handle_export_event.after(receive_file_handle));
     }
 }
 
@@ -146,25 +148,10 @@ fn handle_save_event(
             let scene = builder.build();
 
             let type_registry = world.resource::<AppTypeRegistry>();
+
             match scene.serialize_ron(type_registry) {
                 Ok(data) => {
-                    AsyncComputeTaskPool::get()
-                        .spawn_local(async move {
-                            if let Err(error) = saveToFile(file_handle, data).await {
-                                let msg = format!("{:?}", error);
-
-                                error!(msg);
-
-                                rfd::AsyncMessageDialog::new()
-                                    .set_title("Failed to save file")
-                                    .set_description(&msg)
-                                    .set_buttons(rfd::MessageButtons::Ok)
-                                    .set_level(rfd::MessageLevel::Error)
-                                    .show()
-                                    .await;
-                            }
-                        })
-                        .detach();
+                    save_to_file(file_handle, data);
                 }
                 Err(error) => {
                     error!("{}", error);
@@ -172,4 +159,39 @@ fn handle_save_event(
             }
         }
     }
+}
+
+fn handle_export_event(
+    world: &World,
+    mut events: EventReader<super::Export>,
+    svg_queries: SVGQueries,
+) {
+    if events.iter().last().is_some() {
+        let file_handles = world.non_send_resource::<FileHandles>();
+
+        if let Some(path_buffer) = file_handles.svg.clone() {
+            let svg = convert_to_svg(svg_queries).build();
+            save_to_file(path_buffer, svg);
+        }
+    }
+}
+
+fn save_to_file(file_handle: JsValue, content: String) {
+    AsyncComputeTaskPool::get()
+        .spawn_local(async move {
+            if let Err(error) = saveToFile(file_handle, content).await {
+                let msg = format!("{:?}", error);
+
+                error!(msg);
+
+                rfd::AsyncMessageDialog::new()
+                    .set_title("Failed to save file")
+                    .set_description(&msg)
+                    .set_buttons(rfd::MessageButtons::Ok)
+                    .set_level(rfd::MessageLevel::Error)
+                    .show()
+                    .await;
+            }
+        })
+        .detach();
 }
