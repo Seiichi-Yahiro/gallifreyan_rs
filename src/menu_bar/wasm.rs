@@ -1,7 +1,6 @@
 use crate::event_set::SendEvent;
 use crate::image_types::{Dot, Letter, LineSlot, Sentence, Word};
 use crate::menu_bar::svg_export::{convert_to_svg, SVGQueries};
-use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
 use futures::channel::oneshot;
@@ -53,15 +52,10 @@ type ReceiverType = (JsValue, super::FileHandleAction);
 struct FileHandleReceiver(Option<oneshot::Receiver<ReceiverType>>);
 
 fn handle_file_handle_action_event(
-    world: &mut World,
-    state: &mut SystemState<EventReader<super::FileHandleAction>>,
+    mut events: EventReader<super::FileHandleAction>,
+    mut file_handle_receiver: NonSendMut<FileHandleReceiver>,
 ) {
-    let last_event = {
-        let mut events = state.get_mut(world);
-        events.iter().last().cloned()
-    };
-
-    if let Some(action) = last_event {
+    if let Some(&action) = events.iter().last() {
         let (sender, receiver) = oneshot::channel::<ReceiverType>();
 
         let task = async move {
@@ -84,40 +78,32 @@ fn handle_file_handle_action_event(
         };
 
         AsyncComputeTaskPool::get().spawn_local(task).detach();
-
-        let mut file_handle_receiver = world.non_send_resource_mut::<FileHandleReceiver>();
         file_handle_receiver.0 = Some(receiver);
     }
 }
 
-fn receive_file_handle(world: &mut World, state: &mut SystemState<super::FileActions>) {
-    let file_handle_receiver = {
-        let mut file_handle_receiver = world.non_send_resource_mut::<FileHandleReceiver>();
-        file_handle_receiver.0.take()
-    };
-
-    if let Some(mut receiver) = file_handle_receiver {
+fn receive_file_handle(
+    mut file_handle_receiver: NonSendMut<FileHandleReceiver>,
+    mut file_handles: NonSendMut<FileHandles>,
+    mut file_actions: super::FileActions,
+) {
+    if let Some(mut receiver) = file_handle_receiver.0.take() {
         match receiver.try_recv() {
-            Ok(Some((path_buffer, action))) => {
-                let mut file_handles = world.non_send_resource_mut::<FileHandles>();
-
-                match action {
-                    super::FileHandleAction::Open => {
-                        file_handles.ron = Some(path_buffer);
-                        state.get_mut(world).dispatch(super::Load);
-                    }
-                    super::FileHandleAction::Save => {
-                        file_handles.ron = Some(path_buffer);
-                        state.get_mut(world).dispatch(super::Save);
-                    }
-                    super::FileHandleAction::Export => {
-                        file_handles.svg = Some(path_buffer);
-                        state.get_mut(world).dispatch(super::Export);
-                    }
+            Ok(Some((path_buffer, action))) => match action {
+                super::FileHandleAction::Open => {
+                    file_handles.ron = Some(path_buffer);
+                    file_actions.dispatch(super::Load);
                 }
-            }
+                super::FileHandleAction::Save => {
+                    file_handles.ron = Some(path_buffer);
+                    file_actions.dispatch(super::Save);
+                }
+                super::FileHandleAction::Export => {
+                    file_handles.svg = Some(path_buffer);
+                    file_actions.dispatch(super::Export);
+                }
+            },
             Ok(None) => {
-                let mut file_handle_receiver = world.non_send_resource_mut::<FileHandleReceiver>();
                 file_handle_receiver.0 = Some(receiver);
             }
             Err(_canceled) => {}
@@ -128,6 +114,7 @@ fn receive_file_handle(world: &mut World, state: &mut SystemState<super::FileAct
 fn handle_save_event(
     world: &World,
     mut events: EventReader<super::Save>,
+    file_handles: NonSend<FileHandles>,
     serialize_query: Query<
         Entity,
         Or<(
@@ -140,8 +127,6 @@ fn handle_save_event(
     >,
 ) {
     if events.iter().last().is_some() {
-        let file_handles = world.non_send_resource::<FileHandles>();
-
         if let Some(file_handle) = file_handles.ron.clone() {
             let mut builder = DynamicSceneBuilder::from_world(world);
             builder.extract_entities(serialize_query.iter());
@@ -162,13 +147,11 @@ fn handle_save_event(
 }
 
 fn handle_export_event(
-    world: &World,
     mut events: EventReader<super::Export>,
+    file_handles: NonSend<FileHandles>,
     svg_queries: SVGQueries,
 ) {
     if events.iter().last().is_some() {
-        let file_handles = world.non_send_resource::<FileHandles>();
-
         if let Some(path_buffer) = file_handles.svg.clone() {
             let svg = convert_to_svg(svg_queries).build();
             save_to_file(path_buffer, svg);
