@@ -1,15 +1,24 @@
 use crate::image_types::{
-    CircleChildren, Dot, Letter, Placement, Radius, Sentence, Word, SVG_SIZE,
+    CircleChildren, Dot, Letter, Placement, Radius, Sentence, Text, Word, SVG_SIZE,
 };
 use crate::svg_builder::{
-    AsMat3, CircleBuilder, Fill, GroupBuilder, MaskBuilder, SVGBuilder, Stroke,
+    AsMat3, CircleBuilder, Fill, GroupBuilder, MaskBuilder, SVGBuilder, Stroke, Title,
 };
 use bevy::ecs::system::SystemParam;
 use bevy::math::Affine2;
 use bevy::prelude::*;
 
-type SentenceQuery<'w, 's> =
-    Query<'w, 's, (&'static Radius, &'static Transform, &'static CircleChildren), With<Sentence>>;
+type SentenceQuery<'w, 's> = Query<
+    'w,
+    's,
+    (
+        &'static Text,
+        &'static Radius,
+        &'static Transform,
+        &'static CircleChildren,
+    ),
+    With<Sentence>,
+>;
 
 type WordQuery<'w, 's> = Query<
     'w,
@@ -48,6 +57,13 @@ pub struct SVGQueries<'w, 's> {
 
 pub fn convert_to_svg(svg_queries: SVGQueries) -> SVGBuilder {
     let mut svg = SVGBuilder::new(SVG_SIZE);
+    if let Ok(text) = svg_queries
+        .sentence_query
+        .get_single()
+        .map(|(text, _, _, _)| text.to_string())
+    {
+        svg.add(Title::new(text));
+    }
 
     let group_transform = Affine2 {
         translation: Vec2::ZERO,
@@ -65,7 +81,7 @@ pub fn convert_to_svg(svg_queries: SVGQueries) -> SVGBuilder {
 }
 
 fn convert_sentences(svg_queries: SVGQueries, group: &mut GroupBuilder) {
-    for (sentence_radius, sentence_transform, words) in svg_queries.sentence_query.iter() {
+    for (_, sentence_radius, sentence_transform, words) in svg_queries.sentence_query.iter() {
         let mut sentence_group =
             GroupBuilder::new().with_transform(sentence_transform.as_mat3(false));
 

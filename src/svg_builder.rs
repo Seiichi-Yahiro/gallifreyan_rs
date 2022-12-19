@@ -257,6 +257,30 @@ impl Display for MaskBuilder {
     }
 }
 
+pub struct Title {
+    content: String,
+}
+
+impl Title {
+    pub fn new(content: String) -> Self {
+        Self { content }
+    }
+}
+
+impl SvgItem for Title {
+    fn build(&self, indentation_level: usize) -> String {
+        let indentation = "    ".repeat(indentation_level);
+
+        format!("{}<title>{}</title>", indentation, self.content)
+    }
+}
+
+impl Display for Title {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.build(0))
+    }
+}
+
 fn mat3_to_string(mat3: Mat3) -> String {
     format!(
         "matrix({} {} {} {} {} {})",
