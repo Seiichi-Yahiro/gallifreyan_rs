@@ -2,7 +2,9 @@ use crate::event_set::SendEvent;
 use crate::image_types::{
     CircleChildren, Dot, Letter, LineSlot, Placement, Radius, Sentence, Word, SVG_SIZE,
 };
-use crate::svg::{AsMat3, CircleBuilder, Fill, GroupBuilder, MaskBuilder, SVGBuilder, Stroke};
+use crate::svg_builder::{
+    AsMat3, CircleBuilder, Fill, GroupBuilder, MaskBuilder, SVGBuilder, Stroke,
+};
 use bevy::math::Affine2;
 use bevy::prelude::*;
 use bevy::tasks::{AsyncComputeTaskPool, IoTaskPool};
