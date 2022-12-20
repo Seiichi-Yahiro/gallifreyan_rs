@@ -1,4 +1,5 @@
 mod camera;
+mod color;
 mod draw;
 mod interaction;
 mod selection;
@@ -21,6 +22,7 @@ impl Plugin for SVGViewPlugin {
                     .after(crate::sidebar::UiSystemLabel),
             )
             .add_plugin(camera::CameraPlugin)
+            .add_plugin(color::ColorPlugin)
             .add_plugin(draw::DrawPlugin)
             .add_plugin(interaction::InteractionPlugin)
             .add_plugin(selection::SelectionPlugin);
