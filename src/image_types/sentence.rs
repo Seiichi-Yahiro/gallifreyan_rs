@@ -2,13 +2,14 @@ use crate::image_types::{
     AnglePlacement, CircleChildren, LineSlotChildren, PositionData, Radius, Text, STROKE_MODE,
     SVG_SIZE,
 };
-use crate::math::{Angle, Circle};
+use crate::math::Angle;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::DrawMode;
 
-#[derive(Debug, Copy, Clone, Component)]
+#[derive(Debug, Copy, Clone, Default, Component, Reflect)]
+#[reflect(Component)]
 pub struct Sentence;
 
 impl Sentence {
@@ -33,7 +34,6 @@ pub struct SentenceBundle {
     pub position_data: PositionData,
     pub words: CircleChildren,
     pub line_slots: LineSlotChildren,
-    pub shape: ShapeBundle,
     pub interaction: Interaction,
 }
 
@@ -46,12 +46,18 @@ impl SentenceBundle {
             position_data: Sentence::position_data(),
             words: CircleChildren::default(),
             line_slots: LineSlotChildren::default(),
-            shape: ShapeBundle {
-                mode: DrawMode::Stroke(STROKE_MODE),
-                transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                ..default()
-            },
-            interaction: Interaction::new(Circle::default()),
+            interaction: Interaction::default(),
         }
+    }
+}
+
+// needed for reflection
+pub fn add_shape_for_sentence(mut commands: Commands, query: Query<Entity, Added<Sentence>>) {
+    for entity in query.iter() {
+        commands.entity(entity).insert(ShapeBundle {
+            mode: DrawMode::Stroke(STROKE_MODE),
+            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            ..default()
+        });
     }
 }

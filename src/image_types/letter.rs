@@ -1,15 +1,17 @@
 use crate::image_types::{
     AnglePlacement, CircleChildren, LineSlotChildren, PositionData, Radius, Text, STROKE_MODE,
 };
-use crate::math::{Angle, Circle};
+use crate::math::Angle;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::DrawMode;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default, Component, Reflect)]
+#[reflect(Component)]
 pub enum Letter {
     Vocal,
+    #[default]
     Consonant,
 }
 
@@ -96,7 +98,6 @@ pub struct LetterBundle {
     pub decoration: Decoration,
     pub dots: CircleChildren,
     pub line_slots: LineSlotChildren,
-    pub shape: ShapeBundle,
     pub interaction: Interaction,
 }
 
@@ -118,23 +119,31 @@ impl LetterBundle {
             decoration: Decoration::try_from(letter_text.as_str()).unwrap(),
             dots: Default::default(),
             text: Text(letter_text),
-            shape: ShapeBundle {
-                mode: DrawMode::Stroke(STROKE_MODE),
-                transform: Transform::from_xyz(0.0, 0.0, 0.2),
-                ..default()
-            },
             line_slots: Default::default(),
-            interaction: Interaction::new(Circle::default()),
+            interaction: Interaction::default(),
         }
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
+// needed for reflection
+pub fn add_shape_for_letter(mut commands: Commands, query: Query<Entity, Added<Letter>>) {
+    for entity in query.iter() {
+        commands.entity(entity).insert(ShapeBundle {
+            mode: DrawMode::Stroke(STROKE_MODE),
+            transform: Transform::from_xyz(0.0, 0.0, 0.1),
+            ..default()
+        });
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default, Component, Reflect)]
+#[reflect(Component)]
 pub enum Placement {
     DeepCut,    // c
     Inside,     // cv
     ShallowCut, // c
-    OnLine,     // cv
+    #[default]
+    OnLine, // cv
     Outside,    // v
 }
 
@@ -162,9 +171,11 @@ impl TryFrom<&str> for Placement {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default, Component, Reflect)]
+#[reflect(Component)]
 pub enum Decoration {
-    None,         // cv
+    #[default]
+    None, // cv
     SingleDot,    // c
     DoubleDot,    // c
     TripleDot,    // c

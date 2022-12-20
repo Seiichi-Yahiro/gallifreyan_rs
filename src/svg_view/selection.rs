@@ -174,7 +174,7 @@ fn get_clicked_entity(
     hit_box_query
         .iter()
         .filter_map(|(entity, interaction)| {
-            if interaction.hit_box.is_inside(world_cursor_pos) {
+            if interaction.is_inside(world_cursor_pos) {
                 Some((entity, interaction.z))
             } else {
                 None

@@ -23,6 +23,7 @@ enum TextConverterStage {
     Word,
     Letter,
     Decoration,
+    Shape,
 }
 
 pub struct TextConverterPlugin;
@@ -51,6 +52,16 @@ impl Plugin for TextConverterPlugin {
                 SystemStage::parallel()
                     .with_system(convert_dots)
                     .with_system(convert_line_slots),
+            )
+            .add_stage_after(
+                TextConverterStage::Decoration,
+                TextConverterStage::Shape,
+                SystemStage::parallel()
+                    .with_system(add_shape_for_sentence)
+                    .with_system(add_shape_for_word)
+                    .with_system(add_shape_for_letter)
+                    .with_system(add_shape_for_dot)
+                    .with_system(add_shape_for_line_slot),
             );
     }
 }

@@ -33,26 +33,31 @@ const FILL_MODE: FillMode = FillMode {
     color: SVG_COLOR,
 };
 
-#[derive(Default, Component, Deref, DerefMut)]
+#[derive(Default, Component, Deref, DerefMut, Reflect)]
+#[reflect(Component)]
 pub struct CircleChildren(pub Vec<Entity>);
 
-#[derive(Default, Component, Deref, DerefMut)]
+#[derive(Default, Component, Deref, DerefMut, Reflect)]
+#[reflect(Component)]
 pub struct LineSlotChildren(pub Vec<Entity>);
 
-#[derive(Debug, Default, PartialEq, Eq, Component, Deref, DerefMut)]
+#[derive(Debug, Default, PartialEq, Eq, Component, Deref, DerefMut, Reflect)]
+#[reflect(Component)]
 pub struct Text(pub String);
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Component, Deref, DerefMut)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Component, Deref, DerefMut, Reflect)]
+#[reflect(Component)]
 pub struct Radius(pub f32);
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Component)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Component, Reflect)]
+#[reflect(Component)]
 pub struct PositionData {
     pub angle: Angle,
     pub distance: f32,
     pub angle_placement: AnglePlacement,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Reflect)]
 pub enum AnglePlacement {
     Absolute,
     Relative,
