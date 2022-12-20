@@ -27,7 +27,7 @@ fn set_select_color(
     selection: Res<Selection>,
     styles: Res<Styles>,
 ) {
-    if !selection.is_changed() {
+    if !selection.is_changed() && !styles.is_changed() {
         return;
     }
 

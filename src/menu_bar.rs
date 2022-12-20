@@ -1,5 +1,7 @@
 mod file;
+mod view;
 
+use crate::menu_bar::view::ViewSystemParams;
 use crate::ui::UiStage;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext};
@@ -17,8 +19,15 @@ impl Plugin for MenuBarPlugin {
 #[derive(SystemLabel)]
 pub struct UiSystemLabel;
 
-fn ui(mut egui_context: ResMut<EguiContext>, file_system_params: FileSystemParams) {
-    egui::TopBottomPanel::top("top_bar").show(egui_context.ctx_mut(), |ui| {
-        file::ui(ui, file_system_params);
+fn ui(
+    mut egui_context: ResMut<EguiContext>,
+    file_system_params: FileSystemParams,
+    view_system_params: ViewSystemParams,
+) {
+    egui::TopBottomPanel::top("menu_bar").show(egui_context.ctx_mut(), |ui| {
+        ui.horizontal(|ui| {
+            file::ui(ui, file_system_params);
+            view::ui(ui, view_system_params);
+        });
     });
 }
