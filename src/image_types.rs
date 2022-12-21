@@ -11,7 +11,6 @@ pub use sentence::*;
 pub use word::*;
 
 use crate::math::Angle;
-use crate::style::DEFAULT_SVG_COLOR;
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::{
     FillMode, FillOptions, LineCap, LineJoin, StrokeMode, StrokeOptions,
@@ -23,15 +22,19 @@ const STROKE_OPTIONS: StrokeOptions = StrokeOptions::DEFAULT
     .with_line_join(LineJoin::Round)
     .with_line_width(1.0);
 
-const STROKE_MODE: StrokeMode = StrokeMode {
-    options: STROKE_OPTIONS,
-    color: DEFAULT_SVG_COLOR,
-};
+fn new_stroke_mode(color: Color) -> StrokeMode {
+    StrokeMode {
+        options: STROKE_OPTIONS,
+        color,
+    }
+}
 
-const FILL_MODE: FillMode = FillMode {
-    options: FillOptions::DEFAULT,
-    color: DEFAULT_SVG_COLOR,
-};
+fn new_fill_mode(color: Color) -> FillMode {
+    FillMode {
+        options: FillOptions::DEFAULT,
+        color,
+    }
+}
 
 #[derive(Default, Component, Deref, DerefMut, Reflect)]
 #[reflect(Component)]

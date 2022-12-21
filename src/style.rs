@@ -15,13 +15,20 @@ impl Plugin for StylePlugin {
     }
 }
 
-pub const DEFAULT_SVG_COLOR: Color = Color::WHITE;
-
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub enum Theme {
     #[default]
     Dark,
     Light,
+}
+
+impl Theme {
+    fn svg_color(&self) -> Color {
+        match self {
+            Theme::Dark => Color::WHITE,
+            Theme::Light => Color::BLACK,
+        }
+    }
 }
 
 pub struct SetTheme(pub Theme);
@@ -35,6 +42,8 @@ pub struct Styles {
 }
 
 fn setup_styles(mut styles: ResMut<Styles>, mut egui_context: ResMut<EguiContext>) {
+    let theme = Theme::Dark;
+
     let ctx = egui_context.ctx_mut();
     ctx.set_visuals(egui::Visuals::dark());
 
@@ -44,9 +53,9 @@ fn setup_styles(mut styles: ResMut<Styles>, mut egui_context: ResMut<EguiContext
     let selection_color = color_from(style.visuals.selection.bg_fill);
 
     *styles = Styles {
-        theme: Theme::Dark,
+        theme,
         svg_background_color,
-        svg_color: DEFAULT_SVG_COLOR,
+        svg_color: theme.svg_color(),
         selection_color,
     }
 }
@@ -74,10 +83,7 @@ fn set_theme(
         styles.theme = *theme;
         styles.svg_background_color = svg_background_color;
         styles.selection_color = selection_color;
-        styles.svg_color = match theme {
-            Theme::Dark => DEFAULT_SVG_COLOR,
-            Theme::Light => Color::BLACK,
-        };
+        styles.svg_color = theme.svg_color();
         *clear_color = ClearColor(svg_background_color);
     }
 }

@@ -1,5 +1,6 @@
-use crate::image_types::{AnglePlacement, PositionData, STROKE_MODE};
+use crate::image_types::{new_stroke_mode, AnglePlacement, PositionData};
 use crate::math::Angle;
+use crate::style::Styles;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
@@ -62,10 +63,14 @@ impl LineSlotBundle {
 }
 
 // needed for reflection
-pub fn add_shape_for_line_slot(mut commands: Commands, query: Query<Entity, Added<LineSlot>>) {
+pub fn add_shape_for_line_slot(
+    mut commands: Commands,
+    query: Query<Entity, Added<LineSlot>>,
+    styles: Res<Styles>,
+) {
     for entity in query.iter() {
         commands.entity(entity).insert(ShapeBundle {
-            mode: DrawMode::Stroke(STROKE_MODE),
+            mode: DrawMode::Stroke(new_stroke_mode(styles.svg_color)),
             transform: Transform::from_xyz(0.0, 0.0, 0.1),
             ..default()
         });

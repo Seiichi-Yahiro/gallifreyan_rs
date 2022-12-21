@@ -1,8 +1,9 @@
 use crate::image_types::{
-    AnglePlacement, CircleChildren, LineSlotChildren, PositionData, Radius, Text, STROKE_MODE,
+    new_stroke_mode, AnglePlacement, CircleChildren, LineSlotChildren, PositionData, Radius, Text,
     SVG_SIZE,
 };
 use crate::math::Angle;
+use crate::style::Styles;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
@@ -52,10 +53,14 @@ impl SentenceBundle {
 }
 
 // needed for reflection
-pub fn add_shape_for_sentence(mut commands: Commands, query: Query<Entity, Added<Sentence>>) {
+pub fn add_shape_for_sentence(
+    mut commands: Commands,
+    query: Query<Entity, Added<Sentence>>,
+    styles: Res<Styles>,
+) {
     for entity in query.iter() {
         commands.entity(entity).insert(ShapeBundle {
-            mode: DrawMode::Stroke(STROKE_MODE),
+            mode: DrawMode::Stroke(new_stroke_mode(styles.svg_color)),
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
             ..default()
         });

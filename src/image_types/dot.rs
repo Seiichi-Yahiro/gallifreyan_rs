@@ -1,5 +1,6 @@
-use crate::image_types::{AnglePlacement, PositionData, Radius, FILL_MODE};
+use crate::image_types::{new_fill_mode, AnglePlacement, PositionData, Radius};
 use crate::math::Angle;
+use crate::style::Styles;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
@@ -58,10 +59,14 @@ impl DotBundle {
 }
 
 // needed for reflection
-pub fn add_shape_for_dot(mut commands: Commands, query: Query<Entity, Added<Dot>>) {
+pub fn add_shape_for_dot(
+    mut commands: Commands,
+    query: Query<Entity, Added<Dot>>,
+    styles: Res<Styles>,
+) {
     for entity in query.iter() {
         commands.entity(entity).insert(ShapeBundle {
-            mode: DrawMode::Fill(FILL_MODE),
+            mode: DrawMode::Fill(new_fill_mode(styles.svg_color)),
             transform: Transform::from_xyz(0.0, 0.0, 0.1),
             ..default()
         });
