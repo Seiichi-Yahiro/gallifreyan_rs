@@ -11,10 +11,6 @@ lazy_static! {
         .case_insensitive(true)
         .build()
         .unwrap();
-    pub static ref VOCAL: Regex = RegexBuilder::new(r"^[aeiou]$")
-        .case_insensitive(true)
-        .build()
-        .unwrap();
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
@@ -236,22 +232,14 @@ fn convert_letters(
                     )),
                     Some(new_letter),
                 ) => {
-                    if VOCAL.is_match(&new_letter) {
-                        *letter = Letter::Vocal;
-                    } else {
-                        *letter = Letter::Consonant;
-                    }
+                    *letter = Letter::try_from(new_letter.as_str()).unwrap();
 
-                    let new_placement = Placement::try_from(new_letter.as_str()).unwrap();
-                    let new_decoration = Decoration::try_from(new_letter.as_str()).unwrap();
+                    let new_placement = Placement::from(*letter);
+                    let new_decoration = Decoration::from(*letter);
 
                     let new_radius = letter.radius(*word_radius, number_of_letters);
-                    let new_position_data = letter.position_data(
-                        *word_radius,
-                        number_of_letters,
-                        new_children.len(),
-                        new_placement,
-                    );
+                    let new_position_data =
+                        letter.position_data(*word_radius, number_of_letters, new_children.len());
 
                     if *placement != new_placement {
                         *placement = new_placement;
@@ -293,11 +281,7 @@ fn convert_letters(
                 }
                 // add letter
                 (None, Some(new_letter)) => {
-                    let letter = if VOCAL.is_match(&new_letter) {
-                        Letter::Vocal
-                    } else {
-                        Letter::Consonant
-                    };
+                    let letter = Letter::try_from(new_letter.as_str()).unwrap();
 
                     let letter_bundle = LetterBundle::new(
                         letter,
