@@ -1,5 +1,5 @@
 use crate::events::Selection;
-use crate::image_types::{PositionData, Radius};
+use crate::image_types::{Letter, LineSlot, Placement, PositionData, Radius};
 use crate::math::Angle;
 use crate::ui::angle_slider::AngleSlider;
 use bevy::ecs::system::SystemParam;
@@ -16,6 +16,8 @@ pub struct SelectionSystemParams<'w, 's> {
             Option<&'static Parent>,
             Option<&'static mut Radius>,
             &'static mut PositionData,
+            Option<&'static Letter>,
+            Option<&'static LineSlot>,
         ),
     >,
     global_transform_query: Query<'w, 's, &'static GlobalTransform>,
@@ -23,7 +25,7 @@ pub struct SelectionSystemParams<'w, 's> {
 
 pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
     if let Some(selected_entity) = **params.selection {
-        if let Ok((parent, mut radius, mut position_data)) =
+        if let Ok((parent, mut radius, mut position_data, letter, line_slot)) =
             params.selection_query.get_mut(selected_entity)
         {
             egui::TopBottomPanel::bottom("selection")
@@ -43,10 +45,18 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                             }
                         }
 
-                        let new_distance = ui_distance(ui, position_data.distance);
+                        let can_change_distance = letter
+                            .copied()
+                            .map(Placement::from)
+                            .map(|placement| placement != Placement::OnLine)
+                            .unwrap_or_else(|| line_slot.is_none());
 
-                        if new_distance != position_data.distance {
-                            position_data.distance = new_distance;
+                        if can_change_distance {
+                            let new_distance = ui_distance(ui, position_data.distance);
+
+                            if new_distance != position_data.distance {
+                                position_data.distance = new_distance;
+                            }
                         }
 
                         ui.spacing_mut().slider_width /= 2.0;
