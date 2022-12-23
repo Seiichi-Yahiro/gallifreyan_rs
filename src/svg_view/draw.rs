@@ -1,5 +1,6 @@
 use crate::image_types::{
-    AnglePlacement, CircleChildren, Letter, LineSlot, Placement, PositionData, Radius, Word,
+    AnglePlacement, CircleChildren, Dot, Letter, LineSlot, Placement, PositionData, Radius,
+    Sentence, Word, OUTER_CIRCLE_SIZE,
 };
 use crate::math::{angle_from_position, Circle, Intersection, IntersectionResult};
 use bevy::prelude::*;
@@ -13,9 +14,10 @@ pub struct DrawPlugin;
 impl Plugin for DrawPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(update_position_data)
-            .add_system(draw_circle)
+            .add_system(draw_sentence)
             .add_system(draw_word_and_letter.after(update_position_data))
-            .add_system(draw_line_slot.after(update_position_data));
+            .add_system(draw_line_slot.after(update_position_data))
+            .add_system(draw_dots);
     }
 }
 
@@ -36,11 +38,24 @@ fn update_position_data(mut query: Query<(&mut Transform, &PositionData), Change
     }
 }
 
-fn draw_circle(
-    mut query: Query<(&mut Path, &Radius), (Changed<Radius>, Without<Word>, Without<Letter>)>,
-) {
+fn draw_sentence(mut query: Query<(&mut Path, &Radius), (Changed<Radius>, With<Sentence>)>) {
     for (mut path, radius) in query.iter_mut() {
-        *path = generate_circle_path(**radius);
+        let radius = **radius;
+
+        let outer_circle = shapes::Circle {
+            radius: radius + OUTER_CIRCLE_SIZE,
+            center: Default::default(),
+        };
+
+        let inner_circle = shapes::Circle {
+            radius,
+            center: Default::default(),
+        };
+
+        let mut path_builder = Builder::new();
+        outer_circle.add_geometry(&mut path_builder);
+        inner_circle.add_geometry(&mut path_builder);
+        *path = Path(path_builder.build());
     }
 }
 
@@ -194,6 +209,12 @@ fn generate_letter_path(letter_radius: f32, [end, start]: [Vec2; 2]) -> Path {
     };
 
     generate_path_from_geometry(path_shape)
+}
+
+fn draw_dots(mut query: Query<(&mut Path, &Radius), (Changed<Radius>, With<Dot>)>) {
+    for (mut path, radius) in query.iter_mut() {
+        *path = generate_circle_path(**radius);
+    }
 }
 
 fn draw_line_slot(

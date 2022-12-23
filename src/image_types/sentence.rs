@@ -9,6 +9,8 @@ use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::DrawMode;
 
+pub const OUTER_CIRCLE_SIZE: f32 = 10.0;
+
 #[derive(Debug, Copy, Clone, Default, Component, Reflect)]
 #[reflect(Component)]
 pub struct Sentence;

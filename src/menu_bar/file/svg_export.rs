@@ -1,5 +1,6 @@
 use crate::image_types::{
-    CircleChildren, Dot, Letter, Placement, Radius, Sentence, Text, Word, SVG_SIZE,
+    CircleChildren, Dot, Letter, Placement, Radius, Sentence, Text, Word, OUTER_CIRCLE_SIZE,
+    SVG_SIZE,
 };
 use crate::svg_builder::{
     AsMat3, CircleBuilder, Fill, GroupBuilder, MaskBuilder, SVGBuilder, Stroke, Title,
@@ -85,10 +86,16 @@ fn convert_sentences(svg_queries: SVGQueries, group: &mut GroupBuilder) {
         let mut sentence_group =
             GroupBuilder::new().with_transform(sentence_transform.as_mat3(false));
 
-        let sentence = CircleBuilder::new(sentence_radius.0)
+        let outer_circle = CircleBuilder::new(sentence_radius.0 + OUTER_CIRCLE_SIZE)
             .with_stroke(Stroke::Black)
             .with_fill(Fill::None);
-        sentence_group.add(sentence);
+
+        let inner_circle = CircleBuilder::new(sentence_radius.0)
+            .with_stroke(Stroke::Black)
+            .with_fill(Fill::None);
+
+        sentence_group.add(outer_circle);
+        sentence_group.add(inner_circle);
 
         convert_words(&svg_queries, words, &mut sentence_group);
 
