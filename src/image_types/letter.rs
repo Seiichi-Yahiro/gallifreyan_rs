@@ -21,6 +21,32 @@ impl Default for Letter {
     }
 }
 
+impl Letter {
+    pub fn is_cutting(&self) -> bool {
+        match self {
+            Self::Consonant(consonant) => match ConsonantPlacement::from(*consonant) {
+                ConsonantPlacement::DeepCut | ConsonantPlacement::ShallowCut => true,
+                ConsonantPlacement::OnLine | ConsonantPlacement::Inside => false,
+            },
+            Self::Vocal(_) => false,
+        }
+    }
+
+    pub fn dots(&self) -> usize {
+        match self {
+            Letter::Vocal(vocal) => VocalDecoration::from(*vocal).dots(),
+            Letter::Consonant(consonant) => ConsonantDecoration::from(*consonant).dots(),
+        }
+    }
+
+    pub fn lines(&self) -> usize {
+        match self {
+            Letter::Vocal(vocal) => VocalDecoration::from(*vocal).lines(),
+            Letter::Consonant(consonant) => ConsonantDecoration::from(*consonant).lines(),
+        }
+    }
+}
+
 impl TryFrom<&str> for Letter {
     type Error = String;
 
@@ -57,18 +83,17 @@ impl Vocal {
         number_of_letters: usize,
         index: usize,
     ) -> PositionData {
-        let distance = match Placement::from(*self) {
-            Placement::OnLine => word_radius,
-            Placement::Outside => word_radius + self.radius(word_radius, number_of_letters) * 1.5,
-            Placement::Inside => {
+        let distance = match VocalPlacement::from(*self) {
+            VocalPlacement::OnLine => word_radius,
+            VocalPlacement::Outside => {
+                word_radius + self.radius(word_radius, number_of_letters) * 1.5
+            }
+            VocalPlacement::Inside => {
                 if number_of_letters > 1 {
                     word_radius - self.radius(word_radius, number_of_letters) * 1.5
                 } else {
                     0.0
                 }
-            }
-            _ => {
-                unreachable!("Vocals can only have a placement of OnLine, Outside or Inside!");
             }
         };
 
@@ -148,22 +173,19 @@ impl Consonant {
         number_of_letters: usize,
         index: usize,
     ) -> PositionData {
-        let distance = match Placement::from(*self) {
-            Placement::DeepCut => word_radius - self.radius(word_radius, number_of_letters) * 0.75,
-            Placement::Inside => {
+        let distance = match ConsonantPlacement::from(*self) {
+            ConsonantPlacement::DeepCut => {
+                word_radius - self.radius(word_radius, number_of_letters) * 0.75
+            }
+            ConsonantPlacement::Inside => {
                 if number_of_letters > 1 {
                     word_radius - self.radius(word_radius, number_of_letters) * 1.5
                 } else {
                     0.0
                 }
             }
-            Placement::ShallowCut => word_radius,
-            Placement::OnLine => word_radius,
-            _ => {
-                unreachable!(
-                    "Consonants can only have placement of DeepCut, Inside, ShallowCut or OnLine!"
-                );
-            }
+            ConsonantPlacement::ShallowCut => word_radius,
+            ConsonantPlacement::OnLine => word_radius,
         };
 
         let angle = index as f32 * (360.0 / number_of_letters as f32);
@@ -251,8 +273,6 @@ pub struct LetterBundle {
     pub text: Text,
     pub radius: Radius,
     pub position_data: PositionData,
-    pub placement: Placement,
-    pub decoration: Decoration,
     pub dots: CircleChildren,
     pub line_slots: LineSlotChildren,
     pub interaction: Interaction,
@@ -270,8 +290,6 @@ impl LetterBundle {
             letter,
             radius: Radius(letter.radius(word_radius, number_of_letters)),
             position_data: letter.position_data(word_radius, number_of_letters, index),
-            placement: Placement::from(letter),
-            decoration: Decoration::from(letter),
             dots: Default::default(),
             text: Text(letter_text),
             line_slots: Default::default(),
@@ -295,27 +313,22 @@ pub fn add_shape_for_letter(
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default, Component, Reflect)]
-#[reflect(Component)]
-pub enum Placement {
-    DeepCut,    // c
-    Inside,     // cv
-    ShallowCut, // c
-    #[default]
-    OnLine, // cv
-    Outside,    // v
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ConsonantPlacement {
+    DeepCut,
+    Inside,
+    ShallowCut,
+    OnLine,
 }
 
-impl From<Letter> for Placement {
-    fn from(value: Letter) -> Self {
-        match value {
-            Letter::Vocal(vocal) => Self::from(vocal),
-            Letter::Consonant(consonant) => Self::from(consonant),
-        }
-    }
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum VocalPlacement {
+    Inside,
+    OnLine,
+    Outside,
 }
 
-impl From<Vocal> for Placement {
+impl From<Vocal> for VocalPlacement {
     fn from(value: Vocal) -> Self {
         match value {
             Vocal::A => Self::Outside,
@@ -325,7 +338,7 @@ impl From<Vocal> for Placement {
     }
 }
 
-impl From<Consonant> for Placement {
+impl From<Consonant> for ConsonantPlacement {
     fn from(value: Consonant) -> Self {
         match value {
             Consonant::B
@@ -361,32 +374,26 @@ impl From<Consonant> for Placement {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default, Component, Reflect)]
-#[reflect(Component)]
-pub enum Decoration {
-    #[default]
-    None, // cv
-    SingleDot,    // c
-    DoubleDot,    // c
-    TripleDot,    // c
-    QuadrupleDot, // c
-    SingleLine,   // c
-    DoubleLine,   // c
-    TripleLine,   // c
-    LineInside,   // v
-    LineOutside,  // v
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ConsonantDecoration {
+    None,
+    SingleDot,
+    DoubleDot,
+    TripleDot,
+    QuadrupleDot,
+    SingleLine,
+    DoubleLine,
+    TripleLine,
 }
 
-impl From<Letter> for Decoration {
-    fn from(value: Letter) -> Self {
-        match value {
-            Letter::Vocal(vocal) => Self::from(vocal),
-            Letter::Consonant(consonant) => Self::from(consonant),
-        }
-    }
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum VocalDecoration {
+    None,
+    LineInside,
+    LineOutside,
 }
 
-impl From<Vocal> for Decoration {
+impl From<Vocal> for VocalDecoration {
     fn from(value: Vocal) -> Self {
         match value {
             Vocal::I => Self::LineInside,
@@ -396,7 +403,7 @@ impl From<Vocal> for Decoration {
     }
 }
 
-impl From<Consonant> for Decoration {
+impl From<Consonant> for ConsonantDecoration {
     fn from(value: Consonant) -> Self {
         match value {
             Consonant::B | Consonant::J | Consonant::T | Consonant::TH => Self::None,
@@ -411,27 +418,36 @@ impl From<Consonant> for Decoration {
     }
 }
 
-impl Decoration {
+impl ConsonantDecoration {
     pub fn dots(&self) -> usize {
         match self {
-            Decoration::SingleDot => 1,
-            Decoration::DoubleDot => 2,
-            Decoration::TripleDot => 3,
-            Decoration::QuadrupleDot => 4,
+            Self::SingleDot => 1,
+            Self::DoubleDot => 2,
+            Self::TripleDot => 3,
+            Self::QuadrupleDot => 4,
             _ => 0,
         }
     }
 
     pub fn lines(&self) -> usize {
         match self {
-            Decoration::SingleLine | Decoration::LineInside | Decoration::LineOutside => 1,
-            Decoration::DoubleLine => 2,
-            Decoration::TripleLine => 3,
+            Self::SingleLine => 1,
+            Self::DoubleLine => 2,
+            Self::TripleLine => 3,
             _ => 0,
         }
     }
+}
 
-    pub fn line_points_outside(&self) -> bool {
-        *self == Decoration::LineOutside
+impl VocalDecoration {
+    pub fn dots(&self) -> usize {
+        0
+    }
+
+    pub fn lines(&self) -> usize {
+        match self {
+            Self::LineOutside | Self::LineInside => 1,
+            _ => 0,
+        }
     }
 }

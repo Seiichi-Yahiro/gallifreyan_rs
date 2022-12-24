@@ -1,6 +1,5 @@
 use crate::image_types::{
-    CircleChildren, Dot, Letter, Placement, Radius, Sentence, Text, Word, OUTER_CIRCLE_SIZE,
-    SVG_SIZE,
+    CircleChildren, Dot, Letter, Radius, Sentence, Text, Word, OUTER_CIRCLE_SIZE, SVG_SIZE,
 };
 use crate::svg_builder::{
     AsMat3, CircleBuilder, Fill, GroupBuilder, MaskBuilder, SVGBuilder, Stroke, Title,
@@ -38,9 +37,9 @@ type LetterQuery<'w, 's> = Query<
     's,
     (
         Entity,
+        &'static Letter,
         &'static Radius,
         &'static Transform,
-        &'static Placement,
         &'static CircleChildren,
     ),
     With<Letter>,
@@ -112,9 +111,7 @@ fn convert_words(svg_queries: &SVGQueries, words: &[Entity], sentence_group: &mu
         let cutting_letters = svg_queries
             .letter_query
             .iter_many(letters.iter())
-            .filter(|(_, _, _, placement, _)| {
-                **placement == Placement::DeepCut || **placement == Placement::ShallowCut
-            })
+            .filter(|(_, letter, _, _, _)| letter.is_cutting())
             .collect::<Vec<_>>();
 
         let word = CircleBuilder::new(word_radius.0).with_stroke(Stroke::Black);
@@ -131,7 +128,7 @@ fn convert_words(svg_queries: &SVGQueries, words: &[Entity], sentence_group: &mu
 
             mask.add(word_mask);
 
-            for (_, letter_radius, letter_transform, _, _) in cutting_letters {
+            for (_, _, letter_radius, letter_transform, _) in cutting_letters {
                 let letter_mask = CircleBuilder::new(letter_radius.0)
                     .with_stroke(Stroke::Black)
                     .with_fill(Fill::Black)
@@ -156,42 +153,39 @@ fn convert_letters(
     word_radius: f32,
     word_group: &mut GroupBuilder,
 ) {
-    for (letter_entity, letter_radius, letter_transform, placement, dots) in
+    for (letter_entity, letter, letter_radius, letter_transform, dots) in
         svg_queries.letter_query.iter_many(letters.iter())
     {
         let mut letter_group = GroupBuilder::new().with_transform(letter_transform.as_mat3(false));
 
-        match placement {
-            Placement::Inside | Placement::OnLine | Placement::Outside => {
-                let letter = CircleBuilder::new(letter_radius.0)
-                    .with_stroke(Stroke::Black)
-                    .with_fill(Fill::None);
+        if letter.is_cutting() {
+            let mut inverse_group =
+                GroupBuilder::new().with_transform(letter_transform.as_mat3(true));
 
-                letter_group.add(letter);
-            }
-            Placement::DeepCut | Placement::ShallowCut => {
-                let mut inverse_group =
-                    GroupBuilder::new().with_transform(letter_transform.as_mat3(true));
+            let id = format!("{:?}", letter_entity);
+            let mut mask = MaskBuilder::new(id.clone());
 
-                let id = format!("{:?}", letter_entity);
-                let mut mask = MaskBuilder::new(id.clone());
+            let letter_mask = CircleBuilder::new(letter_radius.0)
+                .with_stroke(Stroke::White)
+                .with_fill(Fill::Black)
+                .with_transform(letter_transform.as_mat3(false));
 
-                let letter_mask = CircleBuilder::new(letter_radius.0)
-                    .with_stroke(Stroke::White)
-                    .with_fill(Fill::Black)
-                    .with_transform(letter_transform.as_mat3(false));
+            mask.add(letter_mask);
 
-                mask.add(letter_mask);
+            let letter = CircleBuilder::new(word_radius)
+                .with_stroke(Stroke::Black)
+                .with_fill(Fill::Black)
+                .with_mask(Some(id));
 
-                let letter = CircleBuilder::new(word_radius)
-                    .with_stroke(Stroke::Black)
-                    .with_fill(Fill::Black)
-                    .with_mask(Some(id));
+            inverse_group.add(mask);
+            inverse_group.add(letter);
+            letter_group.add(inverse_group);
+        } else {
+            let letter = CircleBuilder::new(letter_radius.0)
+                .with_stroke(Stroke::Black)
+                .with_fill(Fill::None);
 
-                inverse_group.add(mask);
-                inverse_group.add(letter);
-                letter_group.add(inverse_group);
-            }
+            letter_group.add(letter);
         }
 
         convert_dots(svg_queries, dots, &mut letter_group);

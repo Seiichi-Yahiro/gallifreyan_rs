@@ -196,8 +196,6 @@ fn convert_letters(
             &mut Text,
             &mut Radius,
             &mut PositionData,
-            &mut Placement,
-            &mut Decoration,
         ),
         Without<Word>,
     >,
@@ -227,27 +225,14 @@ fn convert_letters(
                         mut letter_text,
                         mut radius,
                         mut position_data,
-                        mut placement,
-                        mut decoration,
                     )),
                     Some(new_letter),
                 ) => {
                     *letter = Letter::try_from(new_letter.as_str()).unwrap();
 
-                    let new_placement = Placement::from(*letter);
-                    let new_decoration = Decoration::from(*letter);
-
                     let new_radius = letter.radius(*word_radius, number_of_letters);
                     let new_position_data =
                         letter.position_data(*word_radius, number_of_letters, new_children.len());
-
-                    if *placement != new_placement {
-                        *placement = new_placement;
-                    }
-
-                    if *decoration != new_decoration {
-                        *decoration = new_decoration;
-                    }
 
                     // TODO text change
                     //if **letter_text != new_letter {
@@ -265,18 +250,7 @@ fn convert_letters(
                     new_children.push(letter_entity);
                 }
                 // remove letter
-                (
-                    Some((
-                        letter_entity,
-                        _letter,
-                        _letter_text,
-                        _radius,
-                        _position_data,
-                        _placement,
-                        _decoration,
-                    )),
-                    None,
-                ) => {
+                (Some((letter_entity, _letter, _letter_text, _radius, _position_data)), None) => {
                     commands.entity(letter_entity).despawn_recursive();
                 }
                 // add letter
@@ -307,17 +281,13 @@ fn convert_letters(
 
 fn convert_dots(
     mut commands: Commands,
-    mut letter_query: Query<
-        (Entity, &Radius, &Decoration, &mut CircleChildren),
-        (With<Letter>, Changed<Text>),
-    >,
+    mut letter_query: Query<(Entity, &Letter, &Radius, &mut CircleChildren), Changed<Text>>,
     mut dot_query: Query<(Entity, &mut Radius, &mut PositionData), (With<Dot>, Without<Letter>)>,
 ) {
-    for (letter_entity, Radius(letter_radius), decoration, mut children) in letter_query.iter_mut()
-    {
+    for (letter_entity, letter, Radius(letter_radius), mut children) in letter_query.iter_mut() {
         let mut existing_dots = dot_query.iter_many_mut(children.iter());
 
-        let number_of_dots = decoration.dots();
+        let number_of_dots = letter.dots();
         let mut new_dots_iter = 0..number_of_dots;
 
         let mut new_children: Vec<Entity> = Vec::with_capacity(number_of_dots);
@@ -368,17 +338,17 @@ fn convert_dots(
 
 fn convert_line_slots(
     mut commands: Commands,
-    mut letter_query: Query<
-        (Entity, &Radius, &Decoration, &mut LineSlotChildren),
-        (With<Letter>, Changed<Text>),
-    >,
+    mut letter_query: Query<(Entity, &Letter, &Radius, &mut LineSlotChildren), Changed<Text>>,
     mut line_slot_query: Query<(Entity, &mut PositionData), With<LineSlot>>,
 ) {
-    for (letter_entity, Radius(letter_radius), decoration, mut children) in letter_query.iter_mut()
-    {
+    for (letter_entity, letter, Radius(letter_radius), mut children) in letter_query.iter_mut() {
         let mut existing_line_slots = line_slot_query.iter_many_mut(children.iter());
 
-        let number_of_lines = decoration.lines();
+        let number_of_lines = letter.lines();
+        let line_points_outside = match letter {
+            Letter::Vocal(vocal) => VocalDecoration::from(*vocal) == VocalDecoration::LineOutside,
+            Letter::Consonant(_) => false,
+        };
         let mut new_line_slots_iter = 0..number_of_lines;
 
         let mut new_children: Vec<Entity> = Vec::with_capacity(number_of_lines);
@@ -394,7 +364,7 @@ fn convert_line_slots(
                         *letter_radius,
                         number_of_lines,
                         new_children.len(),
-                        decoration.line_points_outside(),
+                        line_points_outside,
                     );
 
                     if *position_data != new_position_data {
@@ -413,7 +383,7 @@ fn convert_line_slots(
                         *letter_radius,
                         number_of_lines,
                         new_children.len(),
-                        decoration.line_points_outside(),
+                        line_points_outside,
                     );
 
                     let line_slot_entity = commands.spawn(line_slot_bundle).id();

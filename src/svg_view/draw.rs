@@ -1,6 +1,6 @@
 use crate::image_types::{
-    AnglePlacement, CircleChildren, Dot, Letter, LineSlot, Placement, PositionData, Radius,
-    Sentence, Word, OUTER_CIRCLE_SIZE,
+    AnglePlacement, CircleChildren, Dot, Letter, LineSlot, PositionData, Radius, Sentence, Word,
+    OUTER_CIRCLE_SIZE,
 };
 use crate::math::{angle_from_position, Circle, Intersection, IntersectionResult};
 use bevy::prelude::*;
@@ -63,15 +63,12 @@ fn draw_word_and_letter(
     changed_word_query: Query<Entity, (With<Word>, Changed<Radius>)>,
     changed_letter_query: Query<
         &Parent,
-        (
-            With<Letter>,
-            Or<(Changed<Radius>, Changed<PositionData>, Changed<Placement>)>,
-        ),
+        Or<(Changed<Radius>, Changed<PositionData>, Changed<Letter>)>,
     >,
     mut word_query: Query<(&Radius, &CircleChildren, &mut Path), (With<Word>, Without<Letter>)>,
     mut letter_query: Query<
-        (&Radius, &PositionData, &Transform, &Placement, &mut Path),
-        (With<Letter>, Without<Word>),
+        (&Letter, &Radius, &PositionData, &Transform, &mut Path),
+        Without<Word>,
     >,
 ) {
     let words: HashSet<Entity> = changed_letter_query
@@ -93,40 +90,35 @@ fn draw_word_and_letter(
         let mut letter_iter = letter_query.iter_many_mut(letters.iter());
 
         while let Some((
+            letter,
             letter_radius,
             letter_position_data,
             letter_transform,
-            placement,
             mut letter_path,
         )) = letter_iter.fetch_next()
         {
-            match placement {
-                Placement::DeepCut | Placement::ShallowCut => {
-                    let letter_circle = Circle {
-                        radius: **letter_radius,
-                        position: letter_transform.translation.truncate(),
-                    };
+            if letter.is_cutting() {
+                let letter_circle = Circle {
+                    radius: **letter_radius,
+                    position: letter_transform.translation.truncate(),
+                };
 
-                    if let IntersectionResult::Two(a, b) = word_circle.intersection(&letter_circle)
-                    {
-                        let sorted_intersections =
-                            sort_intersections_by_angle(word_circle, letter_circle, a, b);
+                if let IntersectionResult::Two(a, b) = word_circle.intersection(&letter_circle) {
+                    let sorted_intersections =
+                        sort_intersections_by_angle(word_circle, letter_circle, a, b);
 
-                        word_intersections.extend(sorted_intersections.iter());
+                    word_intersections.extend(sorted_intersections.iter());
 
-                        let letter_intersections = sorted_intersections
-                            .map(|pos| pos - letter_circle.position)
-                            .map(|pos| {
-                                Vec2::from_angle(-letter_position_data.angle.as_radians())
-                                    .rotate(pos)
-                            });
+                    let letter_intersections = sorted_intersections
+                        .map(|pos| pos - letter_circle.position)
+                        .map(|pos| {
+                            Vec2::from_angle(-letter_position_data.angle.as_radians()).rotate(pos)
+                        });
 
-                        *letter_path = generate_letter_path(**letter_radius, letter_intersections);
-                    }
+                    *letter_path = generate_letter_path(**letter_radius, letter_intersections);
                 }
-                _ => {
-                    *letter_path = generate_circle_path(**letter_radius);
-                }
+            } else {
+                *letter_path = generate_circle_path(**letter_radius);
             }
         }
 

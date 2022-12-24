@@ -1,5 +1,7 @@
 use crate::events::Selection;
-use crate::image_types::{Letter, LineSlot, Placement, PositionData, Radius};
+use crate::image_types::{
+    ConsonantPlacement, Letter, LineSlot, PositionData, Radius, VocalPlacement,
+};
 use crate::math::Angle;
 use crate::ui::angle_slider::AngleSlider;
 use bevy::ecs::system::SystemParam;
@@ -46,9 +48,15 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                         }
 
                         let can_change_distance = letter
-                            .copied()
-                            .map(Placement::from)
-                            .map(|placement| placement != Placement::OnLine)
+                            .map(|letter| match letter {
+                                Letter::Vocal(vocal) => {
+                                    VocalPlacement::from(*vocal) != VocalPlacement::OnLine
+                                }
+                                Letter::Consonant(consonant) => {
+                                    ConsonantPlacement::from(*consonant)
+                                        != ConsonantPlacement::OnLine
+                                }
+                            })
                             .unwrap_or_else(|| line_slot.is_none());
 
                         if can_change_distance {
