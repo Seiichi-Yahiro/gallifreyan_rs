@@ -1,6 +1,6 @@
 use crate::image_types::{
-    AnglePlacement, CircleChildren, Dot, Letter, LineSlot, PositionData, Radius, Sentence, Word,
-    OUTER_CIRCLE_SIZE,
+    AnglePlacement, CircleChildren, Dot, Letter, LineSlot, NestedVocal, PositionData, Radius,
+    Sentence, Vocal, Word, OUTER_CIRCLE_SIZE,
 };
 use crate::math::{angle_from_position, Circle, Intersection, IntersectionResult};
 use bevy::prelude::*;
@@ -14,9 +14,11 @@ pub struct DrawPlugin;
 impl Plugin for DrawPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(update_position_data)
+            .add_system(update_position_data_for_nested_outside_vocal.after(update_position_data))
             .add_system(draw_sentence)
-            .add_system(draw_word_and_letter.after(update_position_data))
-            .add_system(draw_line_slot.after(update_position_data))
+            .add_system(draw_word_and_letter.after(update_position_data_for_nested_outside_vocal))
+            .add_system(draw_nested_vocal)
+            .add_system(draw_line_slot.after(update_position_data_for_nested_outside_vocal))
             .add_system(draw_dots);
     }
 }
@@ -33,6 +35,23 @@ fn update_position_data(mut query: Query<(&mut Transform, &PositionData), Change
             AnglePlacement::Relative => {
                 *transform =
                     Transform::from_rotation(rotation) * Transform::from_translation(translation);
+            }
+        }
+    }
+}
+
+fn update_position_data_for_nested_outside_vocal(
+    mut nested_vocal_query: Query<
+        (&Letter, &Parent, &mut Transform),
+        (With<NestedVocal>, Changed<PositionData>),
+    >,
+    parent_query: Query<&PositionData, (With<Letter>, Without<NestedVocal>)>,
+) {
+    for (letter, parent, mut transform) in nested_vocal_query.iter_mut() {
+        if let Letter::Vocal(Vocal::A) = letter {
+            if let Ok(parent_position_data) = parent_query.get(parent.get()) {
+                let translation = Transform::from_xyz(0.0, parent_position_data.distance, 0.0);
+                *transform = translation * *transform;
             }
         }
     }
@@ -63,7 +82,12 @@ fn draw_word_and_letter(
     changed_word_query: Query<Entity, (With<Word>, Changed<Radius>)>,
     changed_letter_query: Query<
         &Parent,
-        Or<(Changed<Radius>, Changed<PositionData>, Changed<Letter>)>,
+        Or<(
+            Changed<Radius>,
+            Changed<PositionData>,
+            Changed<Letter>,
+            Without<NestedVocal>,
+        )>,
     >,
     mut word_query: Query<(&Radius, &CircleChildren, &mut Path), (With<Word>, Without<Letter>)>,
     mut letter_query: Query<
@@ -127,6 +151,20 @@ fn draw_word_and_letter(
         } else {
             generate_word_path(**word_radius, word_intersections)
         };
+    }
+}
+
+fn draw_nested_vocal(
+    mut query: Query<
+        (&Radius, &mut Path),
+        (
+            With<NestedVocal>,
+            Or<(Changed<Radius>, Changed<PositionData>)>,
+        ),
+    >,
+) {
+    for (radius, mut path) in query.iter_mut() {
+        *path = generate_circle_path(**radius);
     }
 }
 

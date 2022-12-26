@@ -47,6 +47,8 @@ fn main() {
         .register_type::<image_types::Letter>()
         .register_type::<image_types::Consonant>()
         .register_type::<image_types::Vocal>()
+        .register_type::<image_types::NestedLetter>()
+        .register_type::<image_types::NestedVocal>()
         .register_type::<image_types::Dot>()
         .register_type::<image_types::LineSlot>()
         .register_type::<image_types::CircleChildren>()

@@ -1,5 +1,6 @@
 use crate::image_types::Text;
 use crate::image_types::*;
+use crate::math::Angle;
 use bevy::ecs::query::QuerySingleError;
 use bevy::prelude::*;
 use itertools::Itertools;
@@ -193,19 +194,42 @@ fn convert_letters(
         (
             Entity,
             &mut Letter,
-            &mut Text,
             &mut Radius,
             &mut PositionData,
+            &mut NestedLetter,
         ),
-        Without<Word>,
+        (Without<Word>, Without<NestedVocal>),
+    >,
+    mut nested_vocal_query: Query<
+        (&mut Letter, &mut Radius, &mut PositionData),
+        (Without<Word>, With<NestedVocal>),
     >,
 ) {
     for (word_entity, word_text, Radius(word_radius), mut children) in word_query.iter_mut() {
         let mut existing_letters = letter_query.iter_many_mut(children.iter());
 
-        let new_letters: Vec<String> = split_word_to_chars(word_text)
-            .map(|it| it.to_string())
-            .collect();
+        let new_letters: Vec<Letter> = split_word_to_chars(word_text)
+            .map(|it| Letter::try_from(it).unwrap())
+            .fold(Vec::new(), |mut acc, letter| {
+                match letter {
+                    Letter::Vocal(vocal) => {
+                        if let Some(previous_letter) = acc.pop() {
+                            if let Letter::Consonant(consonant) = previous_letter {
+                                acc.push(Letter::ConsonantWithVocal { consonant, vocal });
+                            } else {
+                                acc.push(previous_letter);
+                                acc.push(letter);
+                            }
+                        } else {
+                            acc.push(letter);
+                        }
+                    }
+                    Letter::Consonant(_) | Letter::ConsonantWithVocal { .. } => {
+                        acc.push(letter);
+                    }
+                }
+                acc
+            });
 
         let number_of_letters = new_letters.len();
         let mut new_letters_iter = new_letters.into_iter();
@@ -219,25 +243,75 @@ fn convert_letters(
             match (next_existing_letter, next_new_letter) {
                 // update letter
                 (
-                    Some((
-                        letter_entity,
-                        mut letter,
-                        mut letter_text,
-                        mut radius,
-                        mut position_data,
-                    )),
+                    Some((letter_entity, mut letter, mut radius, mut position_data, mut nested)),
                     Some(new_letter),
                 ) => {
-                    *letter = Letter::try_from(new_letter.as_str()).unwrap();
+                    let new_radius = new_letter.radius(*word_radius, number_of_letters);
+                    let new_position_data = new_letter.position_data(
+                        *word_radius,
+                        number_of_letters,
+                        new_children.len(),
+                    );
 
-                    let new_radius = letter.radius(*word_radius, number_of_letters);
-                    let new_position_data =
-                        letter.position_data(*word_radius, number_of_letters, new_children.len());
+                    match (*letter, new_letter) {
+                        (
+                            Letter::Vocal(_) | Letter::Consonant(_),
+                            Letter::ConsonantWithVocal { vocal, consonant },
+                        ) => {
+                            let vocal_bundle = NestedVocalBundle::new(
+                                vocal,
+                                ConsonantPlacement::from(consonant),
+                                new_radius,
+                                new_position_data.distance,
+                                *word_radius,
+                            );
 
-                    // TODO text change
-                    //if **letter_text != new_letter {
-                    **letter_text = new_letter;
-                    //}
+                            let vocal_id = commands.spawn(vocal_bundle).id();
+                            commands.entity(letter_entity).add_child(vocal_id);
+                            **nested = Some(vocal_id);
+                        }
+                        (
+                            Letter::ConsonantWithVocal { .. },
+                            Letter::Vocal(_) | Letter::Consonant(_),
+                        ) => {
+                            commands.entity(nested.take().unwrap()).despawn_recursive();
+                        }
+                        (
+                            Letter::ConsonantWithVocal { .. },
+                            Letter::ConsonantWithVocal { vocal, consonant },
+                        ) => {
+                            if let Ok((
+                                mut nested_letter,
+                                mut nested_radius,
+                                mut nested_position_data,
+                            )) = nested_vocal_query.get_mut(nested.unwrap())
+                            {
+                                let new_nested_radius = vocal.nested_radius(new_radius);
+                                let new_nested_position_data = vocal.nested_position_data(
+                                    ConsonantPlacement::from(consonant),
+                                    new_radius,
+                                    new_position_data.distance,
+                                    *word_radius,
+                                );
+
+                                *nested_letter = Letter::Vocal(vocal);
+
+                                if **nested_radius != new_nested_radius {
+                                    **nested_radius = new_nested_radius;
+                                }
+
+                                if *nested_position_data != new_nested_position_data {
+                                    *nested_position_data = new_nested_position_data;
+                                }
+                            }
+                        }
+                        (
+                            Letter::Vocal(_) | Letter::Consonant(_),
+                            Letter::Vocal(_) | Letter::Consonant(_),
+                        ) => {}
+                    }
+
+                    *letter = new_letter;
 
                     if **radius != new_radius {
                         **radius = new_radius;
@@ -250,22 +324,46 @@ fn convert_letters(
                     new_children.push(letter_entity);
                 }
                 // remove letter
-                (Some((letter_entity, _letter, _letter_text, _radius, _position_data)), None) => {
+                (Some((letter_entity, _letter, _radius, _position_data, _nested)), None) => {
                     commands.entity(letter_entity).despawn_recursive();
                 }
                 // add letter
                 (None, Some(new_letter)) => {
-                    let letter = Letter::try_from(new_letter.as_str()).unwrap();
+                    let mut letter_commands = commands.spawn_empty();
 
-                    let letter_bundle = LetterBundle::new(
-                        letter,
+                    let mut letter_bundle = LetterBundle::new(
                         new_letter,
                         *word_radius,
                         number_of_letters,
                         new_children.len(),
+                        None,
                     );
 
-                    let letter_entity = commands.spawn(letter_bundle).id();
+                    if let Letter::ConsonantWithVocal { consonant, vocal } = new_letter {
+                        let vocal_bundle = NestedVocalBundle::new(
+                            vocal,
+                            ConsonantPlacement::from(consonant),
+                            *letter_bundle.radius,
+                            letter_bundle.position_data.distance,
+                            *word_radius,
+                        );
+
+                        letter_commands.with_children(|child_builder| {
+                            /*child_builder
+                            .spawn(SpatialBundle::VISIBLE_IDENTITY)
+                            .insert(PositionData {
+                                angle: Angle::new_degree(0.0),
+                                distance: -letter_bundle.position_data.distance,
+                                angle_placement: AnglePlacement::Relative,
+                            })
+                            .with_children(|child_builder| {*/
+                            let vocal_id = child_builder.spawn(vocal_bundle).id();
+                            *letter_bundle.nested_letter = Some(vocal_id);
+                            //});
+                        });
+                    }
+
+                    let letter_entity = letter_commands.insert(letter_bundle).id();
                     commands.entity(word_entity).add_child(letter_entity);
                     new_children.push(letter_entity);
                 }
@@ -281,7 +379,7 @@ fn convert_letters(
 
 fn convert_dots(
     mut commands: Commands,
-    mut letter_query: Query<(Entity, &Letter, &Radius, &mut CircleChildren), Changed<Text>>,
+    mut letter_query: Query<(Entity, &Letter, &Radius, &mut CircleChildren), Changed<Letter>>,
     mut dot_query: Query<(Entity, &mut Radius, &mut PositionData), (With<Dot>, Without<Letter>)>,
 ) {
     for (letter_entity, letter, Radius(letter_radius), mut children) in letter_query.iter_mut() {
@@ -338,7 +436,7 @@ fn convert_dots(
 
 fn convert_line_slots(
     mut commands: Commands,
-    mut letter_query: Query<(Entity, &Letter, &Radius, &mut LineSlotChildren), Changed<Text>>,
+    mut letter_query: Query<(Entity, &Letter, &Radius, &mut LineSlotChildren), Changed<Letter>>,
     mut line_slot_query: Query<(Entity, &mut PositionData), With<LineSlot>>,
 ) {
     for (letter_entity, letter, Radius(letter_radius), mut children) in letter_query.iter_mut() {
@@ -347,7 +445,7 @@ fn convert_line_slots(
         let number_of_lines = letter.lines();
         let line_points_outside = match letter {
             Letter::Vocal(vocal) => VocalDecoration::from(*vocal) == VocalDecoration::LineOutside,
-            Letter::Consonant(_) => false,
+            Letter::Consonant(_) | Letter::ConsonantWithVocal { .. } => false,
         };
         let mut new_line_slots_iter = 0..number_of_lines;
 
