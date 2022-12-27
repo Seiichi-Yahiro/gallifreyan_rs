@@ -47,6 +47,7 @@ impl Plugin for TextConverterPlugin {
                 TextConverterStage::Letter,
                 TextConverterStage::Decoration,
                 SystemStage::parallel()
+                    .with_system(correct_nested_vocal_with_outside_placement_position)
                     .with_system(convert_dots)
                     .with_system(convert_line_slots),
             )
@@ -349,17 +350,8 @@ fn convert_letters(
                         );
 
                         letter_commands.with_children(|child_builder| {
-                            /*child_builder
-                            .spawn(SpatialBundle::VISIBLE_IDENTITY)
-                            .insert(PositionData {
-                                angle: Angle::new_degree(0.0),
-                                distance: -letter_bundle.position_data.distance,
-                                angle_placement: AnglePlacement::Relative,
-                            })
-                            .with_children(|child_builder| {*/
                             let vocal_id = child_builder.spawn(vocal_bundle).id();
                             *letter_bundle.nested_letter = Some(vocal_id);
-                            //});
                         });
                     }
 
@@ -374,6 +366,47 @@ fn convert_letters(
         }
 
         **children = new_children;
+    }
+}
+
+//TODO remove position_correction when switching from nested to not nested
+fn correct_nested_vocal_with_outside_placement_position(
+    mut commands: Commands,
+    mut nested_vocal_query: Query<(Entity, &Letter, &Parent), (With<NestedVocal>, Changed<Letter>)>,
+    parent_consonant_query: Query<(Entity, &PositionData), With<Letter>>,
+    position_correction_query: Query<(Entity, &Parent), With<NestedVocalPositionCorrection>>,
+) {
+    for (letter_entity, letter, parent) in nested_vocal_query.iter_mut() {
+        if let Letter::Vocal(Vocal::A) = letter {
+            if let Ok((parent_entity, parent_position_data)) =
+                parent_consonant_query.get(parent.get())
+            {
+                commands
+                    .entity(parent_entity)
+                    .remove_children(&[letter_entity])
+                    .with_children(|child_builder| {
+                        child_builder
+                            .spawn(SpatialBundle::VISIBLE_IDENTITY)
+                            .insert(NestedVocalPositionCorrection)
+                            .insert(PositionData {
+                                angle: Angle::new_degree(0.0),
+                                distance: -parent_position_data.distance,
+                                angle_placement: AnglePlacement::Relative,
+                            })
+                            .add_child(letter_entity);
+                    });
+            }
+        } else if let Ok((correction_entity, correction_parent)) =
+            position_correction_query.get(parent.get())
+        {
+            if let Ok((parent_entity, _)) = parent_consonant_query.get(correction_parent.get()) {
+                commands
+                    .entity(correction_entity)
+                    .remove_children(&[letter_entity])
+                    .despawn();
+                commands.entity(parent_entity).add_child(letter_entity);
+            }
+        }
     }
 }
 

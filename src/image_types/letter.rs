@@ -354,6 +354,10 @@ impl LetterBundle {
 #[reflect(Component)]
 pub struct NestedVocal;
 
+#[derive(Copy, Clone, Default, Component, Reflect)]
+#[reflect(Component)]
+pub struct NestedVocalPositionCorrection;
+
 #[derive(Bundle)]
 pub struct NestedVocalBundle {
     pub letter_bundle: LetterBundle,
