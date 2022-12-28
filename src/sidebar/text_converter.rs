@@ -1,6 +1,5 @@
 use crate::image_types::Text;
 use crate::image_types::*;
-use crate::math::Angle;
 use bevy::ecs::query::QuerySingleError;
 use bevy::prelude::*;
 use itertools::Itertools;
@@ -19,6 +18,7 @@ enum TextConverterStage {
     Sentence,
     Word,
     Letter,
+    Nested,
     Decoration,
     Shape,
 }
@@ -45,9 +45,13 @@ impl Plugin for TextConverterPlugin {
             )
             .add_stage_after(
                 TextConverterStage::Letter,
+                TextConverterStage::Nested,
+                SystemStage::single(convert_nested_letters),
+            )
+            .add_stage_after(
+                TextConverterStage::Nested,
                 TextConverterStage::Decoration,
                 SystemStage::parallel()
-                    .with_system(correct_nested_vocal_with_outside_placement_position)
                     .with_system(convert_dots)
                     .with_system(convert_line_slots),
             )
@@ -192,18 +196,8 @@ fn convert_letters(
         (With<Word>, Changed<Text>),
     >,
     mut letter_query: Query<
-        (
-            Entity,
-            &mut Letter,
-            &mut Radius,
-            &mut PositionData,
-            &mut NestedLetter,
-        ),
+        (Entity, &mut Letter, &mut Radius, &mut PositionData),
         (Without<Word>, Without<NestedVocal>),
-    >,
-    mut nested_vocal_query: Query<
-        (&mut Letter, &mut Radius, &mut PositionData),
-        (Without<Word>, With<NestedVocal>),
     >,
 ) {
     for (word_entity, word_text, Radius(word_radius), mut children) in word_query.iter_mut() {
@@ -244,7 +238,7 @@ fn convert_letters(
             match (next_existing_letter, next_new_letter) {
                 // update letter
                 (
-                    Some((letter_entity, mut letter, mut radius, mut position_data, mut nested)),
+                    Some((letter_entity, mut letter, mut radius, mut position_data)),
                     Some(new_letter),
                 ) => {
                     let new_radius = new_letter.radius(*word_radius, number_of_letters);
@@ -253,64 +247,6 @@ fn convert_letters(
                         number_of_letters,
                         new_children.len(),
                     );
-
-                    match (*letter, new_letter) {
-                        (
-                            Letter::Vocal(_) | Letter::Consonant(_),
-                            Letter::ConsonantWithVocal { vocal, consonant },
-                        ) => {
-                            let vocal_bundle = NestedVocalBundle::new(
-                                vocal,
-                                ConsonantPlacement::from(consonant),
-                                new_radius,
-                                new_position_data.distance,
-                                *word_radius,
-                            );
-
-                            let vocal_id = commands.spawn(vocal_bundle).id();
-                            commands.entity(letter_entity).add_child(vocal_id);
-                            **nested = Some(vocal_id);
-                        }
-                        (
-                            Letter::ConsonantWithVocal { .. },
-                            Letter::Vocal(_) | Letter::Consonant(_),
-                        ) => {
-                            commands.entity(nested.take().unwrap()).despawn_recursive();
-                        }
-                        (
-                            Letter::ConsonantWithVocal { .. },
-                            Letter::ConsonantWithVocal { vocal, consonant },
-                        ) => {
-                            if let Ok((
-                                mut nested_letter,
-                                mut nested_radius,
-                                mut nested_position_data,
-                            )) = nested_vocal_query.get_mut(nested.unwrap())
-                            {
-                                let new_nested_radius = vocal.nested_radius(new_radius);
-                                let new_nested_position_data = vocal.nested_position_data(
-                                    ConsonantPlacement::from(consonant),
-                                    new_radius,
-                                    new_position_data.distance,
-                                    *word_radius,
-                                );
-
-                                *nested_letter = Letter::Vocal(vocal);
-
-                                if **nested_radius != new_nested_radius {
-                                    **nested_radius = new_nested_radius;
-                                }
-
-                                if *nested_position_data != new_nested_position_data {
-                                    *nested_position_data = new_nested_position_data;
-                                }
-                            }
-                        }
-                        (
-                            Letter::Vocal(_) | Letter::Consonant(_),
-                            Letter::Vocal(_) | Letter::Consonant(_),
-                        ) => {}
-                    }
 
                     *letter = new_letter;
 
@@ -325,14 +261,12 @@ fn convert_letters(
                     new_children.push(letter_entity);
                 }
                 // remove letter
-                (Some((letter_entity, _letter, _radius, _position_data, _nested)), None) => {
+                (Some((letter_entity, _letter, _radius, _position_data)), None) => {
                     commands.entity(letter_entity).despawn_recursive();
                 }
                 // add letter
                 (None, Some(new_letter)) => {
-                    let mut letter_commands = commands.spawn_empty();
-
-                    let mut letter_bundle = LetterBundle::new(
+                    let letter_bundle = LetterBundle::new(
                         new_letter,
                         *word_radius,
                         number_of_letters,
@@ -340,22 +274,7 @@ fn convert_letters(
                         None,
                     );
 
-                    if let Letter::ConsonantWithVocal { consonant, vocal } = new_letter {
-                        let vocal_bundle = NestedVocalBundle::new(
-                            vocal,
-                            ConsonantPlacement::from(consonant),
-                            *letter_bundle.radius,
-                            letter_bundle.position_data.distance,
-                            *word_radius,
-                        );
-
-                        letter_commands.with_children(|child_builder| {
-                            let vocal_id = child_builder.spawn(vocal_bundle).id();
-                            *letter_bundle.nested_letter = Some(vocal_id);
-                        });
-                    }
-
-                    let letter_entity = letter_commands.insert(letter_bundle).id();
+                    let letter_entity = commands.spawn(letter_bundle).id();
                     commands.entity(word_entity).add_child(letter_entity);
                     new_children.push(letter_entity);
                 }
@@ -369,42 +288,144 @@ fn convert_letters(
     }
 }
 
-//TODO remove position_correction when switching from nested to not nested
-fn correct_nested_vocal_with_outside_placement_position(
+fn convert_nested_letters(
     mut commands: Commands,
-    mut nested_vocal_query: Query<(Entity, &Letter, &Parent), (With<NestedVocal>, Changed<Letter>)>,
-    parent_consonant_query: Query<(Entity, &PositionData), With<Letter>>,
-    position_correction_query: Query<(Entity, &Parent), With<NestedVocalPositionCorrection>>,
+    word_query: Query<&Radius, (With<Word>, Without<NestedVocal>)>,
+    mut letter_query: Query<
+        (
+            Entity,
+            &Parent,
+            &Letter,
+            &PositionData,
+            &Radius,
+            &mut NestedLetter,
+        ),
+        (Changed<Letter>, Without<NestedVocal>),
+    >,
+    position_correction_query: Query<Entity, With<NestedVocalPositionCorrection>>,
+    mut nested_vocal_query: Query<
+        (&Parent, &mut Letter, &mut Radius, &mut PositionData),
+        With<NestedVocal>,
+    >,
 ) {
-    for (letter_entity, letter, parent) in nested_vocal_query.iter_mut() {
-        if let Letter::Vocal(Vocal::A) = letter {
-            if let Ok((parent_entity, parent_position_data)) =
-                parent_consonant_query.get(parent.get())
-            {
-                commands
-                    .entity(parent_entity)
-                    .remove_children(&[letter_entity])
-                    .with_children(|child_builder| {
-                        child_builder
-                            .spawn(SpatialBundle::VISIBLE_IDENTITY)
-                            .insert(NestedVocalPositionCorrection)
-                            .insert(PositionData {
-                                angle: Angle::new_degree(0.0),
-                                distance: -parent_position_data.distance,
-                                angle_placement: AnglePlacement::Relative,
-                            })
-                            .add_child(letter_entity);
-                    });
+    for (letter_entity, letter_parent, letter, letter_position_data, letter_radius, mut nested) in
+        letter_query.iter_mut()
+    {
+        match letter {
+            Letter::ConsonantWithVocal { vocal, consonant } => {
+                let word_radius = **word_query.get(letter_parent.get()).unwrap();
+
+                if let Some(nested_entity) = nested.take() {
+                    // update nested
+                    if let Ok((
+                        nested_parent,
+                        mut nested_letter,
+                        mut nested_radius,
+                        mut nested_position_data,
+                    )) = nested_vocal_query.get_mut(nested_entity)
+                    {
+                        let old_placement = match *nested_letter {
+                            Letter::Vocal(vocal) => VocalPlacement::from(vocal),
+                            _ => unreachable!(),
+                        };
+
+                        let new_placement = VocalPlacement::from(*vocal);
+
+                        match (old_placement, new_placement) {
+                            // add position correction
+                            (
+                                VocalPlacement::OnLine | VocalPlacement::Inside,
+                                VocalPlacement::Outside,
+                            ) => {
+                                commands
+                                    .entity(letter_entity)
+                                    .remove_children(&[nested_entity])
+                                    .with_children(|child_builder| {
+                                        child_builder
+                                            .spawn(NestedVocalPositionCorrectionBundle::new(
+                                                letter_position_data.distance,
+                                            ))
+                                            .add_child(nested_entity);
+                                    });
+                            }
+                            // remove position correction
+                            (
+                                VocalPlacement::Outside,
+                                VocalPlacement::OnLine | VocalPlacement::Inside,
+                            ) => {
+                                commands
+                                    .entity(nested_parent.get())
+                                    .remove_children(&[nested_entity])
+                                    .despawn();
+                                commands.entity(letter_entity).add_child(nested_entity);
+                            }
+                            _ => {}
+                        }
+
+                        *nested_letter = Letter::Vocal(*vocal);
+
+                        let new_nested_radius = vocal.nested_radius(**letter_radius);
+                        let new_nested_position_data = vocal.nested_position_data(
+                            ConsonantPlacement::from(*consonant),
+                            **letter_radius,
+                            letter_position_data.distance,
+                            word_radius,
+                        );
+
+                        if **nested_radius != new_nested_radius {
+                            **nested_radius = new_nested_radius;
+                        }
+
+                        if *nested_position_data != new_nested_position_data {
+                            *nested_position_data = new_nested_position_data;
+                        }
+                    }
+
+                    **nested = Some(nested_entity);
+                } else {
+                    // spawn nested
+                    let vocal_id = commands
+                        .entity(letter_entity)
+                        .add_children(|child_builder| {
+                            let vocal_bundle = NestedVocalBundle::new(
+                                *vocal,
+                                ConsonantPlacement::from(*consonant),
+                                **letter_radius,
+                                letter_position_data.distance,
+                                word_radius,
+                            );
+
+                            if VocalPlacement::Outside == VocalPlacement::from(*vocal) {
+                                child_builder
+                                    .spawn(NestedVocalPositionCorrectionBundle::new(
+                                        letter_position_data.distance,
+                                    ))
+                                    .add_children(|child_builder| {
+                                        child_builder.spawn(vocal_bundle).id()
+                                    })
+                            } else {
+                                child_builder.spawn(vocal_bundle).id()
+                            }
+                        });
+
+                    **nested = Some(vocal_id);
+                }
             }
-        } else if let Ok((correction_entity, correction_parent)) =
-            position_correction_query.get(parent.get())
-        {
-            if let Ok((parent_entity, _)) = parent_consonant_query.get(correction_parent.get()) {
-                commands
-                    .entity(correction_entity)
-                    .remove_children(&[letter_entity])
-                    .despawn();
-                commands.entity(parent_entity).add_child(letter_entity);
+            Letter::Consonant(_) | Letter::Vocal(_) => {
+                // remove nested
+                if let Some(nested_entity) = nested.take() {
+                    let position_correction_entity = nested_vocal_query
+                        .get(nested_entity)
+                        .and_then(|(parent, _, _, _)| position_correction_query.get(parent.get()));
+
+                    if let Ok(position_correction_entity) = position_correction_entity {
+                        commands
+                            .entity(position_correction_entity)
+                            .despawn_recursive();
+                    } else {
+                        commands.entity(nested_entity).despawn_recursive();
+                    }
+                }
             }
         }
     }

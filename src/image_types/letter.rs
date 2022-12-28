@@ -359,6 +359,27 @@ pub struct NestedVocal;
 pub struct NestedVocalPositionCorrection;
 
 #[derive(Bundle)]
+pub struct NestedVocalPositionCorrectionBundle {
+    pub nested_vocal_position_correction: NestedVocalPositionCorrection,
+    pub spatial_bundle: SpatialBundle,
+    pub position_data: PositionData,
+}
+
+impl NestedVocalPositionCorrectionBundle {
+    pub fn new(consonant_distance: f32) -> Self {
+        Self {
+            nested_vocal_position_correction: NestedVocalPositionCorrection,
+            spatial_bundle: SpatialBundle::VISIBLE_IDENTITY,
+            position_data: PositionData {
+                angle: Angle::new_degree(0.0),
+                distance: -consonant_distance,
+                angle_placement: AnglePlacement::Relative,
+            },
+        }
+    }
+}
+
+#[derive(Bundle)]
 pub struct NestedVocalBundle {
     pub letter_bundle: LetterBundle,
     pub nested_vocal: NestedVocal,
