@@ -459,4 +459,72 @@ mod test {
 
         assert_eq!(result, expected);
     }
+
+    #[test]
+    fn should_spawn_sentence() {
+        let mut app = App::new();
+
+        app.add_event::<SetText>();
+        app.add_system(convert_sentence);
+
+        let text = "my sentence";
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText(text.to_string()));
+
+        app.update();
+
+        let mut query = app.world.query_filtered::<&Text, With<Sentence>>();
+        let result: Vec<_> = query.iter(&app.world).collect();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(**result[0], text);
+    }
+
+    #[test]
+    fn should_despawn_sentence() {
+        let mut app = App::new();
+
+        app.add_event::<SetText>();
+        app.add_system(convert_sentence);
+
+        app.world
+            .spawn(SentenceBundle::new("my sentence".to_string()));
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText(String::new()));
+
+        app.update();
+
+        let mut query = app.world.query_filtered::<&Text, With<Sentence>>();
+        let result = query.iter(&app.world).len();
+
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn should_update_sentence() {
+        let mut app = App::new();
+
+        app.add_event::<SetText>();
+        app.add_system(convert_sentence);
+
+        app.world.spawn(SentenceBundle::new("sentence".to_string()));
+
+        let text = "my sentence";
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText(text.to_string()));
+
+        app.update();
+
+        let mut query = app.world.query_filtered::<&Text, With<Sentence>>();
+        let result: Vec<_> = query.iter(&app.world).collect();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(**result[0], text);
+    }
 }
