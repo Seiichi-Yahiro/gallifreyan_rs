@@ -402,7 +402,7 @@ fn convert_line_slots(
 
 #[cfg(test)]
 mod test {
-    use super::split_word_to_chars;
+    use super::*;
 
     #[test]
     fn should_split_lower_case_word() {
@@ -447,6 +447,15 @@ mod test {
             split_word_to_chars("äöü+*~#'i#-_.:,;<>|@n€^°1!2²\"3§³4$5v%6&7/{a8([9)l]0=i}ßd?\\´`")
                 .collect();
         let expected = ["i", "n", "v", "a", "l", "i", "d"];
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_sanitize_text_input() {
+        let result =
+            sanitize_text_input("äöü+*~#'i#-_.:,;<>|@n€^°1!2²\"3§³4$5v%6&7/{a8([9)l]0=i}ßd?\\´`");
+        let expected = "invalid";
 
         assert_eq!(result, expected);
     }
