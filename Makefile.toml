@@ -145,6 +145,19 @@ args = [
 dependencies = ["test", "clean_coverage"]
 install_crate = "grcov"
 
+[tasks.echo_coverage]
+script_runner = "@duckscript"
+script = '''
+wd = pwd
+wd = replace ${wd} \\ /
+coverage_dir = replace ${COVERAGE_DIR} ./ /
+
+path = join_path ${wd} ${coverage_dir} /html/index.html
+
+echo Coverage report:
+echo file:///${path}
+'''
+
 [tasks.remove_profraw]
 script_runner = "@duckscript"
 script = '''
@@ -153,4 +166,4 @@ rm -r ${PROFRAW_DIR}
 
 [tasks.coverage]
 clear = true
-run_task = { name = ["coverage_html", "remove_profraw"] }
+run_task = { name = ["coverage_html", "remove_profraw", "echo_coverage"] }
