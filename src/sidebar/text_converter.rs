@@ -527,7 +527,7 @@ mod test {
     }
 
     #[test]
-    fn should_despawn_sentence() {
+    fn should_remove_sentence() {
         test_component_update::<Text, Sentence>("my sentence", "", |_before, after| {
             assert_eq!(after.len(), 0);
         });
@@ -552,6 +552,94 @@ mod test {
     fn should_not_update_sentence_position_data() {
         test_component_update::<PositionData, Sentence>("sentence", "sent", |before, after| {
             assert_eq!(before, after);
+        });
+    }
+
+    #[test]
+    fn should_spawn_words() {
+        test_component_update::<Text, Word>("my words", "my words", |before, _after| {
+            assert_eq!(before.len(), 2);
+            assert_eq!(*before[0], "my");
+            assert_eq!(*before[1], "words");
+        });
+    }
+
+    #[test]
+    fn should_spawn_first_word_in_center() {
+        test_component_update::<PositionData, Word>("my", "my", |before, _after| {
+            assert_eq!(before.len(), 1);
+            assert_eq!(before[0].angle.as_degrees(), 0.0);
+            assert_eq!(before[0].distance, 0.0);
+        });
+    }
+
+    #[test]
+    fn should_spawn_move_first_word_out_of_center() {
+        test_component_update::<PositionData, Word>("my", "my word", |_before, after| {
+            assert_eq!(after.len(), 2);
+            assert_eq!(after[0].angle.as_degrees(), 0.0);
+            assert!(after[0].distance > 0.0);
+            assert!(after[1].distance > 0.0);
+        });
+    }
+
+    #[test]
+    fn should_remove_word() {
+        test_component_update::<Text, Word>("my words", "my", |_before, after| {
+            assert_eq!(after.len(), 1);
+            assert_eq!(*after[0], "my");
+        });
+    }
+
+    #[test]
+    fn should_update_word_text() {
+        test_component_update::<Text, Word>("my words", "me first", |_before, after| {
+            assert_eq!(*after[0], "me");
+            assert_eq!(*after[1], "first");
+            assert_eq!(after.len(), 2);
+        });
+    }
+
+    #[test]
+    fn should_update_decrease_word_radius() {
+        test_component_update::<Radius, Word>("my", "my word", |before, after| {
+            assert!(before[0] > after[0]);
+        });
+    }
+
+    #[test]
+    fn should_update_increase_word_radius() {
+        test_component_update::<Radius, Word>("my word", "my", |before, after| {
+            assert!(before[0] < after[0]);
+        });
+    }
+
+    #[test]
+    fn should_not_update_word_radius() {
+        test_component_update::<Radius, Word>("word", "what", |before, after| {
+            assert_eq!(before[0], after[0]);
+        });
+    }
+
+    #[test]
+    fn should_decrease_word_angle() {
+        test_component_update::<PositionData, Word>(
+            "my first",
+            "my first word",
+            |before, after| {
+                assert_eq!(after[0].angle.as_degrees(), 0.0);
+                assert!(before[1].angle > after[1].angle);
+                assert!(after[0].angle < after[1].angle && after[1].angle < after[2].angle);
+            },
+        );
+    }
+
+    #[test]
+    fn should_increase_word_angle() {
+        test_component_update::<PositionData, Word>("my first word", "my word", |before, after| {
+            assert_eq!(after[0].angle.as_degrees(), 0.0);
+            assert!(before[1].angle < after[1].angle);
+            assert!(after[0].angle < after[1].angle);
         });
     }
 }
