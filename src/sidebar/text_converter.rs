@@ -858,4 +858,50 @@ mod test {
     fn should_spawn_u() {
         test_count_letter_entities("u", 1, 0, 1);
     }
+
+    #[test]
+    fn should_decrease_letter_radius() {
+        test_component_update::<Radius, Letter>("jj", "jjj", |before, after| {
+            assert!(before[1] > after[1]);
+        });
+    }
+
+    #[test]
+    fn should_increase_letter_radius() {
+        test_component_update::<Radius, Letter>("jjj", "jj", |before, after| {
+            assert!(before[1] < after[1]);
+        });
+    }
+
+    #[test]
+    fn should_not_update_letter_radius() {
+        test_component_update::<Radius, Letter>("jjj", "jjj", |before, after| {
+            assert_eq!(before[1], after[1]);
+        });
+    }
+
+    #[test]
+    fn should_decrease_letter_angle() {
+        test_component_update::<PositionData, Letter>("jj", "jjj", |before, after| {
+            assert_eq!(after[0].angle.as_degrees(), 0.0);
+            assert!(before[1].angle > after[1].angle);
+            assert!(after[0].angle < after[1].angle && after[1].angle < after[2].angle);
+        });
+    }
+
+    #[test]
+    fn should_increase_letter_angle() {
+        test_component_update::<PositionData, Letter>("jjj", "jj", |before, after| {
+            assert_eq!(after[0].angle.as_degrees(), 0.0);
+            assert!(before[1].angle < after[1].angle);
+            assert!(after[0].angle < after[1].angle);
+        });
+    }
+
+    #[test]
+    fn should_not_update_letter_angle() {
+        test_component_update::<PositionData, Letter>("jjj", "jjj", |before, after| {
+            assert_eq!(before[1].angle, after[1].angle);
+        });
+    }
 }
