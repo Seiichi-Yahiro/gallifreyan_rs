@@ -540,4 +540,18 @@ mod test {
             assert_eq!(*after[0], "sent");
         });
     }
+
+    #[test]
+    fn should_not_update_sentence_radius() {
+        test_component_update::<Radius, Sentence>("sentence", "sent", |before, after| {
+            assert_eq!(before, after);
+        });
+    }
+
+    #[test]
+    fn should_not_update_sentence_position_data() {
+        test_component_update::<PositionData, Sentence>("sentence", "sent", |before, after| {
+            assert_eq!(before, after);
+        });
+    }
 }
