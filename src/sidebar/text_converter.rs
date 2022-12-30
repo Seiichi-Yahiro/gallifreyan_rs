@@ -643,6 +643,13 @@ mod test {
         });
     }
 
+    #[test]
+    fn should_not_update_word_angle() {
+        test_component_update::<PositionData, Word>("word", "what", |before, after| {
+            assert_eq!(before[0].angle, after[0].angle);
+        });
+    }
+
     fn test_count_letter_entities(
         text: &str,
         expected_letters: usize,
