@@ -44,11 +44,13 @@ pub struct CircleChildren(pub Vec<Entity>);
 #[reflect(Component)]
 pub struct LineSlotChildren(pub Vec<Entity>);
 
-#[derive(Debug, Default, PartialEq, Eq, Component, Deref, DerefMut, Reflect)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Component, Deref, DerefMut, Reflect)]
 #[reflect(Component)]
 pub struct Text(pub String);
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Component, Deref, DerefMut, Reflect)]
+#[derive(
+    Debug, Default, Copy, Clone, PartialEq, PartialOrd, Component, Deref, DerefMut, Reflect,
+)]
 #[reflect(Component)]
 pub struct Radius(pub f32);
 

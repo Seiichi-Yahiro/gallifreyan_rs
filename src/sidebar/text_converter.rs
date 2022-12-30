@@ -460,71 +460,84 @@ mod test {
         assert_eq!(result, expected);
     }
 
-    #[test]
-    fn should_spawn_sentence() {
+    fn create_app() -> App {
         let mut app = App::new();
 
-        app.add_event::<SetText>();
-        app.add_system(convert_sentence);
+        app.add_event::<SetText>()
+            .add_stage_before(
+                CoreStage::Update,
+                TextConverterStage::Sentence,
+                SystemStage::single(convert_sentence),
+            )
+            .add_stage_after(
+                TextConverterStage::Sentence,
+                TextConverterStage::Word,
+                SystemStage::single(convert_words),
+            )
+            .add_stage_after(
+                TextConverterStage::Word,
+                TextConverterStage::Letter,
+                SystemStage::single(convert_letters),
+            )
+            .add_stage_after(
+                TextConverterStage::Letter,
+                TextConverterStage::Decoration,
+                SystemStage::parallel()
+                    .with_system(convert_dots)
+                    .with_system(convert_line_slots),
+            );
 
-        let text = "my sentence";
+        app
+    }
+
+    fn test_component_update<C: Component + Clone, F: Component>(
+        text_before: &str,
+        text_after: &str,
+        assert: impl Fn(Vec<C>, Vec<C>),
+    ) {
+        let mut app = create_app();
 
         app.world
             .resource_mut::<Events<SetText>>()
-            .send(SetText(text.to_string()));
+            .send(SetText(text_before.to_string()));
 
         app.update();
 
-        let mut query = app.world.query_filtered::<&Text, With<Sentence>>();
-        let result: Vec<_> = query.iter(&app.world).collect();
+        let mut word_query = app.world.query_filtered::<&C, With<F>>();
 
-        assert_eq!(result.len(), 1);
-        assert_eq!(**result[0], text);
+        let before = word_query.iter(&app.world).cloned().collect();
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText(text_after.to_string()));
+
+        app.update();
+
+        let after = word_query.iter(&app.world).cloned().collect();
+
+        assert(before, after);
+    }
+
+    #[test]
+    fn should_spawn_sentence() {
+        test_component_update::<Text, Sentence>("my sentence", "my sentence", |before, _after| {
+            assert_eq!(before.len(), 1);
+            assert_eq!(*before[0], "my sentence");
+        });
     }
 
     #[test]
     fn should_despawn_sentence() {
-        let mut app = App::new();
-
-        app.add_event::<SetText>();
-        app.add_system(convert_sentence);
-
-        app.world
-            .spawn(SentenceBundle::new("my sentence".to_string()));
-
-        app.world
-            .resource_mut::<Events<SetText>>()
-            .send(SetText(String::new()));
-
-        app.update();
-
-        let mut query = app.world.query_filtered::<&Text, With<Sentence>>();
-        let result = query.iter(&app.world).len();
-
-        assert_eq!(result, 0);
+        test_component_update::<Text, Sentence>("my sentence", "", |_before, after| {
+            assert_eq!(after.len(), 0);
+        });
     }
 
     #[test]
-    fn should_update_sentence() {
-        let mut app = App::new();
-
-        app.add_event::<SetText>();
-        app.add_system(convert_sentence);
-
-        app.world.spawn(SentenceBundle::new("sentence".to_string()));
-
-        let text = "my sentence";
-
-        app.world
-            .resource_mut::<Events<SetText>>()
-            .send(SetText(text.to_string()));
-
-        app.update();
-
-        let mut query = app.world.query_filtered::<&Text, With<Sentence>>();
-        let result: Vec<_> = query.iter(&app.world).collect();
-
-        assert_eq!(result.len(), 1);
-        assert_eq!(**result[0], text);
+    fn should_update_sentence_text() {
+        test_component_update::<Text, Sentence>("sentence", "sent", |_before, after| {
+            assert_eq!(after.len(), 1);
+            assert_eq!(*after[0], "sent");
+        });
     }
 }
