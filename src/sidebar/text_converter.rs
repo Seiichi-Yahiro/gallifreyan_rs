@@ -503,9 +503,9 @@ mod test {
 
         app.update();
 
-        let mut word_query = app.world.query_filtered::<&C, With<F>>();
+        let mut query = app.world.query_filtered::<&C, With<F>>();
 
-        let before = word_query.iter(&app.world).cloned().collect();
+        let before = query.iter(&app.world).cloned().collect();
 
         app.world
             .resource_mut::<Events<SetText>>()
@@ -513,7 +513,7 @@ mod test {
 
         app.update();
 
-        let after = word_query.iter(&app.world).cloned().collect();
+        let after = query.iter(&app.world).cloned().collect();
 
         assert(before, after);
     }
@@ -641,5 +641,214 @@ mod test {
             assert!(before[1].angle < after[1].angle);
             assert!(after[0].angle < after[1].angle);
         });
+    }
+
+    fn test_count_letter_entities(
+        text: &str,
+        expected_letters: usize,
+        expected_dots: usize,
+        expected_line_slots: usize,
+    ) {
+        let mut app = create_app();
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText(text.to_string()));
+
+        app.update();
+
+        let letters = app
+            .world
+            .query_filtered::<Entity, With<Letter>>()
+            .iter(&app.world)
+            .len();
+
+        assert_eq!(letters, expected_letters);
+
+        let dots = app
+            .world
+            .query_filtered::<Entity, With<Dot>>()
+            .iter(&app.world)
+            .len();
+
+        assert_eq!(dots, expected_dots);
+
+        let line_slots = app
+            .world
+            .query_filtered::<Entity, With<LineSlot>>()
+            .iter(&app.world)
+            .len();
+
+        assert_eq!(line_slots, expected_line_slots);
+    }
+
+    #[test]
+    fn should_spawn_b() {
+        test_count_letter_entities("b", 1, 0, 0);
+    }
+
+    #[test]
+    fn should_spawn_j() {
+        test_count_letter_entities("j", 1, 0, 0);
+    }
+
+    #[test]
+    fn should_spawn_t() {
+        test_count_letter_entities("t", 1, 0, 0);
+    }
+
+    #[test]
+    fn should_spawn_th() {
+        test_count_letter_entities("th", 1, 0, 0);
+    }
+
+    #[test]
+    fn should_spawn_ph() {
+        test_count_letter_entities("ph", 1, 1, 0);
+    }
+
+    #[test]
+    fn should_spawn_wh() {
+        test_count_letter_entities("wh", 1, 1, 0);
+    }
+
+    #[test]
+    fn should_spawn_gh() {
+        test_count_letter_entities("gh", 1, 1, 0);
+    }
+
+    #[test]
+    fn should_spawn_ch() {
+        test_count_letter_entities("ch", 1, 2, 0);
+    }
+
+    #[test]
+    fn should_spawn_k() {
+        test_count_letter_entities("k", 1, 2, 0);
+    }
+
+    #[test]
+    fn should_spawn_sh() {
+        test_count_letter_entities("sh", 1, 2, 0);
+    }
+
+    #[test]
+    fn should_spawn_y() {
+        test_count_letter_entities("y", 1, 2, 0);
+    }
+
+    #[test]
+    fn should_spawn_d() {
+        test_count_letter_entities("d", 1, 3, 0);
+    }
+
+    #[test]
+    fn should_spawn_l() {
+        test_count_letter_entities("l", 1, 3, 0);
+    }
+
+    #[test]
+    fn should_spawn_r() {
+        test_count_letter_entities("r", 1, 3, 0);
+    }
+
+    #[test]
+    fn should_spawn_z() {
+        test_count_letter_entities("z", 1, 3, 0);
+    }
+
+    #[test]
+    fn should_spawn_c() {
+        test_count_letter_entities("c", 1, 4, 0);
+    }
+
+    #[test]
+    fn should_spawn_q() {
+        test_count_letter_entities("q", 1, 4, 0);
+    }
+
+    #[test]
+    fn should_spawn_g() {
+        test_count_letter_entities("g", 1, 0, 1);
+    }
+
+    #[test]
+    fn should_spawn_n() {
+        test_count_letter_entities("n", 1, 0, 1);
+    }
+
+    #[test]
+    fn should_spawn_v() {
+        test_count_letter_entities("v", 1, 0, 1);
+    }
+
+    #[test]
+    fn should_spawn_qu() {
+        test_count_letter_entities("qu", 1, 0, 1);
+    }
+
+    #[test]
+    fn should_spawn_h() {
+        test_count_letter_entities("h", 1, 0, 2);
+    }
+
+    #[test]
+    fn should_spawn_p() {
+        test_count_letter_entities("p", 1, 0, 2);
+    }
+
+    #[test]
+    fn should_spawn_w() {
+        test_count_letter_entities("w", 1, 0, 2);
+    }
+
+    #[test]
+    fn should_spawn_x() {
+        test_count_letter_entities("x", 1, 0, 2);
+    }
+
+    #[test]
+    fn should_spawn_f() {
+        test_count_letter_entities("f", 1, 0, 3);
+    }
+
+    #[test]
+    fn should_spawn_m() {
+        test_count_letter_entities("m", 1, 0, 3);
+    }
+
+    #[test]
+    fn should_spawn_s() {
+        test_count_letter_entities("s", 1, 0, 3);
+    }
+
+    #[test]
+    fn should_spawn_ng() {
+        test_count_letter_entities("ng", 1, 0, 3);
+    }
+
+    #[test]
+    fn should_spawn_a() {
+        test_count_letter_entities("a", 1, 0, 0);
+    }
+
+    #[test]
+    fn should_spawn_e() {
+        test_count_letter_entities("e", 1, 0, 0);
+    }
+
+    #[test]
+    fn should_spawn_i() {
+        test_count_letter_entities("i", 1, 0, 1);
+    }
+
+    #[test]
+    fn should_spawn_o() {
+        test_count_letter_entities("o", 1, 0, 0);
+    }
+
+    #[test]
+    fn should_spawn_u() {
+        test_count_letter_entities("u", 1, 0, 1);
     }
 }
