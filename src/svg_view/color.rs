@@ -13,7 +13,7 @@ impl Plugin for ColorPlugin {
 
 fn set_draw_mode_color(
     mut draw_mode_query: Query<&mut DrawMode>,
-    children_query: Query<&Children, With<DrawMode>>,
+    children: Query<&Children>,
     selection: Res<Selection>,
     styles: Res<Styles>,
 ) {
@@ -24,30 +24,28 @@ fn set_draw_mode_color(
     reset_select_color(&mut draw_mode_query, styles.svg_color);
 
     if let Some(selected_entity) = **selection {
-        set_select_color_recursive(
+        set_select_color(
             selected_entity,
             &mut draw_mode_query,
-            &children_query,
+            &children,
             styles.selection_color,
         );
     }
 }
 
-fn set_select_color_recursive(
+fn set_select_color(
     entity: Entity,
     draw_mode_query: &mut Query<&mut DrawMode>,
-    children_query: &Query<&Children, With<DrawMode>>,
+    children: &Query<&Children>,
     color: Color,
 ) {
     if let Ok(mut draw_mode) = draw_mode_query.get_mut(entity) {
         *draw_mode = update_draw_mode_color(*draw_mode, color);
-    } else {
-        return;
-    }
 
-    if let Ok(children) = children_query.get(entity) {
-        for child in children {
-            set_select_color_recursive(*child, draw_mode_query, children_query, color);
+        for child in children.iter_descendants(entity) {
+            if let Ok(mut draw_mode) = draw_mode_query.get_mut(child) {
+                *draw_mode = update_draw_mode_color(*draw_mode, color);
+            }
         }
     }
 }
