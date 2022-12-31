@@ -1,5 +1,5 @@
 use crate::image_types::{
-    new_stroke_mode, AnglePlacement, CircleChildren, LineSlotChildren, PositionData, Radius,
+    new_stroke_mode, AnglePlacement, CircleChildren, LineSlotChildren, PositionData, Radius, Text,
 };
 use crate::math::Angle;
 use crate::style::Styles;
@@ -322,6 +322,7 @@ pub struct NestedLetter(pub Option<Entity>);
 #[derive(Bundle)]
 pub struct LetterBundle {
     pub letter: Letter,
+    pub text: Text,
     pub radius: Radius,
     pub position_data: PositionData,
     pub dots: CircleChildren,
@@ -332,6 +333,7 @@ pub struct LetterBundle {
 
 impl LetterBundle {
     pub fn new(
+        text: String,
         letter: Letter,
         word_radius: f32,
         number_of_letters: usize,
@@ -340,6 +342,7 @@ impl LetterBundle {
     ) -> Self {
         Self {
             letter,
+            text: Text(text),
             radius: Radius(letter.radius(word_radius, number_of_letters)),
             position_data: letter.position_data(word_radius, number_of_letters, index),
             dots: Default::default(),
@@ -387,6 +390,7 @@ pub struct NestedVocalBundle {
 
 impl NestedVocalBundle {
     pub fn new(
+        text: String,
         vocal: Vocal,
         consonant_placement: ConsonantPlacement,
         consonant_radius: f32,
@@ -395,6 +399,7 @@ impl NestedVocalBundle {
     ) -> Self {
         Self {
             letter_bundle: LetterBundle {
+                text: Text(text),
                 letter: Letter::Vocal(vocal),
                 radius: Radius(vocal.nested_radius(consonant_radius)),
                 position_data: vocal.nested_position_data(
