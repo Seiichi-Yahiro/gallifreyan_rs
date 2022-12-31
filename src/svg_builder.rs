@@ -1,5 +1,4 @@
-use bevy::math::Mat3;
-use bevy::prelude::Transform;
+use bevy::math::{Mat3, Vec2};
 use itertools::Itertools;
 use std::fmt::{Display, Formatter};
 use std::ops::Add;
@@ -147,7 +146,7 @@ impl Display for Stroke {
 
 pub struct CircleBuilder {
     radius: f32,
-    transform: Mat3,
+    position: Vec2,
     stroke: Stroke,
     fill: Fill,
     mask: Option<String>,
@@ -159,9 +158,11 @@ impl SvgItem for CircleBuilder {
 
         let circle = [
             format!("{}<circle", indentation),
-            format!("cx=\"0\" cy=\"0\" r=\"{}\"", self.radius),
+            format!(
+                "cx=\"{}\" cy=\"{}\" r=\"{}\"",
+                self.position.x, self.position.y, self.radius
+            ),
             format!("stroke=\"{}\" fill=\"{}\"", self.stroke, self.fill),
-            format!("transform=\"{}\"", mat3_to_string(self.transform)),
         ];
 
         let mask = self
@@ -187,15 +188,15 @@ impl CircleBuilder {
     pub fn new(radius: f32) -> Self {
         Self {
             radius,
-            transform: Mat3::IDENTITY,
+            position: Vec2::ZERO,
             stroke: Stroke::Black,
             fill: Fill::None,
             mask: None,
         }
     }
 
-    pub fn with_transform(mut self, transform: Mat3) -> Self {
-        self.transform = transform;
+    pub fn with_position(mut self, position: Vec2) -> Self {
+        self.position = position;
         self
     }
 
@@ -286,20 +287,4 @@ fn mat3_to_string(mat3: Mat3) -> String {
         "matrix({} {} {} {} {} {})",
         mat3.x_axis.x, mat3.x_axis.y, mat3.y_axis.x, mat3.y_axis.y, mat3.z_axis.x, mat3.z_axis.y
     )
-}
-
-pub trait AsMat3 {
-    fn as_mat3(&self, inverse: bool) -> Mat3;
-}
-
-impl AsMat3 for Transform {
-    fn as_mat3(&self, inverse: bool) -> Mat3 {
-        use bevy::math::swizzles::Vec4Swizzles;
-        let mat4 = if inverse {
-            self.compute_matrix().inverse()
-        } else {
-            self.compute_matrix()
-        };
-        Mat3::from_cols(mat4.x_axis.xyz(), mat4.y_axis.xyz(), mat4.w_axis.xyz())
-    }
 }
