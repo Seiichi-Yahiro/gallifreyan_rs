@@ -30,6 +30,7 @@ pub struct TextConverterPlugin;
 impl Plugin for TextConverterPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<SetText>()
+            .insert_resource(NestingSettings::All)
             .add_stage_before(
                 CoreStage::Update,
                 TextConverterStage::Sentence,
@@ -207,6 +208,7 @@ fn convert_letters(
         ),
         (Without<Word>, Without<NestedVocal>),
     >,
+    nesting_settings: Res<NestingSettings>,
 ) {
     for (word_entity, word_text, Radius(word_radius), mut children) in word_query.iter_mut() {
         let mut existing_letters = letter_query.iter_many_mut(children.iter());
@@ -217,26 +219,37 @@ fn convert_letters(
                 (it.to_string(), letter)
             })
             .fold(Vec::new(), |mut acc, (text, letter)| {
-                match letter {
-                    Letter::Vocal(vocal) => {
-                        if let Some((previous_text, previous_letter)) = acc.pop() {
-                            if let Letter::Consonant(consonant) = previous_letter {
-                                acc.push((
-                                    previous_text + NESTED_LETTER_TEXT_DELIMITER + &text,
-                                    Letter::ConsonantWithVocal { consonant, vocal },
-                                ));
-                            } else {
-                                acc.push((previous_text, previous_letter));
-                                acc.push((text, letter));
-                            }
-                        } else {
-                            acc.push((text, letter));
-                        }
-                    }
-                    Letter::Consonant(_) | Letter::ConsonantWithVocal { .. } => {
+                match nesting_settings.as_ref() {
+                    NestingSettings::None => {
                         acc.push((text, letter));
                     }
+                    nesting_settings => match letter {
+                        Letter::Vocal(vocal) => {
+                            if let Some((previous_text, previous_letter)) = acc.pop() {
+                                match previous_letter {
+                                    Letter::Consonant(consonant)
+                                        if nesting_settings.can_nest(consonant, vocal) =>
+                                    {
+                                        acc.push((
+                                            previous_text + NESTED_LETTER_TEXT_DELIMITER + &text,
+                                            Letter::ConsonantWithVocal { consonant, vocal },
+                                        ));
+                                    }
+                                    _ => {
+                                        acc.push((previous_text, previous_letter));
+                                        acc.push((text, letter));
+                                    }
+                                }
+                            } else {
+                                acc.push((text, letter));
+                            }
+                        }
+                        Letter::Consonant(_) | Letter::ConsonantWithVocal { .. } => {
+                            acc.push((text, letter));
+                        }
+                    },
                 }
+
                 acc
             });
 

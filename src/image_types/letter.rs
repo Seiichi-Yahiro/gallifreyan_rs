@@ -5,6 +5,7 @@ use crate::math::Angle;
 use crate::style::Styles;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
+use bevy::utils::HashSet;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::DrawMode;
 
@@ -70,7 +71,7 @@ impl TryFrom<&str> for Letter {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Reflect, FromReflect)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Reflect, FromReflect)]
 pub enum Vocal {
     A,
     E,
@@ -175,7 +176,7 @@ impl TryFrom<&str> for Vocal {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Reflect, FromReflect)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Reflect, FromReflect)]
 pub enum Consonant {
     B,
     J,
@@ -414,6 +415,23 @@ impl NestedVocalBundle {
                 nested_letter: NestedLetter::default(),
             },
             nested_vocal: NestedVocal,
+        }
+    }
+}
+
+#[derive(Resource)]
+pub enum NestingSettings {
+    None,
+    All,
+    Custom(HashSet<(Consonant, Vocal)>),
+}
+
+impl NestingSettings {
+    pub fn can_nest(&self, consonant: Consonant, vocal: Vocal) -> bool {
+        match self {
+            NestingSettings::None => false,
+            NestingSettings::All => true,
+            NestingSettings::Custom(rules) => rules.contains(&(consonant, vocal)),
         }
     }
 }
