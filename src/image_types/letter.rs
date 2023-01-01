@@ -164,12 +164,7 @@ impl TryFrom<&str> for Vocal {
             "i" => Self::I,
             "o" => Self::O,
             "u" => Self::U,
-            _ => {
-                return Err(format!(
-                    "Cannot assign vocal to '{}' as it is not a valid vocal!",
-                    value
-                ))
-            }
+            _ => return Err(format!("'{}' it is not a valid vocal!", value)),
         };
 
         Ok(vocal)
@@ -279,12 +274,7 @@ impl TryFrom<&str> for Consonant {
             "m" => Self::M,
             "s" => Self::S,
             "ng" => Self::NG,
-            _ => {
-                return Err(format!(
-                    "Cannot assign consonant to '{}' as it is not a valid consonant!",
-                    value
-                ))
-            }
+            _ => return Err(format!("'{}' is not a valid consonant!", value)),
         };
 
         Ok(consonant)

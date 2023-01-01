@@ -12,7 +12,8 @@ pub struct MenuBarPlugin;
 impl Plugin for MenuBarPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_to_stage(UiStage, ui.label(UiSystemLabel))
-            .add_plugin(file::FilePlugin);
+            .add_plugin(file::FilePlugin)
+            .add_plugin(settings::SettingsPlugin);
     }
 }
 
