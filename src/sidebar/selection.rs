@@ -33,8 +33,6 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
             egui::TopBottomPanel::bottom("selection")
                 .frame(egui::Frame::none())
                 .show_inside(ui, |ui| {
-                    ui.separator();
-
                     ui.vertical_centered(|ui| {
                         let original_slider_width = ui.spacing().slider_width;
                         ui.spacing_mut().slider_width = ui.available_width();
