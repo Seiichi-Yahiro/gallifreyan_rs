@@ -1,5 +1,6 @@
-use crate::events::Selection;
+use crate::selection::Selected;
 use crate::style::Styles;
+use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::DrawMode;
 
@@ -7,52 +8,71 @@ pub struct ColorPlugin;
 
 impl Plugin for ColorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(set_draw_mode_color);
+        app.add_system_to_stage(CoreStage::PostUpdate, update_color_from_styles)
+            .add_system_to_stage(
+                CoreStage::PostUpdate,
+                remove_selection_color.after(update_color_from_styles),
+            )
+            .add_system_to_stage(
+                CoreStage::PostUpdate,
+                set_selection_color.after(remove_selection_color),
+            );
     }
 }
 
-fn set_draw_mode_color(
-    mut draw_mode_query: Query<&mut DrawMode>,
-    children: Query<&Children>,
-    selection: Res<Selection>,
-    styles: Res<Styles>,
-) {
-    if !selection.is_changed() && !styles.is_changed() {
-        return;
-    }
-
-    reset_select_color(&mut draw_mode_query, styles.svg_color);
-
-    if let Some(selected_entity) = **selection {
-        set_select_color(
-            selected_entity,
-            &mut draw_mode_query,
-            &children,
-            styles.selection_color,
-        );
-    }
+#[derive(SystemParam)]
+struct DrawModeParams<'w, 's> {
+    draw_mode_query: Query<'w, 's, &'static mut DrawMode>,
+    children_query: Query<'w, 's, &'static Children>,
 }
 
-fn set_select_color(
-    entity: Entity,
-    draw_mode_query: &mut Query<&mut DrawMode>,
-    children: &Query<&Children>,
-    color: Color,
-) {
-    if let Ok(mut draw_mode) = draw_mode_query.get_mut(entity) {
-        *draw_mode = update_draw_mode_color(*draw_mode, color);
+impl<'w, 's> DrawModeParams<'w, 's> {
+    fn set_color_for_entity_and_children(&mut self, entity: Entity, color: Color) {
+        let children = self.children_query.iter_descendants(entity);
+        let entities = std::iter::once(entity).chain(children);
+        let mut iter = self.draw_mode_query.iter_many_mut(entities);
 
-        for child in children.iter_descendants(entity) {
-            if let Ok(mut draw_mode) = draw_mode_query.get_mut(child) {
-                *draw_mode = update_draw_mode_color(*draw_mode, color);
-            }
+        while let Some(mut draw_mode) = iter.fetch_next() {
+            *draw_mode = update_draw_mode_color(*draw_mode, color);
         }
     }
 }
 
-fn reset_select_color(draw_mode_query: &mut Query<&mut DrawMode>, color: Color) {
-    for mut draw_mode in draw_mode_query.iter_mut() {
-        *draw_mode = update_draw_mode_color(*draw_mode, color);
+fn set_selection_color(
+    new_selection_query: Query<Entity, Added<Selected>>,
+    mut draw_mode_params: DrawModeParams,
+    styles: Res<Styles>,
+) {
+    if let Ok(new_selection) = new_selection_query.get_single() {
+        draw_mode_params.set_color_for_entity_and_children(new_selection, styles.selection_color);
+    }
+}
+
+fn remove_selection_color(
+    deselected: RemovedComponents<Selected>,
+    mut draw_mode_params: DrawModeParams,
+    styles: Res<Styles>,
+) {
+    for deselected_entity in deselected.iter() {
+        draw_mode_params.set_color_for_entity_and_children(deselected_entity, styles.svg_color);
+    }
+}
+
+fn update_color_from_styles(
+    selection_query: Query<Entity, With<Selected>>,
+    mut draw_mode_params: DrawModeParams,
+    styles: Res<Styles>,
+) {
+    if !styles.is_changed() {
+        return;
+    }
+
+    for mut draw_mode in draw_mode_params.draw_mode_query.iter_mut() {
+        *draw_mode = update_draw_mode_color(*draw_mode, styles.svg_color);
+    }
+
+    if let Ok(selection) = selection_query.get_single() {
+        draw_mode_params.set_color_for_entity_and_children(selection, styles.selection_color);
     }
 }
 

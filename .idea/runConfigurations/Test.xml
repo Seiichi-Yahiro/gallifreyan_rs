@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Wasm release" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <option name="command" value="make wasm_release" />
+  <configuration default="false" name="Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+    <option name="command" value="make test" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <option name="channel" value="DEFAULT" />
     <option name="requiredFeatures" value="true" />

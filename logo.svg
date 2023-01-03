@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  viewBox="-325 -325 650 650"
+>
+    <style>
+        circle, line {
+            stroke-width: 10
+        }
+    </style>
+
+    <mask id="2v0">
+        <circle
+          cx="0" cy="0" r="225"
+          stroke="white" fill="white"
+        />
+        <circle
+          cx="0" cy="140.625" r="112.5"
+          stroke="black" fill="black"
+        />
+    </mask>
+    <circle
+      cx="0" cy="0" r="225"
+      stroke="black" fill="white"
+      mask="url(#2v0)"
+    />
+    <mask id="3v0">
+        <circle
+          cx="0" cy="140.625" r="112.5"
+          stroke="white" fill="black"
+        />
+    </mask>
+    <circle
+      cx="0" cy="0" r="225"
+      stroke="black" fill="black"
+      mask="url(#3v0)"
+    />
+    <line x1="0" y1="28.125" x2="0" y2="-225" stroke="black"/>
+</svg>

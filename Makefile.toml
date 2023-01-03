@@ -1,0 +1,169 @@
+# install with:
+# cargo install --force cargo-make
+
+# run with:
+# cargo make <task name>
+
+[env]
+RUST_PROJECT_PACKAGE = "gallifreyan_rs"
+RUST_PROJECT_BIN = "gallifreyan_rs"
+WASM_OUTPUT_NAME = "gallifreyan_wasm"
+WASM_OUTPUT_DIR = "./wasm/build"
+
+# custom target folder needed to prevent recompiles
+CARGO_TEST_TARGET_DIR = "./target_test"
+COVERAGE_DIR = "${CARGO_TEST_TARGET_DIR}/coverage"
+PROFRAW_DIR = "${CARGO_TEST_TARGET_DIR}/profraw"
+
+# native
+
+[tasks.build]
+command = "cargo"
+args = [
+    "build",
+    "--package", "${RUST_PROJECT_PACKAGE}",
+    "--bin", "${RUST_PROJECT_BIN}"
+]
+
+[tasks.run]
+command = "cargo"
+args = [
+    "run",
+    "--package", "${RUST_PROJECT_PACKAGE}",
+    "--bin", "${RUST_PROJECT_BIN}"
+]
+
+
+[tasks.build_release]
+command = "cargo"
+args = [
+    "build",
+    "--package", "${RUST_PROJECT_PACKAGE}",
+    "--bin", "${RUST_PROJECT_BIN}",
+    "--release"
+]
+
+[tasks.run_release]
+command = "cargo"
+args = [
+    "run",
+    "--package", "${RUST_PROJECT_PACKAGE}",
+    "--bin", "${RUST_PROJECT_BIN}",
+    "--release"
+]
+
+# Web
+
+[tasks.clean_wasm_bindgen]
+script_runner = "@duckscript"
+script = '''
+rm -r "${WASM_OUTPUT_DIR}"
+mkdir "${WASM_OUTPUT_DIR}"
+'''
+
+
+[tasks.build_wasm]
+command = "cargo"
+args = [
+    "build",
+    "--package", "${RUST_PROJECT_PACKAGE}",
+    "--bin", "${RUST_PROJECT_BIN}",
+    "--target", "wasm32-unknown-unknown"
+]
+
+[tasks.wasm_bindgen]
+command = "wasm-bindgen"
+args = [
+    "--out-name", "${WASM_OUTPUT_NAME}",
+    "--out-dir", "${WASM_OUTPUT_DIR}",
+    "--target", "web",
+    "./target/wasm32-unknown-unknown/debug/${RUST_PROJECT_BIN}.wasm"
+]
+install_crate = "wasm-bindgen-cli"
+dependencies = ["build_wasm", "clean_wasm_bindgen"]
+
+[tasks.wasm]
+run_task = "wasm_bindgen"
+
+
+[tasks.build_wasm_release]
+command = "cargo"
+args = [
+    "build",
+    "--package", "${RUST_PROJECT_PACKAGE}",
+    "--bin", "${RUST_PROJECT_BIN}",
+    "--target", "wasm32-unknown-unknown",
+    "--profile", "wasm-release"
+]
+
+[tasks.wasm_bindgen_release]
+command = "wasm-bindgen"
+args = [
+    "--out-name", "${WASM_OUTPUT_NAME}",
+    "--out-dir", "${WASM_OUTPUT_DIR}",
+    "--target", "web",
+    "./target/wasm32-unknown-unknown/wasm-release/${RUST_PROJECT_BIN}.wasm"
+]
+install_crate = "wasm-bindgen-cli"
+dependencies = ["build_wasm_release", "clean_wasm_bindgen"]
+
+[tasks.wasm_release]
+run_task = "wasm_bindgen_release"
+
+
+# Test
+[tasks.test]
+command = "cargo"
+args = [
+    "test",
+    "--package", "${RUST_PROJECT_PACKAGE}",
+    "--bin", "${RUST_PROJECT_BIN}"
+]
+env = { "CARGO_TARGET_DIR" = "${CARGO_TEST_TARGET_DIR}", "RUSTFLAGS" = "-C instrument-coverage", "LLVM_PROFILE_FILE" = "${PROFRAW_DIR}/${RUST_PROJECT_BIN}-%p-%m.profraw" }
+
+[tasks.clean_coverage]
+script_runner = "@duckscript"
+script = '''
+rm -r "${COVERAGE_DIR}"
+mkdir "${COVERAGE_DIR}"
+'''
+
+# rustup component add llvm-tools-preview / llvm-tools
+[tasks.coverage_html]
+command = "grcov"
+args = [
+    ".",
+    "--binary-path", "${CARGO_TEST_TARGET_DIR}/debug/deps/",
+    "-s", ".",
+    "-t", "html",
+    "--branch",
+    "--ignore-not-existing",
+    "--ignore", '../*',
+    "--ignore", "/*",
+    "-o", "${COVERAGE_DIR}/html"
+]
+dependencies = ["test", "clean_coverage"]
+install_crate = "grcov"
+
+[tasks.echo_coverage]
+script_runner = "@duckscript"
+script = '''
+wd = pwd
+wd = replace ${wd} \\ /
+coverage_dir = replace ${COVERAGE_DIR} ./ /
+
+path = join_path ${wd} ${coverage_dir} /html/index.html
+
+echo Coverage report:
+echo file:///${path}
+'''
+
+[tasks.remove_profraw]
+script_runner = "@duckscript"
+script = '''
+rm -r ${PROFRAW_DIR}
+'''
+
+[tasks.coverage]
+clear = true
+run_task = { name = ["coverage_html", "remove_profraw", "echo_coverage"] }

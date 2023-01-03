@@ -14,12 +14,18 @@ codegen-units = 1
 [dependencies]
 bevy = "0.9.1"
 bevy_prototype_lyon = "0.7.0"
-bevy_egui = { version = "0.17.1", features = ["immutable_ctx"] }
+bevy_egui = { version = "0.18.0", features = ["immutable_ctx"] }
 rfd = "0.10.0"
 futures = "0.3.25"
 regex = "1.7.0"
 lazy_static = "1.4.0"
 itertools = "0.10.5"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+image = "0.24.5"
+winit = "0.27.5"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2.83"
 wasm-bindgen-futures = "0.4.33"
 js-sys = "0.3.60"
