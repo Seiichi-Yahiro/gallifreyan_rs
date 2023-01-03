@@ -29,7 +29,8 @@ pub fn convert_sentence(
 
 #[cfg(test)]
 mod test {
-    use super::super::test::test_component_update;
+    use super::super::test::{create_app, test_component_update};
+    use super::super::SetText;
     use super::*;
 
     #[test]
@@ -45,6 +46,27 @@ mod test {
         test_component_update::<Text, Sentence>("my sentence", "", |_before, after| {
             assert_eq!(after.len(), 0);
         });
+    }
+
+    #[test]
+    fn should_despawn_children() {
+        let mut app = create_app();
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText("my sentence".to_string()));
+
+        app.update();
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText("".to_string()));
+
+        app.update();
+
+        let entities = app.world.query::<Entity>().iter(&app.world).len();
+
+        assert_eq!(entities, 0);
     }
 
     #[test]

@@ -357,4 +357,55 @@ mod test {
             assert_eq!(before[1].angle, after[1].angle);
         });
     }
+
+    #[test]
+    fn should_despawn_children() {
+        let mut app = create_app();
+
+        let assert_occurrences = |app: &mut App, line_slots: usize, dots: usize, letters: usize| {
+            let line_slots_result = app
+                .world
+                .query_filtered::<Entity, With<LineSlot>>()
+                .iter(&app.world)
+                .len();
+            let dots_result = app
+                .world
+                .query_filtered::<Entity, With<Dot>>()
+                .iter(&app.world)
+                .len();
+            let letters_result = app
+                .world
+                .query_filtered::<Entity, With<Letter>>()
+                .iter(&app.world)
+                .len();
+
+            assert_eq!(line_slots_result, line_slots);
+            assert_eq!(dots_result, dots);
+            assert_eq!(letters_result, letters);
+        };
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText("bdf".to_string()));
+
+        app.update();
+
+        assert_occurrences(&mut app, 3, 3, 3);
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText("bd".to_string()));
+
+        app.update();
+
+        assert_occurrences(&mut app, 0, 3, 2);
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText("b".to_string()));
+
+        app.update();
+
+        assert_occurrences(&mut app, 0, 0, 1);
+    }
 }

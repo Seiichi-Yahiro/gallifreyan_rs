@@ -85,7 +85,8 @@ pub fn convert_words(
 
 #[cfg(test)]
 mod test {
-    use super::super::test::test_component_update;
+    use super::super::test::{create_app, test_component_update};
+    use super::super::SetText;
     use super::*;
 
     #[test]
@@ -122,6 +123,64 @@ mod test {
             assert_eq!(after.len(), 1);
             assert_eq!(*after[0], "my");
         });
+    }
+
+    #[test]
+    fn should_despawn_children() {
+        let mut app = create_app();
+
+        let assert_occurrences =
+            |app: &mut App, line_slots: usize, dots: usize, letters: usize, words: usize| {
+                let line_slots_result = app
+                    .world
+                    .query_filtered::<Entity, With<LineSlot>>()
+                    .iter(&app.world)
+                    .len();
+                let dots_result = app
+                    .world
+                    .query_filtered::<Entity, With<Dot>>()
+                    .iter(&app.world)
+                    .len();
+                let letters_result = app
+                    .world
+                    .query_filtered::<Entity, With<Letter>>()
+                    .iter(&app.world)
+                    .len();
+                let words_result = app
+                    .world
+                    .query_filtered::<Entity, With<Word>>()
+                    .iter(&app.world)
+                    .len();
+
+                assert_eq!(line_slots_result, line_slots);
+                assert_eq!(dots_result, dots);
+                assert_eq!(letters_result, letters);
+                assert_eq!(words_result, words);
+            };
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText("b d f".to_string()));
+
+        app.update();
+
+        assert_occurrences(&mut app, 3, 3, 3, 3);
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText("b d".to_string()));
+
+        app.update();
+
+        assert_occurrences(&mut app, 0, 3, 2, 2);
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText("b".to_string()));
+
+        app.update();
+
+        assert_occurrences(&mut app, 0, 0, 1, 1);
     }
 
     #[test]
