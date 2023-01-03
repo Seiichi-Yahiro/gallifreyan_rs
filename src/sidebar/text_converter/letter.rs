@@ -4,6 +4,49 @@ use bevy::prelude::*;
 
 const NESTED_LETTER_TEXT_DELIMITER: &str = "~";
 
+fn create_letters_from_word(
+    word_text: &str,
+    nesting_settings: &NestingSettings,
+) -> Vec<(String, Letter)> {
+    let letters = split_word_to_chars(word_text).map(|it| {
+        let letter = Letter::try_from(it).unwrap();
+        (it.to_string(), letter)
+    });
+
+    match nesting_settings {
+        NestingSettings::None => letters.collect(),
+        nesting_settings => letters.fold(Vec::new(), |mut acc, (text, letter)| {
+            match letter {
+                Letter::Vocal(vocal) => {
+                    if let Some((previous_text, previous_letter)) = acc.pop() {
+                        match previous_letter {
+                            Letter::Consonant(consonant)
+                                if nesting_settings.can_nest(consonant, vocal) =>
+                            {
+                                acc.push((
+                                    previous_text + NESTED_LETTER_TEXT_DELIMITER + &text,
+                                    Letter::ConsonantWithVocal { consonant, vocal },
+                                ));
+                            }
+                            _ => {
+                                acc.push((previous_text, previous_letter));
+                                acc.push((text, letter));
+                            }
+                        }
+                    } else {
+                        acc.push((text, letter));
+                    }
+                }
+                Letter::Consonant(_) | Letter::ConsonantWithVocal { .. } => {
+                    acc.push((text, letter));
+                }
+            }
+
+            acc
+        }),
+    }
+}
+
 pub fn convert_letters(
     mut commands: Commands,
     mut word_query: Query<
@@ -25,45 +68,7 @@ pub fn convert_letters(
     for (word_entity, word_text, Radius(word_radius), mut children) in word_query.iter_mut() {
         let mut existing_letters = letter_query.iter_many_mut(children.iter());
 
-        let new_letters: Vec<(String, Letter)> = split_word_to_chars(word_text)
-            .map(|it| {
-                let letter = Letter::try_from(it).unwrap();
-                (it.to_string(), letter)
-            })
-            .fold(Vec::new(), |mut acc, (text, letter)| {
-                match nesting_settings.as_ref() {
-                    NestingSettings::None => {
-                        acc.push((text, letter));
-                    }
-                    nesting_settings => match letter {
-                        Letter::Vocal(vocal) => {
-                            if let Some((previous_text, previous_letter)) = acc.pop() {
-                                match previous_letter {
-                                    Letter::Consonant(consonant)
-                                        if nesting_settings.can_nest(consonant, vocal) =>
-                                    {
-                                        acc.push((
-                                            previous_text + NESTED_LETTER_TEXT_DELIMITER + &text,
-                                            Letter::ConsonantWithVocal { consonant, vocal },
-                                        ));
-                                    }
-                                    _ => {
-                                        acc.push((previous_text, previous_letter));
-                                        acc.push((text, letter));
-                                    }
-                                }
-                            } else {
-                                acc.push((text, letter));
-                            }
-                        }
-                        Letter::Consonant(_) | Letter::ConsonantWithVocal { .. } => {
-                            acc.push((text, letter));
-                        }
-                    },
-                }
-
-                acc
-            });
+        let new_letters = create_letters_from_word(word_text, &nesting_settings);
 
         let number_of_letters = new_letters.len();
         let mut new_letters_iter = new_letters.into_iter();
