@@ -313,6 +313,16 @@ mod test {
     }
 
     #[test]
+    fn should_update_letter_text() {
+        test_component_update::<Text, Letter>("test", "text", |_before, after| {
+            assert_eq!(*after[0], "t");
+            assert_eq!(*after[1], "e");
+            assert_eq!(*after[2], "x");
+            assert_eq!(*after[3], "t");
+        });
+    }
+
+    #[test]
     fn should_decrease_letter_radius() {
         test_component_update::<Radius, Letter>("jj", "jjj", |before, after| {
             assert!(before[1] > after[1]);

@@ -186,9 +186,13 @@ mod test {
 
         app.update();
 
-        let mut query = app.world.query_filtered::<&C, With<F>>();
+        let mut query = app.world.query_filtered::<(Entity, &C), With<F>>();
 
-        let before = query.iter(&app.world).cloned().collect();
+        let before = query
+            .iter(&app.world)
+            .sorted_by(|(a, _), (b, _)| a.cmp(b))
+            .map(|(_, c)| c.clone())
+            .collect();
 
         app.world
             .resource_mut::<Events<SetText>>()
@@ -196,7 +200,11 @@ mod test {
 
         app.update();
 
-        let after = query.iter(&app.world).cloned().collect();
+        let after = query
+            .iter(&app.world)
+            .sorted_by(|(a, _), (b, _)| a.cmp(b))
+            .map(|(_, c)| c.clone())
+            .collect();
 
         assert(before, after);
     }
