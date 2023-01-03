@@ -1,18 +1,18 @@
 #![feature(option_result_contains)]
 
 mod event_set;
-mod events;
 mod image_types;
 mod math;
 mod menu_bar;
+mod selection;
 mod sidebar;
 mod style;
 mod svg_builder;
 mod svg_view;
 mod ui;
 
-use crate::events::EventPlugin;
 use crate::menu_bar::MenuBarPlugin;
+use crate::selection::EventPlugin;
 use crate::sidebar::SideBarPlugin;
 use crate::style::StylePlugin;
 use crate::svg_view::SVGViewPlugin;

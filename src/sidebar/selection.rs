@@ -1,8 +1,8 @@
-use crate::events::Selection;
 use crate::image_types::{
     ConsonantPlacement, Letter, LineSlot, PositionData, Radius, VocalPlacement,
 };
 use crate::math::Angle;
+use crate::selection::Selected;
 use crate::ui::angle_slider::AngleSlider;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
@@ -10,7 +10,6 @@ use bevy_egui::egui;
 
 #[derive(SystemParam)]
 pub struct SelectionSystemParams<'w, 's> {
-    selection: Res<'w, Selection>,
     selection_query: Query<
         'w,
         's,
@@ -21,68 +20,70 @@ pub struct SelectionSystemParams<'w, 's> {
             Option<&'static Letter>,
             Option<&'static LineSlot>,
         ),
+        With<Selected>,
     >,
     global_transform_query: Query<'w, 's, &'static GlobalTransform>,
 }
 
 pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
-    if let Some(selected_entity) = **params.selection {
-        if let Ok((parent, mut radius, mut position_data, letter, line_slot)) =
-            params.selection_query.get_mut(selected_entity)
-        {
-            egui::TopBottomPanel::bottom("selection")
-                .frame(egui::Frame::none())
-                .show_inside(ui, |ui| {
-                    ui.vertical_centered(|ui| {
-                        let original_slider_width = ui.spacing().slider_width;
-                        ui.spacing_mut().slider_width = ui.available_width();
+    let (parent, mut radius, mut position_data, letter, line_slot) =
+        match params.selection_query.get_single_mut() {
+            Ok(it) => it,
+            Err(_) => {
+                return;
+            }
+        };
 
-                        if let Some(radius) = &mut radius {
-                            let new_radius = ui_radius(ui, ***radius);
+    egui::TopBottomPanel::bottom("selection")
+        .frame(egui::Frame::none())
+        .show_inside(ui, |ui| {
+            ui.vertical_centered(|ui| {
+                let original_slider_width = ui.spacing().slider_width;
+                ui.spacing_mut().slider_width = ui.available_width();
 
-                            if new_radius != ***radius {
-                                ***radius = new_radius;
-                            }
+                if let Some(radius) = &mut radius {
+                    let new_radius = ui_radius(ui, ***radius);
+
+                    if new_radius != ***radius {
+                        ***radius = new_radius;
+                    }
+                }
+
+                let can_change_distance = letter
+                    .map(|letter| match letter {
+                        Letter::Vocal(vocal) => {
+                            VocalPlacement::from(*vocal) != VocalPlacement::OnLine
                         }
-
-                        let can_change_distance = letter
-                            .map(|letter| match letter {
-                                Letter::Vocal(vocal) => {
-                                    VocalPlacement::from(*vocal) != VocalPlacement::OnLine
-                                }
-                                Letter::Consonant(consonant) => {
-                                    ConsonantPlacement::from(*consonant)
-                                        != ConsonantPlacement::OnLine
-                                }
-                            })
-                            .unwrap_or_else(|| line_slot.is_none());
-
-                        if can_change_distance {
-                            let new_distance = ui_distance(ui, position_data.distance);
-
-                            if new_distance != position_data.distance {
-                                position_data.distance = new_distance;
-                            }
+                        Letter::Consonant(consonant) => {
+                            ConsonantPlacement::from(*consonant) != ConsonantPlacement::OnLine
                         }
+                    })
+                    .unwrap_or_else(|| line_slot.is_none());
 
-                        ui.spacing_mut().slider_width /= 2.0;
+                if can_change_distance {
+                    let new_distance = ui_distance(ui, position_data.distance);
 
-                        let new_angle = ui_angle(
-                            ui,
-                            position_data.angle.as_degrees(),
-                            &parent,
-                            &params.global_transform_query,
-                        );
+                    if new_distance != position_data.distance {
+                        position_data.distance = new_distance;
+                    }
+                }
 
-                        if new_angle != position_data.angle.as_degrees() {
-                            position_data.angle = Angle::new_degree(new_angle);
-                        }
+                ui.spacing_mut().slider_width /= 2.0;
 
-                        ui.spacing_mut().slider_width = original_slider_width;
-                    });
-                });
-        }
-    }
+                let new_angle = ui_angle(
+                    ui,
+                    position_data.angle.as_degrees(),
+                    &parent,
+                    &params.global_transform_query,
+                );
+
+                if new_angle != position_data.angle.as_degrees() {
+                    position_data.angle = Angle::new_degree(new_angle);
+                }
+
+                ui.spacing_mut().slider_width = original_slider_width;
+            });
+        });
 }
 
 fn ui_radius(ui: &mut egui::Ui, radius: f32) -> f32 {

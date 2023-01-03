@@ -1,5 +1,5 @@
-use crate::events::{Select, Selection};
 use crate::image_types::{CircleChildren, Letter, LineSlotChildren, Sentence, Text, Word};
+use crate::selection::{Select, Selected};
 use crate::ui::tree::CollapsingTreeItem;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
@@ -26,10 +26,12 @@ pub struct TreeSystemParams<'w, 's> {
     word_query: WordQuery<'w, 's>,
     letter_query: LetterQuery<'w, 's>,
     select_event: EventWriter<'w, 's, Select>,
-    selection: Res<'w, Selection>,
+    selected_query: Query<'w, 's, Entity, With<Selected>>,
 }
 
 pub fn ui_tree(ui: &mut egui::Ui, mut params: TreeSystemParams) {
+    let selection = params.selected_query.get_single().ok();
+
     egui::CentralPanel::default().show_inside(ui, |ui| {
         egui::ScrollArea::vertical()
             .auto_shrink([false, true])
@@ -41,7 +43,7 @@ pub fn ui_tree(ui: &mut egui::Ui, mut params: TreeSystemParams) {
                         sentence_text,
                         sentence_entity,
                         &mut is_open,
-                        params.selection.contains(&sentence_entity),
+                        selection.contains(&sentence_entity),
                     )
                     .show(ui, |ui| {
                         ui_words(
@@ -50,13 +52,13 @@ pub fn ui_tree(ui: &mut egui::Ui, mut params: TreeSystemParams) {
                             &mut params.word_query,
                             &mut params.letter_query,
                             &mut params.select_event,
-                            &params.selection,
+                            &selection,
                         );
                         ui_line_slots(
                             ui,
                             sentence_line_slots,
                             &mut params.select_event,
-                            &params.selection,
+                            &selection,
                         );
                     });
 
@@ -79,7 +81,7 @@ fn ui_words(
     word_query: &mut WordQuery,
     letter_query: &mut LetterQuery,
     select_event: &mut EventWriter<Select>,
-    selection: &Res<Selection>,
+    selection: &Option<Entity>,
 ) {
     let mut iter = word_query.iter_many_mut(words.iter());
 
@@ -108,7 +110,7 @@ fn ui_letters(
     letters: &[Entity],
     letter_query: &mut LetterQuery,
     select_event: &mut EventWriter<Select>,
-    selection: &Res<Selection>,
+    selection: &Option<Entity>,
 ) {
     let mut iter = letter_query.iter_many_mut(letters.iter());
 
@@ -140,7 +142,7 @@ fn ui_dots(
     ui: &mut egui::Ui,
     dots: &[Entity],
     select_event: &mut EventWriter<Select>,
-    selection: &Res<Selection>,
+    selection: &Option<Entity>,
 ) {
     for dot_entity in dots.iter() {
         let header_response =
@@ -155,7 +157,7 @@ fn ui_line_slots(
     ui: &mut egui::Ui,
     line_slots: &[Entity],
     select_event: &mut EventWriter<Select>,
-    selection: &Res<Selection>,
+    selection: &Option<Entity>,
 ) {
     for line_slot_entity in line_slots.iter() {
         let header_response = CollapsingTreeItem::new_empty(

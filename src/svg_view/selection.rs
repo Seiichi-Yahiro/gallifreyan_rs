@@ -1,8 +1,8 @@
 use super::camera::WorldCursor;
 use super::interaction::Interaction;
-use crate::events::{Select, Selection};
 use crate::image_types::PositionData;
 use crate::math::angle_from_position;
+use crate::selection::{Select, Selected};
 use crate::svg_view::ViewMode;
 use bevy::prelude::*;
 use bevy_egui::EguiContext;
@@ -49,15 +49,21 @@ fn drag(
     world_cursor: Res<WorldCursor>,
     egui_context: Res<EguiContext>,
     hit_box_query: Query<(Entity, &Interaction)>,
-    mut selected_query: Query<(Option<&Parent>, &Transform, &mut PositionData)>,
+    mut selected_query: Query<
+        (Entity, Option<&Parent>, &Transform, &mut PositionData),
+        With<Selected>,
+    >,
     global_transform_query: Query<&GlobalTransform>,
-    selection: Res<Selection>,
     mouse_button_input: Res<Input<MouseButton>>,
     mut is_dragging: Local<bool>,
 ) {
-    if selection.is_none() {
-        return;
-    }
+    let (selected_entity, parent, transform, mut position_data) =
+        match selected_query.get_single_mut() {
+            Ok(it) => it,
+            Err(_) => {
+                return;
+            }
+        };
 
     if mouse_button_input.just_pressed(MouseButton::Left) {
         let ctx = egui_context.ctx();
@@ -69,7 +75,7 @@ fn drag(
         }
 
         let clicked_entity = get_clicked_entity(&hit_box_query, world_cursor.pos);
-        *is_dragging = clicked_entity.contains(&selection.unwrap());
+        *is_dragging = clicked_entity.contains(&selected_entity);
     }
 
     if mouse_button_input.just_released(MouseButton::Left) {
@@ -80,27 +86,25 @@ fn drag(
         return;
     }
 
-    if let Ok((parent, transform, mut position_data)) = selected_query.get_mut(selection.unwrap()) {
-        let parent_rotation = parent
-            .and_then(|parent| global_transform_query.get(parent.get()).ok())
-            .map(|parent_global_transform| {
-                parent_global_transform
-                    .compute_transform()
-                    .rotation
-                    .inverse()
-            })
-            .unwrap_or(Quat::IDENTITY);
+    let parent_rotation = parent
+        .and_then(|parent| global_transform_query.get(parent.get()).ok())
+        .map(|parent_global_transform| {
+            parent_global_transform
+                .compute_transform()
+                .rotation
+                .inverse()
+        })
+        .unwrap_or(Quat::IDENTITY);
 
-        let rotated_mouse_delta = parent_rotation * world_cursor.delta.extend(0.0);
+    let rotated_mouse_delta = parent_rotation * world_cursor.delta.extend(0.0);
 
-        let new_transform = Transform::from_translation(rotated_mouse_delta) * *transform;
-        let new_position = new_transform.translation.truncate();
+    let new_transform = Transform::from_translation(rotated_mouse_delta) * *transform;
+    let new_position = new_transform.translation.truncate();
 
-        position_data.distance = new_position.length();
+    position_data.distance = new_position.length();
 
-        if position_data.distance != 0.0 {
-            position_data.angle = angle_from_position(new_position);
-        }
+    if position_data.distance != 0.0 {
+        position_data.angle = angle_from_position(new_position);
     }
 }
 
