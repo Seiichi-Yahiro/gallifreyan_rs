@@ -1,6 +1,6 @@
 use bevy::math::{Quat, Vec2};
-use std::cmp::Ordering;
 use bevy::prelude::Reflect;
+use std::cmp::Ordering;
 
 pub trait Intersection<T> {
     fn intersection(&self, other: &T) -> IntersectionResult;
@@ -147,16 +147,8 @@ pub fn angle_from_position(position: Vec2) -> Angle {
     Angle::new_radian(-position.angle_between(Vec2::NEG_Y))
 }
 
-fn adjust_angle(mut angle: f32) -> f32 {
-    while angle > 360.0 {
-        angle -= 360.0;
-    }
-
-    while angle < 0.0 {
-        angle += 360.0;
-    }
-
-    angle
+fn adjust_angle(angle: f32) -> f32 {
+    (angle % 360.0 + 360.0) % 360.0
 }
 
 #[cfg(test)]
