@@ -721,4 +721,89 @@ mod test {
 
         assert_eq!(result, expected);
     }
+
+    fn assert_spawn_nested(consonant: &str, vocal: &str) {
+        let mut app = create_app();
+        app.insert_resource(NestingSettings::All);
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText(consonant.to_string() + vocal));
+
+        app.update();
+
+        let (consonant_entity, consonant_text, consonant_nested_letter) = {
+            let consonant=  app.world.query_filtered::<(Entity, &Text, &NestedLetter), (With<Letter>, Without<NestedVocal>)>().single(&app.world);
+            (consonant.0, consonant.1.clone(), *consonant.2)
+        };
+
+        let (vocal_entity, vocal_text, vocal_nested_letter, vocal_parent) = {
+            let vocal = app.world.query_filtered::<(Entity, &Text, &NestedLetter, &Parent), (With<Letter>, With<NestedVocal>)>().single(&app.world);
+            (vocal.0, vocal.1.clone(), *vocal.2, vocal.3.get())
+        };
+
+        assert_eq!(*consonant_text, format!("{}~{}", consonant, vocal));
+        assert_eq!(*vocal_text, vocal);
+
+        assert_eq!(consonant_nested_letter.0, Some(vocal_entity));
+        assert_eq!(vocal_parent, consonant_entity);
+
+        assert_eq!(vocal_nested_letter.0, None);
+    }
+
+    #[test]
+    fn spawn_nested_e() {
+        assert_spawn_nested("b", "e");
+    }
+
+    #[test]
+    fn spawn_nested_i() {
+        assert_spawn_nested("b", "i");
+    }
+
+    #[test]
+    fn spawn_nested_o() {
+        assert_spawn_nested("b", "o");
+    }
+
+    #[test]
+    fn spawn_nested_u() {
+        assert_spawn_nested("b", "u");
+    }
+
+    #[test]
+    fn spawn_nested_a() {
+        let mut app = create_app();
+        app.insert_resource(NestingSettings::All);
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText("ba".to_string()));
+
+        app.update();
+
+        let (consonant_entity, consonant_text, consonant_nested_letter) = {
+            let consonant=  app.world.query_filtered::<(Entity, &Text, &NestedLetter), (With<Letter>, Without<NestedVocal>)>().single(&app.world);
+            (consonant.0, consonant.1.clone(), *consonant.2)
+        };
+
+        let (vocal_entity, vocal_text, vocal_nested_letter, vocal_parent) = {
+            let vocal = app.world.query_filtered::<(Entity, &Text, &NestedLetter, &Parent), (With<Letter>, With<NestedVocal>)>().single(&app.world);
+            (vocal.0, vocal.1.clone(), *vocal.2, vocal.3.get())
+        };
+
+        let (vocal_position_correction_entity, vocal_position_correction_parent) = app
+            .world
+            .query_filtered::<(Entity, &Parent), With<NestedVocalPositionCorrection>>()
+            .single(&app.world);
+
+        assert_eq!(*consonant_text, "b~a");
+        assert_eq!(*vocal_text, "a");
+
+        assert_eq!(consonant_nested_letter.0, Some(vocal_entity));
+        assert_eq!(vocal_parent, vocal_position_correction_entity);
+        assert_eq!(vocal_position_correction_parent.get(), consonant_entity);
+
+        assert_eq!(vocal_nested_letter.0, None);
+    }
 }

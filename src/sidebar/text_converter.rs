@@ -172,6 +172,11 @@ mod test {
             )
             .add_stage_after(
                 TextConverterStage::Letter,
+                TextConverterStage::Nested,
+                SystemStage::single(letter::convert_nested_letters),
+            )
+            .add_stage_after(
+                TextConverterStage::Nested,
                 TextConverterStage::Decoration,
                 SystemStage::parallel()
                     .with_system(dot::convert_dots)
