@@ -91,38 +91,58 @@ mod test {
 
     #[test]
     fn should_spawn_words() {
-        test_component_update::<Text, Word>("my words", "my words", |before, _after| {
-            assert_eq!(before.len(), 2);
-            assert_eq!(*before[0], "my");
-            assert_eq!(*before[1], "words");
-        });
+        test_component_update::<Text, Word>(
+            "my words",
+            "my words",
+            NestingSettings::None,
+            |before, _after| {
+                assert_eq!(before.len(), 2);
+                assert_eq!(*before[0], "my");
+                assert_eq!(*before[1], "words");
+            },
+        );
     }
 
     #[test]
     fn should_spawn_first_word_in_center() {
-        test_component_update::<PositionData, Word>("my", "my", |before, _after| {
-            assert_eq!(before.len(), 1);
-            assert_eq!(before[0].angle.as_degrees(), 0.0);
-            assert_eq!(before[0].distance, 0.0);
-        });
+        test_component_update::<PositionData, Word>(
+            "my",
+            "my",
+            NestingSettings::None,
+            |before, _after| {
+                assert_eq!(before.len(), 1);
+                assert_eq!(before[0].angle.as_degrees(), 0.0);
+                assert_eq!(before[0].distance, 0.0);
+            },
+        );
     }
 
     #[test]
     fn should_spawn_move_first_word_out_of_center() {
-        test_component_update::<PositionData, Word>("my", "my word", |_before, after| {
-            assert_eq!(after.len(), 2);
-            assert_eq!(after[0].angle.as_degrees(), 0.0);
-            assert!(after[0].distance > 0.0);
-            assert!(after[1].distance > 0.0);
-        });
+        test_component_update::<PositionData, Word>(
+            "my",
+            "my word",
+            NestingSettings::None,
+            |_before, after| {
+                assert_eq!(after.len(), 2);
+                assert_eq!(after[0].angle.as_degrees(), 0.0);
+                assert!(after[0].distance > 0.0);
+                assert!(after[1].distance > 0.0);
+            },
+        );
     }
 
     #[test]
     fn should_remove_word() {
-        test_component_update::<Text, Word>("my words", "my", |_before, after| {
-            assert_eq!(after.len(), 1);
-            assert_eq!(*after[0], "my");
-        });
+        test_component_update::<Text, Word>(
+            "my words",
+            "my",
+            NestingSettings::None,
+            |_before, after| {
+                assert_eq!(after.len(), 1);
+                assert_eq!(*after[0], "my");
+            },
+        );
     }
 
     #[test]
@@ -185,32 +205,52 @@ mod test {
 
     #[test]
     fn should_update_word_text() {
-        test_component_update::<Text, Word>("my words", "me first", |_before, after| {
-            assert_eq!(*after[0], "me");
-            assert_eq!(*after[1], "first");
-            assert_eq!(after.len(), 2);
-        });
+        test_component_update::<Text, Word>(
+            "my words",
+            "me first",
+            NestingSettings::None,
+            |_before, after| {
+                assert_eq!(*after[0], "me");
+                assert_eq!(*after[1], "first");
+                assert_eq!(after.len(), 2);
+            },
+        );
     }
 
     #[test]
     fn should_update_decrease_word_radius() {
-        test_component_update::<Radius, Word>("my", "my word", |before, after| {
-            assert!(before[0] > after[0]);
-        });
+        test_component_update::<Radius, Word>(
+            "my",
+            "my word",
+            NestingSettings::None,
+            |before, after| {
+                assert!(before[0] > after[0]);
+            },
+        );
     }
 
     #[test]
     fn should_update_increase_word_radius() {
-        test_component_update::<Radius, Word>("my word", "my", |before, after| {
-            assert!(before[0] < after[0]);
-        });
+        test_component_update::<Radius, Word>(
+            "my word",
+            "my",
+            NestingSettings::None,
+            |before, after| {
+                assert!(before[0] < after[0]);
+            },
+        );
     }
 
     #[test]
     fn should_not_update_word_radius() {
-        test_component_update::<Radius, Word>("word", "what", |before, after| {
-            assert_eq!(before[0], after[0]);
-        });
+        test_component_update::<Radius, Word>(
+            "word",
+            "what",
+            NestingSettings::None,
+            |before, after| {
+                assert_eq!(before[0], after[0]);
+            },
+        );
     }
 
     #[test]
@@ -218,6 +258,7 @@ mod test {
         test_component_update::<PositionData, Word>(
             "my first",
             "my first word",
+            NestingSettings::None,
             |before, after| {
                 assert_eq!(after[0].angle.as_degrees(), 0.0);
                 assert!(before[1].angle > after[1].angle);
@@ -228,17 +269,27 @@ mod test {
 
     #[test]
     fn should_increase_word_angle() {
-        test_component_update::<PositionData, Word>("my first word", "my word", |before, after| {
-            assert_eq!(after[0].angle.as_degrees(), 0.0);
-            assert!(before[1].angle < after[1].angle);
-            assert!(after[0].angle < after[1].angle);
-        });
+        test_component_update::<PositionData, Word>(
+            "my first word",
+            "my word",
+            NestingSettings::None,
+            |before, after| {
+                assert_eq!(after[0].angle.as_degrees(), 0.0);
+                assert!(before[1].angle < after[1].angle);
+                assert!(after[0].angle < after[1].angle);
+            },
+        );
     }
 
     #[test]
     fn should_not_update_word_angle() {
-        test_component_update::<PositionData, Word>("word", "what", |before, after| {
-            assert_eq!(before[0].angle, after[0].angle);
-        });
+        test_component_update::<PositionData, Word>(
+            "word",
+            "what",
+            NestingSettings::None,
+            |before, after| {
+                assert_eq!(before[0].angle, after[0].angle);
+            },
+        );
     }
 }

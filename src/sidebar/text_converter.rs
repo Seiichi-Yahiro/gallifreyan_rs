@@ -189,9 +189,11 @@ mod test {
     pub fn test_component_update<C: Component + Clone, F: Component>(
         text_before: &str,
         text_after: &str,
+        nesting_settings: NestingSettings,
         assert: impl Fn(Vec<C>, Vec<C>),
     ) {
         let mut app = create_app();
+        app.insert_resource(nesting_settings);
 
         app.world
             .resource_mut::<Events<SetText>>()

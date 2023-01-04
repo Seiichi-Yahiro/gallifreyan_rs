@@ -518,58 +518,93 @@ mod test {
 
     #[test]
     fn should_update_letter_text() {
-        test_component_update::<Text, Letter>("test", "text", |_before, after| {
-            assert_eq!(*after[0], "t");
-            assert_eq!(*after[1], "e");
-            assert_eq!(*after[2], "x");
-            assert_eq!(*after[3], "t");
-        });
+        test_component_update::<Text, Letter>(
+            "test",
+            "text",
+            NestingSettings::None,
+            |_before, after| {
+                assert_eq!(*after[0], "t");
+                assert_eq!(*after[1], "e");
+                assert_eq!(*after[2], "x");
+                assert_eq!(*after[3], "t");
+            },
+        );
     }
 
     #[test]
     fn should_decrease_letter_radius() {
-        test_component_update::<Radius, Letter>("jj", "jjj", |before, after| {
-            assert!(before[1] > after[1]);
-        });
+        test_component_update::<Radius, Letter>(
+            "jj",
+            "jjj",
+            NestingSettings::None,
+            |before, after| {
+                assert!(before[1] > after[1]);
+            },
+        );
     }
 
     #[test]
     fn should_increase_letter_radius() {
-        test_component_update::<Radius, Letter>("jjj", "jj", |before, after| {
-            assert!(before[1] < after[1]);
-        });
+        test_component_update::<Radius, Letter>(
+            "jjj",
+            "jj",
+            NestingSettings::None,
+            |before, after| {
+                assert!(before[1] < after[1]);
+            },
+        );
     }
 
     #[test]
     fn should_not_update_letter_radius() {
-        test_component_update::<Radius, Letter>("jjj", "jjj", |before, after| {
-            assert_eq!(before[1], after[1]);
-        });
+        test_component_update::<Radius, Letter>(
+            "jjj",
+            "jjj",
+            NestingSettings::None,
+            |before, after| {
+                assert_eq!(before[1], after[1]);
+            },
+        );
     }
 
     #[test]
     fn should_decrease_letter_angle() {
-        test_component_update::<PositionData, Letter>("jj", "jjj", |before, after| {
-            assert_eq!(after[0].angle.as_degrees(), 0.0);
-            assert!(before[1].angle > after[1].angle);
-            assert!(after[0].angle < after[1].angle && after[1].angle < after[2].angle);
-        });
+        test_component_update::<PositionData, Letter>(
+            "jj",
+            "jjj",
+            NestingSettings::None,
+            |before, after| {
+                assert_eq!(after[0].angle.as_degrees(), 0.0);
+                assert!(before[1].angle > after[1].angle);
+                assert!(after[0].angle < after[1].angle && after[1].angle < after[2].angle);
+            },
+        );
     }
 
     #[test]
     fn should_increase_letter_angle() {
-        test_component_update::<PositionData, Letter>("jjj", "jj", |before, after| {
-            assert_eq!(after[0].angle.as_degrees(), 0.0);
-            assert!(before[1].angle < after[1].angle);
-            assert!(after[0].angle < after[1].angle);
-        });
+        test_component_update::<PositionData, Letter>(
+            "jjj",
+            "jj",
+            NestingSettings::None,
+            |before, after| {
+                assert_eq!(after[0].angle.as_degrees(), 0.0);
+                assert!(before[1].angle < after[1].angle);
+                assert!(after[0].angle < after[1].angle);
+            },
+        );
     }
 
     #[test]
     fn should_not_update_letter_angle() {
-        test_component_update::<PositionData, Letter>("jjj", "jjj", |before, after| {
-            assert_eq!(before[1].angle, after[1].angle);
-        });
+        test_component_update::<PositionData, Letter>(
+            "jjj",
+            "jjj",
+            NestingSettings::None,
+            |before, after| {
+                assert_eq!(before[1].angle, after[1].angle);
+            },
+        );
     }
 
     #[test]
