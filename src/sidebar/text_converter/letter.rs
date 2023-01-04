@@ -622,4 +622,103 @@ mod test {
 
         assert_occurrences(&mut app, 0, 0, 1);
     }
+
+    #[test]
+    fn should_nest_all_vocals() {
+        let result = create_letters_from_word("bbabibubebo", &NestingSettings::All);
+        let expected = [
+            ("b".to_string(), Letter::Consonant(Consonant::B)),
+            (
+                "b~a".to_string(),
+                Letter::ConsonantWithVocal {
+                    consonant: Consonant::B,
+                    vocal: Vocal::A,
+                },
+            ),
+            (
+                "b~i".to_string(),
+                Letter::ConsonantWithVocal {
+                    consonant: Consonant::B,
+                    vocal: Vocal::I,
+                },
+            ),
+            (
+                "b~u".to_string(),
+                Letter::ConsonantWithVocal {
+                    consonant: Consonant::B,
+                    vocal: Vocal::U,
+                },
+            ),
+            (
+                "b~e".to_string(),
+                Letter::ConsonantWithVocal {
+                    consonant: Consonant::B,
+                    vocal: Vocal::E,
+                },
+            ),
+            (
+                "b~o".to_string(),
+                Letter::ConsonantWithVocal {
+                    consonant: Consonant::B,
+                    vocal: Vocal::O,
+                },
+            ),
+        ];
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_nest_no_vocals() {
+        let result = create_letters_from_word("bbabibubebo", &NestingSettings::None);
+        let expected = [
+            ("b".to_string(), Letter::Consonant(Consonant::B)),
+            ("b".to_string(), Letter::Consonant(Consonant::B)),
+            ("a".to_string(), Letter::Vocal(Vocal::A)),
+            ("b".to_string(), Letter::Consonant(Consonant::B)),
+            ("i".to_string(), Letter::Vocal(Vocal::I)),
+            ("b".to_string(), Letter::Consonant(Consonant::B)),
+            ("u".to_string(), Letter::Vocal(Vocal::U)),
+            ("b".to_string(), Letter::Consonant(Consonant::B)),
+            ("e".to_string(), Letter::Vocal(Vocal::E)),
+            ("b".to_string(), Letter::Consonant(Consonant::B)),
+            ("o".to_string(), Letter::Vocal(Vocal::O)),
+        ];
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_nest_custom_vocals() {
+        let rules = [(Consonant::B, Vocal::A), (Consonant::B, Vocal::O)]
+            .into_iter()
+            .collect();
+
+        let result = create_letters_from_word("bbabibubebo", &NestingSettings::Custom(rules));
+        let expected = [
+            ("b".to_string(), Letter::Consonant(Consonant::B)),
+            (
+                "b~a".to_string(),
+                Letter::ConsonantWithVocal {
+                    consonant: Consonant::B,
+                    vocal: Vocal::A,
+                },
+            ),
+            ("b".to_string(), Letter::Consonant(Consonant::B)),
+            ("i".to_string(), Letter::Vocal(Vocal::I)),
+            ("b".to_string(), Letter::Consonant(Consonant::B)),
+            ("u".to_string(), Letter::Vocal(Vocal::U)),
+            ("b".to_string(), Letter::Consonant(Consonant::B)),
+            ("e".to_string(), Letter::Vocal(Vocal::E)),
+            (
+                "b~o".to_string(),
+                Letter::ConsonantWithVocal {
+                    consonant: Consonant::B,
+                    vocal: Vocal::O,
+                },
+            ),
+        ];
+
+        assert_eq!(result, expected);
+    }
 }
