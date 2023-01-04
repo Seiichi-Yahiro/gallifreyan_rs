@@ -52,7 +52,7 @@ pub fn ui(
                 ui.label("You can use '*' as a wildcard.");
 
                 if ui.text_edit_singleline(&mut *rules_string).changed() {
-                    match convert_rules_string(&rules_string) {
+                    match parse_rules_string(&rules_string) {
                         Ok(new_rules) => {
                             *nesting_settings = NestingSettings::Custom(new_rules);
                             *error_message = None;
@@ -70,7 +70,7 @@ pub fn ui(
         });
 }
 
-fn convert_rules_string(rules: &str) -> Result<HashSet<(Consonant, Vocal)>, String> {
+fn parse_rules_string(rules: &str) -> Result<HashSet<(Consonant, Vocal)>, String> {
     let mut rules_map = HashSet::new();
 
     for rule in rules.split(',') {
