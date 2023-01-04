@@ -117,7 +117,6 @@ pub fn convert_letters(
                         *word_radius,
                         number_of_letters,
                         new_children.len(),
-                        None,
                     );
 
                     let letter_entity = commands.spawn(letter_bundle).id();

@@ -330,7 +330,6 @@ impl LetterBundle {
         word_radius: f32,
         number_of_letters: usize,
         index: usize,
-        nested: Option<Entity>,
     ) -> Self {
         Self {
             letter,
@@ -340,7 +339,7 @@ impl LetterBundle {
             dots: Default::default(),
             line_slots: Default::default(),
             interaction: Interaction::default(),
-            nested_letter: NestedLetter(nested),
+            nested_letter: NestedLetter::default(),
         }
     }
 }
