@@ -64,8 +64,12 @@ impl<'a> AngleSlider<'a> {
         let pointer_vec = bevy::math::Vec2::new(pointer_vec.x, pointer_vec.y);
         let zero_degree_vec = bevy::math::Vec2::new(0.0, 1.0);
 
-        let angle = pointer_vec.angle_between(zero_degree_vec).to_degrees() - self.angle_offset;
-        let angle = if angle < 0.0 { angle + 360.0 } else { angle };
+        let mut angle = pointer_vec.angle_between(zero_degree_vec).to_degrees() - self.angle_offset;
+
+        if angle < 0.0 {
+            angle = angle % 360.0 + 360.0;
+        }
+
         *self.angle = angle;
         self.clamp_angle();
     }
