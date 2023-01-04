@@ -8,6 +8,7 @@ use bevy::prelude::*;
 use bevy::utils::HashSet;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::DrawMode;
+use strum_macros::EnumIter;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Component, Reflect)]
 #[reflect(Component)]
@@ -71,7 +72,7 @@ impl TryFrom<&str> for Letter {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Reflect, FromReflect)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Reflect, FromReflect, EnumIter)]
 pub enum Vocal {
     A,
     E,
@@ -171,7 +172,7 @@ impl TryFrom<&str> for Vocal {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Reflect, FromReflect)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Reflect, FromReflect, EnumIter)]
 pub enum Consonant {
     B,
     J,
