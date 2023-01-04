@@ -841,4 +841,109 @@ mod test {
 
         assert_eq!(vocal_nested_letter.0, None);
     }
+
+    #[test]
+    fn should_update_nested_letter_text() {
+        test_component_update::<Text, Letter>(
+            "be",
+            "bi",
+            NestingSettings::All,
+            |_before, after| {
+                assert_eq!(*after[0], "b~i");
+            },
+        );
+    }
+
+    #[test]
+    fn should_remove_nested_letter_text() {
+        test_component_update::<Text, Letter>("be", "b", NestingSettings::All, |_before, after| {
+            assert_eq!(*after[0], "b");
+        });
+    }
+
+    #[test]
+    fn should_despawn_nested_children() {
+        let mut app = create_app();
+        app.insert_resource(NestingSettings::All);
+
+        let assert_occurrences = |app: &mut App,
+                                  line_slots: usize,
+                                  letters: usize,
+                                  nested_letters: usize,
+                                  position_correction: usize| {
+            let line_slots_result = app
+                .world
+                .query_filtered::<Entity, With<LineSlot>>()
+                .iter(&app.world)
+                .len();
+            let letters_result = app
+                .world
+                .query_filtered::<Entity, With<Letter>>()
+                .iter(&app.world)
+                .len();
+            let nested_letters_result = app
+                .world
+                .query_filtered::<Entity, (With<Letter>, With<NestedVocal>)>()
+                .iter(&app.world)
+                .len();
+            let position_correction_result = app
+                .world
+                .query_filtered::<Entity, With<NestedVocalPositionCorrection>>()
+                .iter(&app.world)
+                .len();
+
+            assert_eq!(line_slots_result, line_slots);
+            assert_eq!(letters_result, letters);
+            assert_eq!(nested_letters_result, nested_letters);
+            assert_eq!(position_correction_result, position_correction);
+        };
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText("bbabi".to_string()));
+
+        app.update();
+
+        assert_occurrences(&mut app, 1, 5, 2, 1);
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText("bba".to_string()));
+
+        app.update();
+
+        assert_occurrences(&mut app, 0, 3, 1, 1);
+
+        app.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText("b".to_string()));
+
+        app.update();
+
+        assert_occurrences(&mut app, 0, 1, 0, 0);
+    }
+
+    #[test]
+    fn should_remove_position_correction_on_update() {
+        test_component_update::<PositionData, NestedVocalPositionCorrection>(
+            "ba",
+            "be",
+            NestingSettings::All,
+            |_before, after| {
+                assert_eq!(after.len(), 0);
+            },
+        );
+    }
+
+    #[test]
+    fn should_add_position_correction_on_update() {
+        test_component_update::<PositionData, NestedVocalPositionCorrection>(
+            "be",
+            "ba",
+            NestingSettings::All,
+            |_before, after| {
+                assert_eq!(after.len(), 1);
+            },
+        );
+    }
 }
