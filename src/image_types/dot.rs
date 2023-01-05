@@ -1,3 +1,4 @@
+use crate::constraints::DistanceConstraints;
 use crate::image_types::{new_fill_mode, AnglePlacement, PositionData, Radius};
 use crate::math::Angle;
 use crate::style::Styles;
@@ -45,6 +46,7 @@ pub struct DotBundle {
     pub radius: Radius,
     pub position_data: PositionData,
     pub interaction: Interaction,
+    pub distance_constraints: DistanceConstraints,
 }
 
 impl DotBundle {
@@ -54,6 +56,7 @@ impl DotBundle {
             radius: Radius(Dot::radius(consonant_radius)),
             position_data: Dot::position_data(consonant_radius, number_of_dots, index),
             interaction: Interaction::default(),
+            distance_constraints: DistanceConstraints::default(),
         }
     }
 }

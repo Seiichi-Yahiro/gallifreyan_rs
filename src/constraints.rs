@@ -1,4 +1,6 @@
-use crate::image_types::{LineSlot, LineSlotChildren, PositionData, Radius};
+use crate::image_types::{
+    CircleChildren, Dot, Letter, LineSlot, LineSlotChildren, PositionData, Radius,
+};
 use crate::math::Angle;
 use bevy::prelude::*;
 
@@ -6,10 +8,11 @@ pub struct ConstraintsPlugin;
 
 impl Plugin for ConstraintsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(
-            update_line_slot_distance_constraints.before(on_distance_constraints_update),
-        )
-        .add_system(on_distance_constraints_update);
+        app.add_system(update_dot_distance_constraints.before(on_distance_constraints_update))
+            .add_system(
+                update_line_slot_distance_constraints.before(on_distance_constraints_update),
+            )
+            .add_system(on_distance_constraints_update);
     }
 }
 
@@ -30,6 +33,29 @@ impl Default for DistanceConstraints {
         Self {
             min: 0.0,
             max: f32::MAX,
+        }
+    }
+}
+
+fn update_dot_distance_constraints(
+    changed_radius_query: Query<(&Letter, &Radius, &CircleChildren), Changed<Radius>>,
+    mut dot_query: Query<&mut DistanceConstraints, With<Dot>>,
+) {
+    for (letter, radius, dots) in changed_radius_query.iter() {
+        match letter {
+            Letter::Vocal(_) => {
+                continue;
+            }
+            Letter::Consonant(_) => {
+                let mut dot_iter = dot_query.iter_many_mut(dots.iter());
+
+                while let Some(mut distance_constraints) = dot_iter.fetch_next() {
+                    *distance_constraints = DistanceConstraints {
+                        min: 0.0,
+                        max: **radius,
+                    }
+                }
+            }
         }
     }
 }
