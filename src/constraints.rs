@@ -19,10 +19,19 @@ pub struct AngleConstraints {
     pub max: Angle,
 }
 
-#[derive(Debug, Copy, Clone, Default, Component)]
+#[derive(Debug, Copy, Clone, Component)]
 pub struct DistanceConstraints {
     pub min: f32,
     pub max: f32,
+}
+
+impl Default for DistanceConstraints {
+    fn default() -> Self {
+        Self {
+            min: 0.0,
+            max: f32::MAX,
+        }
+    }
 }
 
 fn update_line_slot_distance_constraints(
