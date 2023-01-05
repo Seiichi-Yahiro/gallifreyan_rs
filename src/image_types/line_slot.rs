@@ -1,3 +1,4 @@
+use crate::constraints::DistanceConstraints;
 use crate::image_types::{new_stroke_mode, AnglePlacement, PositionData};
 use crate::math::Angle;
 use crate::style::Styles;
@@ -40,6 +41,7 @@ pub struct LineSlotBundle {
     pub line_slot: LineSlot,
     pub position_data: PositionData,
     pub interaction: Interaction,
+    pub distance_constraints: DistanceConstraints,
 }
 
 impl LineSlotBundle {
@@ -58,6 +60,7 @@ impl LineSlotBundle {
                 point_outside,
             ),
             interaction: Interaction::default(),
+            distance_constraints: DistanceConstraints::default(),
         }
     }
 }

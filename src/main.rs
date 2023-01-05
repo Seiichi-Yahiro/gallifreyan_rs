@@ -1,5 +1,6 @@
 #![feature(option_result_contains)]
 
+mod constraints;
 mod event_set;
 mod image_types;
 mod math;
@@ -11,6 +12,7 @@ mod svg_builder;
 mod svg_view;
 mod ui;
 
+use crate::constraints::ConstraintsPlugin;
 use crate::menu_bar::MenuBarPlugin;
 use crate::selection::EventPlugin;
 use crate::sidebar::SideBarPlugin;
@@ -43,6 +45,7 @@ fn main() {
         .add_plugin(MenuBarPlugin)
         .add_plugin(SideBarPlugin)
         .add_plugin(SVGViewPlugin)
+        .add_plugin(ConstraintsPlugin)
         .register_type::<image_types::Sentence>()
         .register_type::<image_types::Word>()
         .register_type::<image_types::Letter>()
