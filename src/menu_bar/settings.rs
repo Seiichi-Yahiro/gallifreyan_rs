@@ -11,7 +11,10 @@ pub struct SettingsPlugin;
 impl Plugin for SettingsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<OpenedSettingWindows>()
-            .add_system_to_stage(UiStage, vocal_nesting::ui);
+            .add_system_to_stage(
+                UiStage,
+                vocal_nesting::ui.after(crate::svg_view::UiSystemLabel),
+            );
     }
 }
 
