@@ -1,3 +1,4 @@
+use crate::constraints::DistanceConstraints;
 use crate::image_types::{
     new_stroke_mode, AnglePlacement, CircleChildren, LineSlotChildren, PositionData, Radius, Text,
 };
@@ -276,6 +277,7 @@ pub struct LetterBundle {
     pub dots: CircleChildren,
     pub line_slots: LineSlotChildren,
     pub interaction: Interaction,
+    pub distance_constraints: DistanceConstraints,
 }
 
 impl LetterBundle {
@@ -294,6 +296,7 @@ impl LetterBundle {
             text: Text(letter_text),
             line_slots: Default::default(),
             interaction: Interaction::default(),
+            distance_constraints: DistanceConstraints::default(),
         }
     }
 }

@@ -1,5 +1,6 @@
 use crate::image_types::{
-    CircleChildren, Dot, Letter, LineSlot, LineSlotChildren, PositionData, Radius, Sentence, Word,
+    CircleChildren, ConsonantPlacement, Dot, Letter, LineSlot, LineSlotChildren, PositionData,
+    Radius, Sentence, VocalPlacement, Word,
 };
 use crate::math::Angle;
 use bevy::prelude::*;
@@ -9,9 +10,10 @@ pub struct ConstraintsPlugin;
 impl Plugin for ConstraintsPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(update_word_distance_constraints)
-            .add_system(update_dot_distance_constraints.after(update_word_distance_constraints))
+            .add_system(update_letter_distance_constraints.after(update_word_distance_constraints))
+            .add_system(update_dot_distance_constraints.after(update_letter_distance_constraints))
             .add_system(
-                update_line_slot_distance_constraints.after(update_word_distance_constraints),
+                update_line_slot_distance_constraints.after(update_letter_distance_constraints),
             )
             .add_system(
                 on_distance_constraints_update
@@ -68,6 +70,72 @@ fn update_word_distance_constraints(
     for (sentence, Radius(word_radius), mut distance_constraints) in changed_word_query.iter_mut() {
         if let Ok(Radius(sentence_radius)) = radius_query.get(sentence.get()) {
             *distance_constraints = create_constraints(sentence_radius, word_radius);
+        }
+    }
+}
+
+fn update_letter_distance_constraints(
+    changed_word_query: Query<(&Radius, &CircleChildren), (Changed<Radius>, With<Word>)>,
+    mut letter_set: ParamSet<(
+        Query<(&Letter, &Radius, &mut DistanceConstraints)>,
+        Query<
+            (&Parent, &Letter, &Radius, &mut DistanceConstraints),
+            Or<(Changed<Radius>, Changed<Letter>)>,
+        >,
+    )>,
+    radius_query: Query<&Radius>,
+) {
+    let create_constraints = |letter: &Letter, word_radius: &f32, letter_radius: &f32| match letter
+    {
+        Letter::Vocal(vocal) => match VocalPlacement::from(*vocal) {
+            VocalPlacement::Inside => DistanceConstraints {
+                min: 0.0,
+                max: (word_radius - letter_radius).max(0.0),
+            },
+            VocalPlacement::OnLine => DistanceConstraints {
+                min: *word_radius,
+                max: *word_radius,
+            },
+            VocalPlacement::Outside => DistanceConstraints {
+                min: word_radius + letter_radius,
+                max: word_radius + letter_radius * 2.0,
+            },
+        },
+        Letter::Consonant(consonant) => match ConsonantPlacement::from(*consonant) {
+            ConsonantPlacement::DeepCut => DistanceConstraints {
+                min: (word_radius - letter_radius * 0.95).max(0.0),
+                max: (word_radius - letter_radius * 0.5).max(0.0),
+            },
+            ConsonantPlacement::Inside => DistanceConstraints {
+                min: 0.0,
+                max: (word_radius - letter_radius).max(0.0),
+            },
+            ConsonantPlacement::ShallowCut => DistanceConstraints {
+                min: *word_radius,
+                max: word_radius + letter_radius * 0.95,
+            },
+            ConsonantPlacement::OnLine => DistanceConstraints {
+                min: *word_radius,
+                max: *word_radius,
+            },
+        },
+    };
+
+    for (Radius(word_radius), letters) in changed_word_query.iter() {
+        let mut letter_query = letter_set.p0();
+        let mut letter_iter = letter_query.iter_many_mut(letters.iter());
+
+        while let Some((letter, Radius(letter_radius), mut distance_constraints)) =
+            letter_iter.fetch_next()
+        {
+            *distance_constraints = create_constraints(letter, word_radius, letter_radius);
+        }
+    }
+
+    let mut changed_letter_query = letter_set.p1();
+    for (word, letter, letter_radius, mut distance_constraints) in changed_letter_query.iter_mut() {
+        if let Ok(word_radius) = radius_query.get(word.get()) {
+            *distance_constraints = create_constraints(letter, word_radius, letter_radius);
         }
     }
 }
