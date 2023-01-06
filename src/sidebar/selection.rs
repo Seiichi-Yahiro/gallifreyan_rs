@@ -1,3 +1,4 @@
+use crate::constraints::DistanceConstraints;
 use crate::image_types::{
     ConsonantPlacement, Letter, LineSlot, PositionData, Radius, VocalPlacement,
 };
@@ -19,6 +20,7 @@ pub struct SelectionSystemParams<'w, 's> {
             &'static mut PositionData,
             Option<&'static Letter>,
             Option<&'static LineSlot>,
+            &'static DistanceConstraints,
         ),
         With<Selected>,
     >,
@@ -26,7 +28,7 @@ pub struct SelectionSystemParams<'w, 's> {
 }
 
 pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
-    let (parent, mut radius, mut position_data, letter, line_slot) =
+    let (parent, mut radius, mut position_data, letter, line_slot, distance_constraints) =
         match params.selection_query.get_single_mut() {
             Ok(it) => it,
             Err(_) => {
@@ -61,7 +63,8 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                     .unwrap_or_else(|| line_slot.is_none());
 
                 if can_change_distance {
-                    let new_distance = ui_distance(ui, position_data.distance);
+                    let new_distance =
+                        ui_distance(ui, position_data.distance, distance_constraints);
 
                     if new_distance != position_data.distance {
                         position_data.distance = new_distance;
@@ -102,16 +105,13 @@ fn ui_radius(ui: &mut egui::Ui, radius: f32) -> f32 {
     new_radius
 }
 
-fn ui_distance(ui: &mut egui::Ui, distance: f32) -> f32 {
+fn ui_distance(ui: &mut egui::Ui, distance: f32, constraints: &DistanceConstraints) -> f32 {
     ui.label("Distance");
     let mut new_distance = distance;
 
-    let range = 0.0..=1000.0;
-    let step = (range.end() - range.start()) / 100.0;
-
-    let distance = egui::Slider::new(&mut new_distance, 0.0..=1000.0)
+    let distance = egui::Slider::new(&mut new_distance, constraints.min..=constraints.max)
         .show_value(false)
-        .step_by(step); // TODO distance constraints
+        .step_by((constraints.max - constraints.min) as f64 / 100.0);
 
     ui.add(distance);
 
