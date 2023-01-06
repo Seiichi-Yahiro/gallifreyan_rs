@@ -4,7 +4,7 @@ mod os;
 mod svg_export;
 
 use crate::event_set::*;
-use crate::image_types::{Dot, Letter, LineSlot, Sentence, Word};
+use crate::image_types::{Dot, Letter, LineSlot, NestedVocalPositionCorrection, Sentence, Word};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy_egui::egui;
@@ -150,6 +150,7 @@ fn handle_save_event(
             With<Sentence>,
             With<Word>,
             With<Letter>,
+            With<NestedVocalPositionCorrection>,
             With<Dot>,
             With<LineSlot>,
         )>,

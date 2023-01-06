@@ -35,17 +35,27 @@ mod test {
 
     #[test]
     fn should_spawn_sentence() {
-        test_component_update::<Text, Sentence>("my sentence", "my sentence", |before, _after| {
-            assert_eq!(before.len(), 1);
-            assert_eq!(*before[0], "my sentence");
-        });
+        test_component_update::<Text, Sentence>(
+            "my sentence",
+            "my sentence",
+            NestingSettings::None,
+            |before, _after| {
+                assert_eq!(before.len(), 1);
+                assert_eq!(*before[0], "my sentence");
+            },
+        );
     }
 
     #[test]
     fn should_remove_sentence() {
-        test_component_update::<Text, Sentence>("my sentence", "", |_before, after| {
-            assert_eq!(after.len(), 0);
-        });
+        test_component_update::<Text, Sentence>(
+            "my sentence",
+            "",
+            NestingSettings::None,
+            |_before, after| {
+                assert_eq!(after.len(), 0);
+            },
+        );
     }
 
     #[test]
@@ -71,23 +81,38 @@ mod test {
 
     #[test]
     fn should_update_sentence_text() {
-        test_component_update::<Text, Sentence>("sentence", "sent", |_before, after| {
-            assert_eq!(after.len(), 1);
-            assert_eq!(*after[0], "sent");
-        });
+        test_component_update::<Text, Sentence>(
+            "sentence",
+            "sent",
+            NestingSettings::None,
+            |_before, after| {
+                assert_eq!(after.len(), 1);
+                assert_eq!(*after[0], "sent");
+            },
+        );
     }
 
     #[test]
     fn should_not_update_sentence_radius() {
-        test_component_update::<Radius, Sentence>("sentence", "sent", |before, after| {
-            assert_eq!(before, after);
-        });
+        test_component_update::<Radius, Sentence>(
+            "sentence",
+            "sent",
+            NestingSettings::None,
+            |before, after| {
+                assert_eq!(before, after);
+            },
+        );
     }
 
     #[test]
     fn should_not_update_sentence_position_data() {
-        test_component_update::<PositionData, Sentence>("sentence", "sent", |before, after| {
-            assert_eq!(before, after);
-        });
+        test_component_update::<PositionData, Sentence>(
+            "sentence",
+            "sent",
+            NestingSettings::None,
+            |before, after| {
+                assert_eq!(before, after);
+            },
+        );
     }
 }

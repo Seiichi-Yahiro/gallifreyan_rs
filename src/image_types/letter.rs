@@ -5,14 +5,17 @@ use crate::math::Angle;
 use crate::style::Styles;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
+use bevy::utils::HashSet;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::DrawMode;
+use strum_macros::EnumIter;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Component, Reflect)]
 #[reflect(Component)]
 pub enum Letter {
     Vocal(Vocal),
     Consonant(Consonant),
+    ConsonantWithVocal { consonant: Consonant, vocal: Vocal },
 }
 
 impl Default for Letter {
@@ -24,10 +27,12 @@ impl Default for Letter {
 impl Letter {
     pub fn is_cutting(&self) -> bool {
         match self {
-            Self::Consonant(consonant) => match ConsonantPlacement::from(*consonant) {
-                ConsonantPlacement::DeepCut | ConsonantPlacement::ShallowCut => true,
-                ConsonantPlacement::OnLine | ConsonantPlacement::Inside => false,
-            },
+            Self::Consonant(consonant) | Self::ConsonantWithVocal { consonant, .. } => {
+                match ConsonantPlacement::from(*consonant) {
+                    ConsonantPlacement::DeepCut | ConsonantPlacement::ShallowCut => true,
+                    ConsonantPlacement::OnLine | ConsonantPlacement::Inside => false,
+                }
+            }
             Self::Vocal(_) => false,
         }
     }
@@ -35,14 +40,18 @@ impl Letter {
     pub fn dots(&self) -> usize {
         match self {
             Letter::Vocal(vocal) => VocalDecoration::from(*vocal).dots(),
-            Letter::Consonant(consonant) => ConsonantDecoration::from(*consonant).dots(),
+            Letter::Consonant(consonant) | Letter::ConsonantWithVocal { consonant, .. } => {
+                ConsonantDecoration::from(*consonant).dots()
+            }
         }
     }
 
     pub fn lines(&self) -> usize {
         match self {
             Letter::Vocal(vocal) => VocalDecoration::from(*vocal).lines(),
-            Letter::Consonant(consonant) => ConsonantDecoration::from(*consonant).lines(),
+            Letter::Consonant(consonant) | Letter::ConsonantWithVocal { consonant, .. } => {
+                ConsonantDecoration::from(*consonant).lines()
+            }
         }
     }
 }
@@ -63,7 +72,7 @@ impl TryFrom<&str> for Letter {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Reflect, FromReflect)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Reflect, FromReflect, EnumIter)]
 pub enum Vocal {
     A,
     E,
@@ -75,6 +84,10 @@ pub enum Vocal {
 impl Vocal {
     pub fn radius(&self, word_radius: f32, number_of_letters: usize) -> f32 {
         (word_radius * 0.75 * 0.4) / (1.0 + number_of_letters as f32 / 2.0)
+    }
+
+    pub fn nested_radius(&self, consonant_radius: f32) -> f32 {
+        consonant_radius * 0.4
     }
 
     pub fn position_data(
@@ -105,6 +118,41 @@ impl Vocal {
             angle_placement: AnglePlacement::Relative,
         }
     }
+
+    pub fn nested_position_data(
+        &self,
+        consonant_placement: ConsonantPlacement,
+        consonant_radius: f32,
+        consonant_distance: f32,
+        word_radius: f32,
+    ) -> PositionData {
+        match VocalPlacement::from(*self) {
+            VocalPlacement::Inside => PositionData {
+                angle: Angle::new_degree(180.0),
+                distance: consonant_radius,
+                angle_placement: AnglePlacement::Absolute,
+            },
+            VocalPlacement::Outside => PositionData {
+                angle: Angle::new_degree(0.0),
+                distance: word_radius + self.nested_radius(consonant_radius) * 1.5,
+                angle_placement: AnglePlacement::Absolute,
+            },
+            VocalPlacement::OnLine => match consonant_placement {
+                ConsonantPlacement::ShallowCut => PositionData {
+                    angle: Angle::new_degree(0.0),
+                    distance: word_radius - consonant_distance,
+                    angle_placement: AnglePlacement::Absolute,
+                },
+                ConsonantPlacement::DeepCut
+                | ConsonantPlacement::Inside
+                | ConsonantPlacement::OnLine => PositionData {
+                    angle: Angle::new_degree(0.0),
+                    distance: 0.0,
+                    angle_placement: AnglePlacement::Absolute,
+                },
+            },
+        }
+    }
 }
 
 impl TryFrom<&str> for Vocal {
@@ -117,19 +165,14 @@ impl TryFrom<&str> for Vocal {
             "i" => Self::I,
             "o" => Self::O,
             "u" => Self::U,
-            _ => {
-                return Err(format!(
-                    "Cannot assign vocal to '{}' as it is not a valid vocal!",
-                    value
-                ))
-            }
+            _ => return Err(format!("'{}' it is not a valid vocal!", value)),
         };
 
         Ok(vocal)
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Reflect, FromReflect)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Reflect, FromReflect, EnumIter)]
 pub enum Consonant {
     B,
     J,
@@ -232,12 +275,7 @@ impl TryFrom<&str> for Consonant {
             "m" => Self::M,
             "s" => Self::S,
             "ng" => Self::NG,
-            _ => {
-                return Err(format!(
-                    "Cannot assign consonant to '{}' as it is not a valid consonant!",
-                    value
-                ))
-            }
+            _ => return Err(format!("'{}' is not a valid consonant!", value)),
         };
 
         Ok(consonant)
@@ -248,7 +286,9 @@ impl Letter {
     pub fn radius(&self, word_radius: f32, number_of_letters: usize) -> f32 {
         match self {
             Letter::Vocal(vocal) => vocal.radius(word_radius, number_of_letters),
-            Letter::Consonant(consonant) => consonant.radius(word_radius, number_of_letters),
+            Letter::Consonant(consonant) | Letter::ConsonantWithVocal { consonant, .. } => {
+                consonant.radius(word_radius, number_of_letters)
+            }
         }
     }
 
@@ -260,12 +300,16 @@ impl Letter {
     ) -> PositionData {
         match self {
             Letter::Vocal(vocal) => vocal.position_data(word_radius, number_of_letters, index),
-            Letter::Consonant(consonant) => {
+            Letter::Consonant(consonant) | Letter::ConsonantWithVocal { consonant, .. } => {
                 consonant.position_data(word_radius, number_of_letters, index)
             }
         }
     }
 }
+
+#[derive(Debug, Copy, Clone, Default, Deref, DerefMut, Component, Reflect)]
+#[reflect(Component)]
+pub struct NestedLetter(pub Option<Entity>);
 
 #[derive(Bundle)]
 pub struct LetterBundle {
@@ -276,24 +320,108 @@ pub struct LetterBundle {
     pub dots: CircleChildren,
     pub line_slots: LineSlotChildren,
     pub interaction: Interaction,
+    pub nested_letter: NestedLetter,
 }
 
 impl LetterBundle {
     pub fn new(
+        text: String,
         letter: Letter,
-        letter_text: String,
         word_radius: f32,
         number_of_letters: usize,
         index: usize,
     ) -> Self {
         Self {
             letter,
+            text: Text(text),
             radius: Radius(letter.radius(word_radius, number_of_letters)),
             position_data: letter.position_data(word_radius, number_of_letters, index),
             dots: Default::default(),
-            text: Text(letter_text),
             line_slots: Default::default(),
             interaction: Interaction::default(),
+            nested_letter: NestedLetter::default(),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Default, Component, Reflect)]
+#[reflect(Component)]
+pub struct NestedVocal;
+
+#[derive(Copy, Clone, Default, Component, Reflect)]
+#[reflect(Component)]
+pub struct NestedVocalPositionCorrection;
+
+#[derive(Bundle)]
+pub struct NestedVocalPositionCorrectionBundle {
+    pub nested_vocal_position_correction: NestedVocalPositionCorrection,
+    pub spatial_bundle: SpatialBundle,
+    pub position_data: PositionData,
+}
+
+impl NestedVocalPositionCorrectionBundle {
+    pub fn new(consonant_distance: f32) -> Self {
+        Self {
+            nested_vocal_position_correction: NestedVocalPositionCorrection,
+            spatial_bundle: SpatialBundle::VISIBLE_IDENTITY,
+            position_data: PositionData {
+                angle: Angle::new_degree(0.0),
+                distance: -consonant_distance,
+                angle_placement: AnglePlacement::Relative,
+            },
+        }
+    }
+}
+
+#[derive(Bundle)]
+pub struct NestedVocalBundle {
+    pub letter_bundle: LetterBundle,
+    pub nested_vocal: NestedVocal,
+}
+
+impl NestedVocalBundle {
+    pub fn new(
+        text: String,
+        vocal: Vocal,
+        consonant_placement: ConsonantPlacement,
+        consonant_radius: f32,
+        consonant_distance: f32,
+        word_radius: f32,
+    ) -> Self {
+        Self {
+            letter_bundle: LetterBundle {
+                text: Text(text),
+                letter: Letter::Vocal(vocal),
+                radius: Radius(vocal.nested_radius(consonant_radius)),
+                position_data: vocal.nested_position_data(
+                    consonant_placement,
+                    consonant_radius,
+                    consonant_distance,
+                    word_radius,
+                ),
+                dots: Default::default(),
+                line_slots: Default::default(),
+                interaction: Interaction::default(),
+                nested_letter: NestedLetter::default(),
+            },
+            nested_vocal: NestedVocal,
+        }
+    }
+}
+
+#[derive(Resource)]
+pub enum NestingSettings {
+    None,
+    All,
+    Custom(HashSet<(Consonant, Vocal)>),
+}
+
+impl NestingSettings {
+    pub fn can_nest(&self, consonant: Consonant, vocal: Vocal) -> bool {
+        match self {
+            NestingSettings::None => false,
+            NestingSettings::All => true,
+            NestingSettings::Custom(rules) => rules.contains(&(consonant, vocal)),
         }
     }
 }

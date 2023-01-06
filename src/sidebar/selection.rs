@@ -54,7 +54,8 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                         Letter::Vocal(vocal) => {
                             VocalPlacement::from(*vocal) != VocalPlacement::OnLine
                         }
-                        Letter::Consonant(consonant) => {
+                        Letter::Consonant(consonant)
+                        | Letter::ConsonantWithVocal { consonant, .. } => {
                             ConsonantPlacement::from(*consonant) != ConsonantPlacement::OnLine
                         }
                     })

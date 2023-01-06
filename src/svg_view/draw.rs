@@ -1,6 +1,6 @@
 use crate::image_types::{
-    AnglePlacement, CircleChildren, Dot, Letter, LineSlot, PositionData, Radius, Sentence, Word,
-    OUTER_CIRCLE_SIZE,
+    AnglePlacement, CircleChildren, Dot, Letter, LineSlot, NestedVocal,
+    NestedVocalPositionCorrection, PositionData, Radius, Sentence, Word, OUTER_CIRCLE_SIZE,
 };
 use crate::math::{angle_from_position, Circle, Intersection, IntersectionResult};
 use bevy::prelude::*;
@@ -14,8 +14,12 @@ pub struct DrawPlugin;
 impl Plugin for DrawPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(update_position_data)
+            .add_system(
+                correct_nested_vocal_with_outside_placement_position.before(update_position_data),
+            )
             .add_system(draw_sentence)
             .add_system(draw_word_and_letter.after(update_position_data))
+            .add_system(draw_nested_vocal)
             .add_system(draw_line_slot.after(update_position_data))
             .add_system(draw_dots);
     }
@@ -34,6 +38,20 @@ fn update_position_data(mut query: Query<(&mut Transform, &PositionData), Change
                 *transform =
                     Transform::from_rotation(rotation) * Transform::from_translation(translation);
             }
+        }
+    }
+}
+
+fn correct_nested_vocal_with_outside_placement_position(
+    mut position_correction_query: Query<
+        (&Parent, &mut PositionData),
+        With<NestedVocalPositionCorrection>,
+    >,
+    parent_query: Query<&PositionData, (Without<NestedVocalPositionCorrection>, With<Letter>)>,
+) {
+    for (parent, mut position_data) in position_correction_query.iter_mut() {
+        if let Ok(parent_position_data) = parent_query.get(parent.get()) {
+            position_data.distance = -parent_position_data.distance;
         }
     }
 }
@@ -63,7 +81,12 @@ fn draw_word_and_letter(
     changed_word_query: Query<Entity, (With<Word>, Changed<Radius>)>,
     changed_letter_query: Query<
         &Parent,
-        Or<(Changed<Radius>, Changed<PositionData>, Changed<Letter>)>,
+        Or<(
+            Changed<Radius>,
+            Changed<PositionData>,
+            Changed<Letter>,
+            Without<NestedVocal>,
+        )>,
     >,
     mut word_query: Query<(&Radius, &CircleChildren, &mut Path), (With<Word>, Without<Letter>)>,
     mut letter_query: Query<
@@ -127,6 +150,20 @@ fn draw_word_and_letter(
         } else {
             generate_word_path(**word_radius, word_intersections)
         };
+    }
+}
+
+fn draw_nested_vocal(
+    mut query: Query<
+        (&Radius, &mut Path),
+        (
+            With<NestedVocal>,
+            Or<(Changed<Radius>, Changed<PositionData>)>,
+        ),
+    >,
+) {
+    for (radius, mut path) in query.iter_mut() {
+        *path = generate_circle_path(**radius);
     }
 }
 

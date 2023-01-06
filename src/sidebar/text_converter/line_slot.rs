@@ -12,7 +12,7 @@ pub fn convert_line_slots(
         let number_of_lines = letter.lines();
         let line_points_outside = match letter {
             Letter::Vocal(vocal) => VocalDecoration::from(*vocal) == VocalDecoration::LineOutside,
-            Letter::Consonant(_) => false,
+            Letter::Consonant(_) | Letter::ConsonantWithVocal { .. } => false,
         };
         let mut new_line_slots_iter = 0..number_of_lines;
 

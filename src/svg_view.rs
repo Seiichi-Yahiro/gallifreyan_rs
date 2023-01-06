@@ -18,7 +18,8 @@ impl Plugin for SVGViewPlugin {
         app.add_state(ViewMode::Select)
             .add_system_to_stage(
                 UiStage,
-                ui.after(crate::menu_bar::UiSystemLabel)
+                ui.label(UiSystemLabel)
+                    .after(crate::menu_bar::UiSystemLabel)
                     .after(crate::sidebar::UiSystemLabel),
             )
             .add_plugin(camera::CameraPlugin)
@@ -34,6 +35,9 @@ pub enum ViewMode {
     Select,
     Pan,
 }
+
+#[derive(SystemLabel)]
+pub struct UiSystemLabel;
 
 fn ui(
     mut egui_context: ResMut<EguiContext>,
