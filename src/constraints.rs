@@ -1,5 +1,5 @@
 use crate::image_types::{
-    CircleChildren, Dot, Letter, LineSlot, LineSlotChildren, PositionData, Radius,
+    CircleChildren, Dot, Letter, LineSlot, LineSlotChildren, PositionData, Radius, Sentence, Word,
 };
 use crate::math::Angle;
 use bevy::prelude::*;
@@ -8,11 +8,16 @@ pub struct ConstraintsPlugin;
 
 impl Plugin for ConstraintsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(update_dot_distance_constraints.before(on_distance_constraints_update))
+        app.add_system(update_word_distance_constraints)
+            .add_system(update_dot_distance_constraints.after(update_word_distance_constraints))
             .add_system(
-                update_line_slot_distance_constraints.before(on_distance_constraints_update),
+                update_line_slot_distance_constraints.after(update_word_distance_constraints),
             )
-            .add_system(on_distance_constraints_update);
+            .add_system(
+                on_distance_constraints_update
+                    .after(update_dot_distance_constraints)
+                    .after(update_line_slot_distance_constraints),
+            );
     }
 }
 
@@ -33,6 +38,36 @@ impl Default for DistanceConstraints {
         Self {
             min: 0.0,
             max: f32::MAX,
+        }
+    }
+}
+
+fn update_word_distance_constraints(
+    changed_sentence_query: Query<(&Radius, &CircleChildren), (Changed<Radius>, With<Sentence>)>,
+    mut word_set: ParamSet<(
+        Query<(&Radius, &mut DistanceConstraints), With<Word>>,
+        Query<(&Parent, &Radius, &mut DistanceConstraints), (Changed<Radius>, With<Word>)>,
+    )>,
+    radius_query: Query<&Radius>,
+) {
+    let create_constraints = |sentence_radius: &f32, word_radius: &f32| DistanceConstraints {
+        min: 0.0,
+        max: (sentence_radius - word_radius).max(0.0),
+    };
+
+    for (Radius(sentence_radius), words) in changed_sentence_query.iter() {
+        let mut word_query = word_set.p0();
+        let mut word_iter = word_query.iter_many_mut(words.iter());
+
+        while let Some((Radius(word_radius), mut distance_constraints)) = word_iter.fetch_next() {
+            *distance_constraints = create_constraints(sentence_radius, word_radius);
+        }
+    }
+
+    let mut changed_word_query = word_set.p1();
+    for (sentence, Radius(word_radius), mut distance_constraints) in changed_word_query.iter_mut() {
+        if let Ok(Radius(sentence_radius)) = radius_query.get(sentence.get()) {
+            *distance_constraints = create_constraints(sentence_radius, word_radius);
         }
     }
 }
