@@ -4,13 +4,18 @@ use bevy::utils::hashbrown::HashSet;
 use bevy_egui::{egui, EguiContext};
 use strum::IntoEnumIterator;
 
+#[derive(Default)]
+pub struct Rules {
+    custom_rules: Option<HashSet<(Consonant, Vocal)>>,
+    text: String,
+    parse_error: Option<String>,
+}
+
 pub fn ui(
     mut egui_context: ResMut<EguiContext>,
     mut opened_setting_windows: ResMut<super::OpenedSettingWindows>,
     mut nesting_settings: ResMut<NestingSettings>,
-    mut rules: Local<Option<HashSet<(Consonant, Vocal)>>>,
-    mut rules_string: Local<String>,
-    mut error_message: Local<Option<String>>,
+    mut rules: Local<Rules>,
 ) {
     egui::Window::new("Vocal Nesting")
         .open(&mut opened_setting_windows.vocal_nesting)
@@ -22,7 +27,7 @@ pub fn ui(
                 if let NestingSettings::Custom(custom_rules) =
                     std::mem::replace(&mut *nesting_settings, NestingSettings::None)
                 {
-                    *rules = Some(custom_rules);
+                    rules.custom_rules = Some(custom_rules);
                 }
             }
 
@@ -33,14 +38,14 @@ pub fn ui(
                 if let NestingSettings::Custom(custom_rules) =
                     std::mem::replace(&mut *nesting_settings, NestingSettings::All)
                 {
-                    *rules = Some(custom_rules);
+                    rules.custom_rules = Some(custom_rules);
                 }
             }
 
             let is_custom = matches!(*nesting_settings, NestingSettings::Custom(_));
 
             if ui.radio(is_custom, "Custom").clicked() {
-                if let Some(rules) = rules.take() {
+                if let Some(rules) = rules.custom_rules.take() {
                     *nesting_settings = NestingSettings::Custom(rules);
                 } else if !is_custom {
                     *nesting_settings = NestingSettings::Custom(HashSet::new());
@@ -51,19 +56,19 @@ pub fn ui(
                 ui.label("Enter a comma separated list of a consonant followed by a vocal.");
                 ui.label("You can use '*' as a wildcard.");
 
-                if ui.text_edit_singleline(&mut *rules_string).changed() {
-                    match parse_rules_string(&rules_string) {
+                if ui.text_edit_singleline(&mut rules.text).changed() {
+                    match parse_rules_string(&rules.text) {
                         Ok(new_rules) => {
                             *nesting_settings = NestingSettings::Custom(new_rules);
-                            *error_message = None;
+                            rules.parse_error = None;
                         }
                         Err(error) => {
-                            *error_message = Some(error);
+                            rules.parse_error = Some(error);
                         }
                     }
                 }
 
-                if let Some(msg) = error_message.as_ref() {
+                if let Some(msg) = rules.parse_error.as_ref() {
                     ui.label(msg);
                 }
             });
