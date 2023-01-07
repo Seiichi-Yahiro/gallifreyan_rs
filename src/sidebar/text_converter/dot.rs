@@ -26,10 +26,15 @@ pub fn convert_dots(
                         Dot::position_data(*letter_radius, number_of_dots, new_children.len());
 
                     if **radius != new_radius {
+                        debug!("Update dot radius: {} -> {}", **radius, new_radius);
                         **radius = new_radius;
                     }
 
                     if *position_data != new_position_data {
+                        debug!(
+                            "Update dot position_data: {:?} -> {:?}",
+                            *position_data, new_position_data
+                        );
                         *position_data = new_position_data;
                     }
 
@@ -37,10 +42,13 @@ pub fn convert_dots(
                 }
                 // remove dot
                 (Some((dot_entity, _radius, _position_data)), None) => {
+                    debug!("Despawn dot");
                     commands.entity(dot_entity).despawn_recursive();
                 }
                 // add dot
                 (None, Some(_)) => {
+                    debug!("Spawn dot");
+
                     let dot_bundle =
                         DotBundle::new(*letter_radius, number_of_dots, new_children.len());
 

@@ -92,25 +92,35 @@ pub fn convert_letters(
                         new_children.len(),
                     );
 
+                    debug!("Update letter: {:?} -> {:?}", *letter, new_letter);
+
                     **text = new_text;
                     *letter = new_letter;
 
                     if **radius != new_radius {
+                        debug!("Update letter radius: {} -> {}", **radius, new_radius);
                         **radius = new_radius;
                     }
 
                     if *position_data != new_position_data {
+                        debug!(
+                            "Update letter position_data: {:?} -> {:?}",
+                            *position_data, new_position_data
+                        );
                         *position_data = new_position_data;
                     }
 
                     new_children.push(letter_entity);
                 }
                 // remove letter
-                (Some((letter_entity, _text, _letter, _radius, _position_data)), None) => {
+                (Some((letter_entity, _text, letter, _radius, _position_data)), None) => {
+                    debug!("Despawn letter: {:?}", *letter);
                     commands.entity(letter_entity).despawn_recursive();
                 }
                 // add letter
                 (None, Some((text, new_letter))) => {
+                    debug!("Spawn letter: {:?}", new_letter);
+
                     let letter_bundle = LetterBundle::new(
                         text,
                         new_letter,
@@ -189,6 +199,8 @@ pub fn convert_nested_letters(
                         mut nested_position_data,
                     )) = nested_vocal_query.get_mut(nested_entity)
                     {
+                        debug!("Update nested letter: {:?} -> {:?}", *nested_letter, vocal);
+
                         let old_placement = match *nested_letter {
                             Letter::Vocal(vocal) => VocalPlacement::from(vocal),
                             _ => unreachable!(),
@@ -202,6 +214,8 @@ pub fn convert_nested_letters(
                                 VocalPlacement::OnLine | VocalPlacement::Inside,
                                 VocalPlacement::Outside,
                             ) => {
+                                debug!("Add position correction");
+
                                 commands
                                     .entity(letter_entity)
                                     .remove_children(&[nested_entity])
@@ -218,6 +232,8 @@ pub fn convert_nested_letters(
                                 VocalPlacement::Outside,
                                 VocalPlacement::OnLine | VocalPlacement::Inside,
                             ) => {
+                                debug!("Remove position correction");
+
                                 commands
                                     .entity(nested_parent.get())
                                     .remove_children(&[nested_entity])
@@ -239,10 +255,18 @@ pub fn convert_nested_letters(
                         );
 
                         if **nested_radius != new_nested_radius {
+                            debug!(
+                                "Update nested letter radius: {} -> {}",
+                                **nested_radius, new_nested_radius
+                            );
                             **nested_radius = new_nested_radius;
                         }
 
                         if *nested_position_data != new_nested_position_data {
+                            debug!(
+                                "Update nested letter position_data: {:?} -> {:?}",
+                                *nested_position_data, new_nested_position_data
+                            );
                             *nested_position_data = new_nested_position_data;
                         }
                     }
@@ -263,6 +287,11 @@ pub fn convert_nested_letters(
                             );
 
                             if VocalPlacement::Outside == VocalPlacement::from(*vocal) {
+                                debug!(
+                                    "Spawn nested letter with position correction: {:?}",
+                                    letter
+                                );
+
                                 child_builder
                                     .spawn(NestedVocalPositionCorrectionBundle::new(
                                         letter_position_data.distance,
@@ -271,6 +300,7 @@ pub fn convert_nested_letters(
                                         child_builder.spawn(vocal_bundle).id()
                                     })
                             } else {
+                                debug!("Spawn nested letter: {:?}", letter);
                                 child_builder.spawn(vocal_bundle).id()
                             }
                         });
@@ -288,10 +318,15 @@ pub fn convert_nested_letters(
                         });
 
                     if let Ok(position_correction_entity) = position_correction_entity {
+                        debug!(
+                            "Despawn nested letter with position correction: {:?}",
+                            letter
+                        );
                         commands
                             .entity(position_correction_entity)
                             .despawn_recursive();
                     } else {
+                        debug!("Despawn nested letter: {:?}", letter);
                         commands.entity(nested_entity).despawn_recursive();
                     }
                 }

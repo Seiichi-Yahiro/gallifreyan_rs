@@ -36,6 +36,8 @@ pub fn convert_words(
                     Some((word_entity, mut word_text, mut radius, mut position_data)),
                     Some(new_word),
                 ) => {
+                    debug!("Update word: {} -> {}", **word_text, new_word);
+
                     let new_radius = Word::radius(*sentence_radius, number_of_words);
 
                     let new_position_data =
@@ -47,21 +49,29 @@ pub fn convert_words(
                     //}
 
                     if **radius != new_radius {
+                        debug!("Update word radius: {} -> {}", **radius, new_radius);
                         **radius = new_radius;
                     }
 
                     if *position_data != new_position_data {
+                        debug!(
+                            "Update word position_data: {:?} -> {:?}",
+                            *position_data, new_position_data
+                        );
                         *position_data = new_position_data;
                     }
 
                     new_children.push(word_entity);
                 }
                 // remove word
-                (Some((word_entity, _word_text, _radius, _position_data)), None) => {
+                (Some((word_entity, word_text, _radius, _position_data)), None) => {
+                    debug!("Despawn word: {}", **word_text);
                     commands.entity(word_entity).despawn_recursive();
                 }
                 // add word
                 (None, Some(new_word)) => {
+                    debug!("Spawn word: {}", new_word);
+
                     let word_bundle = WordBundle::new(
                         new_word,
                         *sentence_radius,

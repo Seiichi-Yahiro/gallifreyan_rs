@@ -11,17 +11,20 @@ pub fn convert_sentence(
         match sentence_query.get_single_mut() {
             Ok((sentence_entity, mut sentence_text)) => {
                 if text.is_empty() {
+                    debug!("Despawn sentence: {}", **sentence_text);
                     commands.entity(sentence_entity).despawn_recursive();
                 } else {
+                    debug!("Update sentence: {} -> {}", **sentence_text, text);
                     **sentence_text = text.clone();
                 }
             }
             Err(QuerySingleError::NoEntities(_)) => {
+                debug!("Spawn sentence: {}", text);
                 let sentence_bundle = SentenceBundle::new(text.to_string());
                 commands.spawn(sentence_bundle);
             }
-            error => {
-                error.unwrap();
+            Err(QuerySingleError::MultipleEntities(_)) => {
+                error!("Multiple sentences");
             }
         }
     }
