@@ -263,3 +263,88 @@ fn draw_line_slot(
         *path = generate_path_from_geometry(line);
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn should_not_swap_intersections_for_non_overlapping_origin() {
+        let c1 = Circle {
+            radius: 10.0,
+            position: Default::default(),
+        };
+
+        let c2 = Circle {
+            radius: 5.0,
+            position: Vec2::new(c1.radius, 0.0),
+        };
+
+        let a = Vec2::new(8.75, -4.8412285);
+        let b = Vec2::new(8.75, 4.8412285);
+
+        let result = sort_intersections_by_angle(c1, c2, a, b);
+
+        assert_eq!(result, [a, b]);
+    }
+
+    #[test]
+    fn should_swap_intersections_for_non_overlapping_origin() {
+        let c1 = Circle {
+            radius: 10.0,
+            position: Default::default(),
+        };
+
+        let c2 = Circle {
+            radius: 5.0,
+            position: Vec2::new(c1.radius, 0.0),
+        };
+
+        let a = Vec2::new(8.75, 4.8412285);
+        let b = Vec2::new(8.75, -4.8412285);
+
+        let result = sort_intersections_by_angle(c1, c2, a, b);
+
+        assert_eq!(result, [b, a]);
+    }
+
+    #[test]
+    fn should_not_swap_intersections_for_overlapping_origin() {
+        let c1 = Circle {
+            radius: 10.0,
+            position: Default::default(),
+        };
+
+        let c2 = Circle {
+            radius: 5.0,
+            position: Vec2::new(0.0, -c1.radius),
+        };
+
+        let a = Vec2::new(-4.8412285, -8.75);
+        let b = Vec2::new(4.8412285, -8.75);
+
+        let result = sort_intersections_by_angle(c1, c2, a, b);
+
+        assert_eq!(result, [a, b]);
+    }
+
+    #[test]
+    fn should_swap_intersections_for_overlapping_origin() {
+        let c1 = Circle {
+            radius: 10.0,
+            position: Default::default(),
+        };
+
+        let c2 = Circle {
+            radius: 5.0,
+            position: Vec2::new(0.0, -c1.radius),
+        };
+
+        let a = Vec2::new(4.8412285, -8.75);
+        let b = Vec2::new(-4.8412285, -8.75);
+
+        let result = sort_intersections_by_angle(c1, c2, a, b);
+
+        assert_eq!(result, [b, a]);
+    }
+}
