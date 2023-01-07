@@ -60,15 +60,22 @@ fn adjust_view_port(
 
         let mut camera = camera_query.single_mut();
 
+        let physical_position = UVec2::new(
+            (new_rect.left() as f64 * scale_factor) as u32,
+            (new_rect.top() as f64 * scale_factor) as u32,
+        );
+
+        let physical_size = UVec2::new(
+            (new_rect.width() as f64 * scale_factor) as u32,
+            (new_rect.height() as f64 * scale_factor) as u32,
+        );
+
+        debug!("Update physical viewport position: {:?}", physical_position);
+        debug!("Update physical viewport size: {:?}", physical_size);
+
         camera.viewport = Some(Viewport {
-            physical_position: UVec2::new(
-                (new_rect.left() as f64 * scale_factor) as u32,
-                (new_rect.top() as f64 * scale_factor) as u32,
-            ),
-            physical_size: UVec2::new(
-                (new_rect.width() as f64 * scale_factor) as u32,
-                (new_rect.height() as f64 * scale_factor) as u32,
-            ),
+            physical_position,
+            physical_size,
             ..default()
         });
     }
