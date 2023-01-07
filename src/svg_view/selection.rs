@@ -1,7 +1,7 @@
 use super::camera::WorldCursor;
 use super::interaction::Interaction;
 use crate::image_types::PositionData;
-use crate::math::angle_from_position;
+use crate::math::angle::{Angle, Radian};
 use crate::selection::{Select, Selected};
 use crate::svg_view::ViewMode;
 use bevy::prelude::*;
@@ -104,7 +104,9 @@ fn drag(
     position_data.distance = new_position.length();
 
     if position_data.distance != 0.0 {
-        position_data.angle = angle_from_position(new_position);
+        position_data.angle = Radian::angle_from_vec(new_position)
+            .to_degrees()
+            .normalize();
     }
 }
 

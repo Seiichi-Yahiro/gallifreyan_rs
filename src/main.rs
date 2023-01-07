@@ -73,7 +73,7 @@ fn main() {
         .register_type::<image_types::AnglePlacement>()
         .register_type::<svg_view::Interaction>()
         .register_type::<math::Circle>()
-        .register_type::<math::Angle>();
+        .register_type::<math::angle::Degree>();
 
     #[cfg(not(target_arch = "wasm32"))]
     app.add_startup_system(set_window_icon);

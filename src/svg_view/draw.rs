@@ -2,7 +2,8 @@ use crate::image_types::{
     AnglePlacement, CircleChildren, Dot, Letter, LineSlot, NestedVocal,
     NestedVocalPositionCorrection, PositionData, Radius, Sentence, Word, OUTER_CIRCLE_SIZE,
 };
-use crate::math::{angle_from_position, Circle, Intersection, IntersectionResult};
+use crate::math::angle::{Angle, Radian};
+use crate::math::{Circle, Intersection, IntersectionResult};
 use bevy::prelude::*;
 use bevy::utils::HashSet;
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
@@ -28,7 +29,7 @@ impl Plugin for DrawPlugin {
 fn update_position_data(mut query: Query<(&mut Transform, &PositionData), Changed<PositionData>>) {
     for (mut transform, position_data) in query.iter_mut() {
         let translation = Vec3::new(0.0, -position_data.distance, transform.translation.z);
-        let rotation = Quat::from_rotation_z(position_data.angle.as_radians());
+        let rotation = Quat::from_rotation_z(position_data.angle.to_radians().inner());
 
         match position_data.angle_placement {
             AnglePlacement::Absolute => {
@@ -138,7 +139,8 @@ fn draw_word_and_letter(
                     let letter_intersections = sorted_intersections
                         .map(|pos| pos - letter_circle.position)
                         .map(|pos| {
-                            Vec2::from_angle(-letter_position_data.angle.as_radians()).rotate(pos)
+                            Vec2::from_angle(-letter_position_data.angle.to_radians().inner())
+                                .rotate(pos)
                         });
 
                     *letter_path = generate_letter_path(**letter_radius, letter_intersections);
@@ -172,8 +174,8 @@ fn draw_nested_vocal(
 }
 
 fn sort_intersections_by_angle(c1: Circle, c2: Circle, a: Vec2, b: Vec2) -> [Vec2; 2] {
-    let angle_a = angle_from_position(a);
-    let angle_b = angle_from_position(b);
+    let angle_a = Radian::angle_from_vec(a).to_degrees().normalize();
+    let angle_b = Radian::angle_from_vec(b).to_degrees().normalize();
 
     let angle_origin = c1.position + Vec2::NEG_Y * c1.radius;
     let distance = c2.position.distance(angle_origin) - c2.radius;
@@ -196,10 +198,10 @@ fn generate_circle_path(radius: f32) -> Path {
 }
 
 fn generate_arc_path_string(radius: f32, [start, end]: [Vec2; 2]) -> String {
-    let start_angle = angle_from_position(start).as_degrees();
-    let end_angle = angle_from_position(end).as_degrees();
+    let start_angle = Radian::angle_from_vec(start).to_degrees().normalize();
+    let end_angle = Radian::angle_from_vec(end).to_degrees().normalize();
 
-    let is_large_arc = (end_angle - start_angle).abs() > 180.0;
+    let is_large_arc = (end_angle - start_angle).inner().abs() > 180.0;
     let large_arc_flag = i32::from(!(is_large_arc ^ (start_angle < end_angle)));
 
     let sweep = 1;

@@ -340,6 +340,7 @@ mod test {
     use super::super::test::{create_app, test_component_update};
     use super::super::SetText;
     use super::*;
+    use crate::math::angle::Angle;
 
     fn test_count_letter_entities(
         text: &str,
@@ -608,7 +609,7 @@ mod test {
             "jjj",
             NestingSettings::None,
             |before, after| {
-                assert_eq!(after[0].angle.as_degrees(), 0.0);
+                assert_eq!(after[0].angle.inner(), 0.0);
                 assert!(before[1].angle > after[1].angle);
                 assert!(after[0].angle < after[1].angle && after[1].angle < after[2].angle);
             },
@@ -622,7 +623,7 @@ mod test {
             "jj",
             NestingSettings::None,
             |before, after| {
-                assert_eq!(after[0].angle.as_degrees(), 0.0);
+                assert_eq!(after[0].angle.inner(), 0.0);
                 assert!(before[1].angle < after[1].angle);
                 assert!(after[0].angle < after[1].angle);
             },

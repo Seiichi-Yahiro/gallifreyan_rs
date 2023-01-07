@@ -98,6 +98,7 @@ mod test {
     use super::super::test::{create_app, test_component_update};
     use super::super::SetText;
     use super::*;
+    use crate::math::angle::Angle;
 
     #[test]
     fn should_spawn_words() {
@@ -121,7 +122,7 @@ mod test {
             NestingSettings::None,
             |before, _after| {
                 assert_eq!(before.len(), 1);
-                assert_eq!(before[0].angle.as_degrees(), 0.0);
+                assert_eq!(before[0].angle.inner(), 0.0);
                 assert_eq!(before[0].distance, 0.0);
             },
         );
@@ -135,7 +136,7 @@ mod test {
             NestingSettings::None,
             |_before, after| {
                 assert_eq!(after.len(), 2);
-                assert_eq!(after[0].angle.as_degrees(), 0.0);
+                assert_eq!(after[0].angle.inner(), 0.0);
                 assert!(after[0].distance > 0.0);
                 assert!(after[1].distance > 0.0);
             },
@@ -270,7 +271,7 @@ mod test {
             "my first word",
             NestingSettings::None,
             |before, after| {
-                assert_eq!(after[0].angle.as_degrees(), 0.0);
+                assert_eq!(after[0].angle.inner(), 0.0);
                 assert!(before[1].angle > after[1].angle);
                 assert!(after[0].angle < after[1].angle && after[1].angle < after[2].angle);
             },
@@ -284,7 +285,7 @@ mod test {
             "my word",
             NestingSettings::None,
             |before, after| {
-                assert_eq!(after[0].angle.as_degrees(), 0.0);
+                assert_eq!(after[0].angle.inner(), 0.0);
                 assert!(before[1].angle < after[1].angle);
                 assert!(after[0].angle < after[1].angle);
             },

@@ -1,12 +1,12 @@
-use crate::math;
+use crate::math::angle::{Angle, Degree, Radian};
 use bevy_egui::egui;
 use bevy_egui::egui::{NumExt, WidgetInfo};
 use std::ops::RangeInclusive;
 
 pub struct AngleSlider<'a> {
-    angle: &'a mut f32,
-    angle_range: RangeInclusive<f32>,
-    angle_offset: f32,
+    angle: &'a mut Degree,
+    angle_range: RangeInclusive<Degree>,
+    angle_offset: Degree,
 }
 
 impl<'a> egui::Widget for AngleSlider<'a> {
@@ -31,15 +31,19 @@ impl<'a> egui::Widget for AngleSlider<'a> {
 
         let new_angle = *self.angle;
         response.changed = old_angle != new_angle;
-        response.widget_info(|| WidgetInfo::slider(new_angle as f64, "Angle"));
+        response.widget_info(|| WidgetInfo::slider(new_angle.inner() as f64, "Angle"));
         response
     }
 }
 
 impl<'a> AngleSlider<'a> {
-    pub fn new(angle: &'a mut f32, angle_range: RangeInclusive<f32>, angle_offset: f32) -> Self {
-        assert!(angle_range.start().is_sign_positive());
-        assert!(angle_range.end().is_sign_positive());
+    pub fn new(
+        angle: &'a mut Degree,
+        angle_range: RangeInclusive<Degree>,
+        angle_offset: Degree,
+    ) -> Self {
+        assert!(angle_range.start().inner().is_sign_positive());
+        assert!(angle_range.end().inner().is_sign_positive());
 
         let mut slf = Self {
             angle,
@@ -52,11 +56,9 @@ impl<'a> AngleSlider<'a> {
     }
 
     fn clamp_angle(&mut self) {
-        *self.angle = math::clamp_angle(
-            *self.angle,
-            *self.angle_range.start(),
-            *self.angle_range.end(),
-        );
+        *self.angle = self
+            .angle
+            .clamp(*self.angle_range.start(), *self.angle_range.end());
     }
 
     fn calculate_new_angle(&mut self, pointer_position_2d: egui::Pos2, rect: egui::Rect) {
@@ -64,11 +66,8 @@ impl<'a> AngleSlider<'a> {
         let pointer_vec = bevy::math::Vec2::new(pointer_vec.x, pointer_vec.y);
         let zero_degree_vec = bevy::math::Vec2::new(0.0, 1.0);
 
-        let mut angle = pointer_vec.angle_between(zero_degree_vec).to_degrees() - self.angle_offset;
-
-        if angle < 0.0 {
-            angle = angle % 360.0 + 360.0;
-        }
+        let angle = Radian::new(pointer_vec.angle_between(zero_degree_vec)).to_degrees()
+            - self.angle_offset.to_degrees();
 
         *self.angle = angle;
         self.clamp_angle();
@@ -88,7 +87,7 @@ impl<'a> AngleSlider<'a> {
         let step = increment as i32 - decrement as i32;
 
         if step != 0 {
-            *self.angle += step as f32;
+            *self.angle = *self.angle + Degree::new(step as f32);
             self.clamp_angle();
         }
     }
@@ -115,11 +114,11 @@ impl<'a> AngleSlider<'a> {
             *self.angle_range.start(),
             *self.angle_range.end(),
         ]
-        .map(|angle| -angle.to_radians())
+        .map(|angle| -angle.to_radians().inner())
         .map(|angle| bevy::math::Vec2::from_angle(angle).rotate(zero_degree))
         .map(|pos| egui::Pos2::from(pos.to_array()) + rect_center.to_vec2());
 
-        if (*self.angle_range.end() - *self.angle_range.start()).abs() < 360.0 {
+        if (self.angle_range.end().inner() - self.angle_range.start().inner()).abs() < 360.0 {
             let angle_range_stroke = egui::Stroke::new(1.0, ui.visuals().widgets.inactive.bg_fill);
 
             ui.painter()

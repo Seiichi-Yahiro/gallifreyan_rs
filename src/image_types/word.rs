@@ -1,7 +1,7 @@
 use crate::image_types::{
     new_stroke_mode, AnglePlacement, CircleChildren, LineSlotChildren, PositionData, Radius, Text,
 };
-use crate::math::Angle;
+use crate::math::angle::Degree;
 use crate::style::Styles;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
@@ -28,7 +28,7 @@ impl Word {
             } else {
                 0.0
             },
-            angle: Angle::new_degree(index as f32 * (360.0 / number_of_words as f32)),
+            angle: Degree::new(index as f32 * (360.0 / number_of_words as f32)),
             angle_placement: AnglePlacement::Absolute,
         }
     }

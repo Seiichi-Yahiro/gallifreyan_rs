@@ -1,7 +1,7 @@
 use crate::image_types::{
     new_stroke_mode, AnglePlacement, CircleChildren, LineSlotChildren, PositionData, Radius, Text,
 };
-use crate::math::Angle;
+use crate::math::angle::Degree;
 use crate::style::Styles;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
@@ -114,7 +114,7 @@ impl Vocal {
 
         PositionData {
             distance,
-            angle: Angle::new_degree(angle),
+            angle: Degree::new(angle),
             angle_placement: AnglePlacement::Relative,
         }
     }
@@ -128,25 +128,25 @@ impl Vocal {
     ) -> PositionData {
         match VocalPlacement::from(*self) {
             VocalPlacement::Inside => PositionData {
-                angle: Angle::new_degree(180.0),
+                angle: Degree::new(180.0),
                 distance: consonant_radius,
                 angle_placement: AnglePlacement::Absolute,
             },
             VocalPlacement::Outside => PositionData {
-                angle: Angle::new_degree(0.0),
+                angle: Degree::new(0.0),
                 distance: word_radius + self.nested_radius(consonant_radius) * 1.5,
                 angle_placement: AnglePlacement::Absolute,
             },
             VocalPlacement::OnLine => match consonant_placement {
                 ConsonantPlacement::ShallowCut => PositionData {
-                    angle: Angle::new_degree(0.0),
+                    angle: Degree::new(0.0),
                     distance: word_radius - consonant_distance,
                     angle_placement: AnglePlacement::Absolute,
                 },
                 ConsonantPlacement::DeepCut
                 | ConsonantPlacement::Inside
                 | ConsonantPlacement::OnLine => PositionData {
-                    angle: Angle::new_degree(0.0),
+                    angle: Degree::new(0.0),
                     distance: 0.0,
                     angle_placement: AnglePlacement::Absolute,
                 },
@@ -235,7 +235,7 @@ impl Consonant {
 
         PositionData {
             distance,
-            angle: Angle::new_degree(angle),
+            angle: Degree::new(angle),
             angle_placement: AnglePlacement::Relative,
         }
     }
@@ -365,7 +365,7 @@ impl NestedVocalPositionCorrectionBundle {
             nested_vocal_position_correction: NestedVocalPositionCorrection,
             spatial_bundle: SpatialBundle::VISIBLE_IDENTITY,
             position_data: PositionData {
-                angle: Angle::new_degree(0.0),
+                angle: Degree::new(0.0),
                 distance: -consonant_distance,
                 angle_placement: AnglePlacement::Relative,
             },

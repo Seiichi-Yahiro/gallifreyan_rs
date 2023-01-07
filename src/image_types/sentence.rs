@@ -2,7 +2,7 @@ use crate::image_types::{
     new_stroke_mode, AnglePlacement, CircleChildren, LineSlotChildren, PositionData, Radius, Text,
     SVG_SIZE,
 };
-use crate::math::Angle;
+use crate::math::angle::Degree;
 use crate::style::Styles;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
@@ -22,7 +22,7 @@ impl Sentence {
 
     pub fn position_data() -> PositionData {
         PositionData {
-            angle: Angle::new_degree(0.0),
+            angle: Degree::new(0.0),
             distance: 0.0,
             angle_placement: AnglePlacement::Absolute,
         }

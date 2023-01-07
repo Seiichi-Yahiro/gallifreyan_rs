@@ -10,7 +10,7 @@ pub use line_slot::*;
 pub use sentence::*;
 pub use word::*;
 
-use crate::math::Angle;
+use crate::math::angle::Degree;
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::{
     FillMode, FillOptions, LineCap, LineJoin, StrokeMode, StrokeOptions,
@@ -57,7 +57,7 @@ pub struct Radius(pub f32);
 #[derive(Debug, Default, Copy, Clone, PartialEq, Component, Reflect)]
 #[reflect(Component)]
 pub struct PositionData {
-    pub angle: Angle,
+    pub angle: Degree,
     pub distance: f32,
     pub angle_placement: AnglePlacement,
 }

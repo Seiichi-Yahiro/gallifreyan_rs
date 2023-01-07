@@ -1,5 +1,5 @@
 use crate::image_types::{new_fill_mode, AnglePlacement, PositionData, Radius};
-use crate::math::Angle;
+use crate::math::angle::Degree;
 use crate::style::Styles;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
@@ -33,7 +33,7 @@ impl Dot {
 
         PositionData {
             distance,
-            angle: Angle::new_degree(angle),
+            angle: Degree::new(angle),
             angle_placement: AnglePlacement::Absolute,
         }
     }
