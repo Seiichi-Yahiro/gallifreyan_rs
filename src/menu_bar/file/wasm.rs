@@ -53,7 +53,7 @@ pub fn spawn_file_handle_task(
 pub fn save_to_file(file_handle: FileHandle, content: String) {
     AsyncComputeTaskPool::get()
         .spawn_local(async move {
-            if let Err(error) = saveToFile(file_handle, content).await {
+            if let Err(error) = saveToFile(file_handle.clone(), content).await {
                 let msg = format!("{:?}", error);
 
                 error!(msg);
@@ -65,6 +65,8 @@ pub fn save_to_file(file_handle: FileHandle, content: String) {
                     .set_level(rfd::MessageLevel::Error)
                     .show()
                     .await;
+            } else {
+                info!("Successfully wrote to file: {:?}", file_handle);
             }
         })
         .detach();

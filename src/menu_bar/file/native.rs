@@ -48,7 +48,7 @@ pub fn spawn_file_handle_task(
 pub fn save_to_file(file_handle: FileHandle, content: String) {
     IoTaskPool::get()
         .spawn(async move {
-            if let Err(error) = std::fs::write(file_handle, content) {
+            if let Err(error) = std::fs::write(file_handle.clone(), content) {
                 let msg = format!("{}", error);
 
                 error!(msg);
@@ -59,6 +59,8 @@ pub fn save_to_file(file_handle: FileHandle, content: String) {
                     .set_buttons(rfd::MessageButtons::Ok)
                     .set_level(rfd::MessageLevel::Error)
                     .show();
+            } else {
+                info!("Successfully wrote to file: {:?}", file_handle);
             }
         })
         .detach();
