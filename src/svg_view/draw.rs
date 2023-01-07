@@ -58,6 +58,7 @@ fn correct_nested_vocal_with_outside_placement_position(
 
 fn draw_sentence(mut query: Query<(&mut Path, &Radius), (Changed<Radius>, With<Sentence>)>) {
     for (mut path, radius) in query.iter_mut() {
+        debug!("Redraw sentence");
         let radius = **radius;
 
         let outer_circle = shapes::Circle {
@@ -103,6 +104,8 @@ fn draw_word_and_letter(
     let mut word_iter = word_query.iter_many_mut(words.iter());
 
     while let Some((word_radius, letters, mut word_path)) = word_iter.fetch_next() {
+        debug!("Redraw word");
+
         let word_circle = Circle {
             radius: **word_radius,
             position: Vec2::ZERO,
@@ -120,6 +123,8 @@ fn draw_word_and_letter(
             mut letter_path,
         )) = letter_iter.fetch_next()
         {
+            debug!("Redraw letter: {:?}", letter);
+
             if letter.is_cutting() {
                 let letter_circle = Circle {
                     radius: **letter_radius,
@@ -163,6 +168,7 @@ fn draw_nested_vocal(
     >,
 ) {
     for (radius, mut path) in query.iter_mut() {
+        debug!("Redraw nested vocal");
         *path = generate_circle_path(**radius);
     }
 }
@@ -242,6 +248,7 @@ fn generate_letter_path(letter_radius: f32, [end, start]: [Vec2; 2]) -> Path {
 
 fn draw_dots(mut query: Query<(&mut Path, &Radius), (Changed<Radius>, With<Dot>)>) {
     for (mut path, radius) in query.iter_mut() {
+        debug!("Redraw dot");
         *path = generate_circle_path(**radius);
     }
 }
@@ -250,6 +257,7 @@ fn draw_line_slot(
     mut query: Query<(&mut Path, &Transform), (With<LineSlot>, Changed<PositionData>)>,
 ) {
     for (mut path, transform) in query.iter_mut() {
+        debug!("Redraw line_slot");
         let end = transform.translation.truncate().normalize_or_zero() * 10.0;
         let line = shapes::Line(Vec2::ZERO, end);
         *path = generate_path_from_geometry(line);
