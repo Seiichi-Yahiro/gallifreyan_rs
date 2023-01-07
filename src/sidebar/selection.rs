@@ -45,6 +45,7 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                     let new_radius = ui_radius(ui, ***radius);
 
                     if new_radius != ***radius {
+                        debug!("Update radius: {} -> {}", ***radius, new_radius);
                         ***radius = new_radius;
                     }
                 }
@@ -65,6 +66,10 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                     let new_distance = ui_distance(ui, position_data.distance);
 
                     if new_distance != position_data.distance {
+                        debug!(
+                            "Update distance: {} -> {}",
+                            position_data.distance, new_distance
+                        );
                         position_data.distance = new_distance;
                     }
                 }
@@ -79,6 +84,11 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                 );
 
                 if new_angle != position_data.angle.as_degrees() {
+                    debug!(
+                        "Update angle: {} -> {}",
+                        position_data.angle.as_degrees(),
+                        new_angle
+                    );
                     position_data.angle = Angle::new_degree(new_angle);
                 }
 
