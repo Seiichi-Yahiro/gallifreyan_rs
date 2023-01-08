@@ -347,4 +347,52 @@ mod test {
 
         assert_eq!(result, [b, a]);
     }
+
+    #[test]
+    fn should_not_set_large_arc_flag_to_zero_for_non_overlapping_origin() {
+        let r = 5.0;
+        let a = Vec2::new(r, 0.0);
+        let b = Vec2::new(0.0, r);
+
+        let result = generate_arc_path_string(r, [a, b]);
+        let expected = "M 5 -0 A 5 5 0 0 1 0 -5";
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_set_large_arc_flag_to_zero_for_non_overlapping_origin() {
+        let r = 5.0;
+        let a = Vec2::new(r, 0.0);
+        let b = Vec2::new(-r, -0.5);
+
+        let result = generate_arc_path_string(r, [a, b]);
+        let expected = "M 5 -0 A 5 5 0 1 1 -5 0.5";
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_not_set_large_arc_flag_to_zero_for_overlapping_origin() {
+        let r = 5.0;
+        let a = Vec2::new(-r, -0.5);
+        let b = Vec2::new(r, -0.5);
+
+        let result = generate_arc_path_string(r, [a, b]);
+        let expected = "M -5 0.5 A 5 5 0 0 1 5 0.5";
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_set_large_arc_flag_to_zero_for_overlapping_origin() {
+        let r = 5.0;
+        let a = Vec2::new(-r, 0.0);
+        let b = Vec2::new(0.0, r);
+
+        let result = generate_arc_path_string(r, [a, b]);
+        let expected = "M -5 -0 A 5 5 0 1 1 0 -5";
+
+        assert_eq!(result, expected);
+    }
 }
