@@ -10,6 +10,7 @@ mod style;
 mod svg_builder;
 mod svg_view;
 mod ui;
+mod update_if_changed;
 
 use crate::menu_bar::MenuBarPlugin;
 use crate::selection::EventPlugin;

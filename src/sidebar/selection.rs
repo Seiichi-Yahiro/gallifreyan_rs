@@ -4,6 +4,7 @@ use crate::image_types::{
 use crate::math::angle::{Angle, Degree, Radian};
 use crate::selection::Selected;
 use crate::ui::angle_slider::AngleSlider;
+use crate::update_if_changed::update_if_changed;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy_egui::egui;
@@ -44,10 +45,7 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                 if let Some(radius) = &mut radius {
                     let new_radius = ui_radius(ui, ***radius);
 
-                    if new_radius != ***radius {
-                        debug!("Update radius: {} -> {}", ***radius, new_radius);
-                        ***radius = new_radius;
-                    }
+                    update_if_changed!(***radius, new_radius, "Update radius: {} -> {}");
                 }
 
                 let can_change_distance = letter
@@ -65,13 +63,11 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                 if can_change_distance {
                     let new_distance = ui_distance(ui, position_data.distance);
 
-                    if new_distance != position_data.distance {
-                        debug!(
-                            "Update distance: {} -> {}",
-                            position_data.distance, new_distance
-                        );
-                        position_data.distance = new_distance;
-                    }
+                    update_if_changed!(
+                        position_data.distance,
+                        new_distance,
+                        "Update distance: {} -> {}"
+                    );
                 }
 
                 ui.spacing_mut().slider_width /= 2.0;
@@ -83,10 +79,7 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                     &params.global_transform_query,
                 );
 
-                if new_angle != position_data.angle {
-                    debug!("Update angle: {:?} -> {:?}", position_data.angle, new_angle);
-                    position_data.angle = new_angle;
-                }
+                update_if_changed!(position_data.angle, new_angle, "Update angle: {:?} -> {:?}");
 
                 ui.spacing_mut().slider_width = original_slider_width;
             });

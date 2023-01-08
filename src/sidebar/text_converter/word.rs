@@ -1,4 +1,5 @@
 use crate::image_types::{Text, *};
+use crate::update_if_changed::update_if_changed;
 use bevy::prelude::*;
 
 pub fn convert_words(
@@ -48,18 +49,13 @@ pub fn convert_words(
                     **word_text = new_word;
                     //}
 
-                    if **radius != new_radius {
-                        debug!("Update word radius: {} -> {}", **radius, new_radius);
-                        **radius = new_radius;
-                    }
+                    update_if_changed!(**radius, new_radius, "Update word radius: {} -> {}");
 
-                    if *position_data != new_position_data {
-                        debug!(
-                            "Update word position_data: {:?} -> {:?}",
-                            *position_data, new_position_data
-                        );
-                        *position_data = new_position_data;
-                    }
+                    update_if_changed!(
+                        *position_data,
+                        new_position_data,
+                        "Update word position_data: {:?} -> {:?}"
+                    );
 
                     new_children.push(word_entity);
                 }

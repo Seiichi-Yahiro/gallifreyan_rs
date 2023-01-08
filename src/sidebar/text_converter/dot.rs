@@ -1,4 +1,5 @@
 use crate::image_types::{Text, *};
+use crate::update_if_changed::update_if_changed;
 use bevy::prelude::*;
 
 pub fn convert_dots(
@@ -25,18 +26,13 @@ pub fn convert_dots(
                     let new_position_data =
                         Dot::position_data(*letter_radius, number_of_dots, new_children.len());
 
-                    if **radius != new_radius {
-                        debug!("Update dot radius: {} -> {}", **radius, new_radius);
-                        **radius = new_radius;
-                    }
+                    update_if_changed!(**radius, new_radius, "Update dot radius: {} -> {}");
 
-                    if *position_data != new_position_data {
-                        debug!(
-                            "Update dot position_data: {:?} -> {:?}",
-                            *position_data, new_position_data
-                        );
-                        *position_data = new_position_data;
-                    }
+                    update_if_changed!(
+                        *position_data,
+                        new_position_data,
+                        "Update dot position_data: {:?} -> {:?}"
+                    );
 
                     new_children.push(dot_entity);
                 }
