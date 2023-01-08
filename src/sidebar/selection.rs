@@ -2,7 +2,7 @@ use crate::constraints::DistanceConstraints;
 use crate::image_types::{
     ConsonantPlacement, Letter, LineSlot, PositionData, Radius, VocalPlacement,
 };
-use crate::math::Angle;
+use crate::math::angle::{Angle, Degree, Radian};
 use crate::selection::Selected;
 use crate::ui::angle_slider::AngleSlider;
 use bevy::ecs::system::SystemParam;
@@ -47,6 +47,7 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                     let new_radius = ui_radius(ui, ***radius);
 
                     if new_radius != ***radius {
+                        debug!("Update radius: {} -> {}", ***radius, new_radius);
                         ***radius = new_radius;
                     }
                 }
@@ -56,7 +57,8 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                         Letter::Vocal(vocal) => {
                             VocalPlacement::from(*vocal) != VocalPlacement::OnLine
                         }
-                        Letter::Consonant(consonant) => {
+                        Letter::Consonant(consonant)
+                        | Letter::ConsonantWithVocal { consonant, .. } => {
                             ConsonantPlacement::from(*consonant) != ConsonantPlacement::OnLine
                         }
                     })
@@ -67,6 +69,10 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                         ui_distance(ui, position_data.distance, distance_constraints);
 
                     if new_distance != position_data.distance {
+                        debug!(
+                            "Update distance: {} -> {}",
+                            position_data.distance, new_distance
+                        );
                         position_data.distance = new_distance;
                     }
                 }
@@ -75,13 +81,14 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
 
                 let new_angle = ui_angle(
                     ui,
-                    position_data.angle.as_degrees(),
+                    position_data.angle,
                     &parent,
                     &params.global_transform_query,
                 );
 
-                if new_angle != position_data.angle.as_degrees() {
-                    position_data.angle = Angle::new_degree(new_angle);
+                if new_angle != position_data.angle {
+                    debug!("Update angle: {:?} -> {:?}", position_data.angle, new_angle);
+                    position_data.angle = new_angle;
                 }
 
                 ui.spacing_mut().slider_width = original_slider_width;
@@ -120,10 +127,10 @@ fn ui_distance(ui: &mut egui::Ui, distance: f32, constraints: &DistanceConstrain
 
 fn ui_angle(
     ui: &mut egui::Ui,
-    angle: f32,
+    angle: Degree,
     parent: &Option<&Parent>,
     global_transform_query: &Query<&GlobalTransform>,
-) -> f32 {
+) -> Degree {
     ui.label("Angle");
 
     let angle_offset = parent
@@ -136,12 +143,16 @@ fn ui_angle(
                 .to_euler(EulerRot::XYZ)
                 .2
         })
-        .map(Angle::new_radian)
-        .map(Angle::as_degrees)
-        .unwrap_or(0.0);
+        .map(Radian::new)
+        .map(Radian::to_degrees)
+        .unwrap_or_default();
 
     let mut new_angle = angle;
-    let angle = AngleSlider::new(&mut new_angle, 0.0..=360.0, angle_offset); // TODO angle constraints
+    let angle = AngleSlider::new(
+        &mut new_angle,
+        Degree::new(0.0)..=Degree::new(360.0),
+        angle_offset,
+    ); // TODO angle constraints
     ui.add(angle);
 
     new_angle

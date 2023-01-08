@@ -94,24 +94,26 @@ fn update_letter_distance_constraints(
                 max: word_radius + letter_radius * 2.0,
             },
         },
-        Letter::Consonant(consonant) => match ConsonantPlacement::from(*consonant) {
-            ConsonantPlacement::DeepCut => DistanceConstraints {
-                min: (word_radius - letter_radius * 0.95).max(0.0),
-                max: (word_radius - letter_radius * 0.5).max(0.0),
-            },
-            ConsonantPlacement::Inside => DistanceConstraints {
-                min: 0.0,
-                max: (word_radius - letter_radius).max(0.0),
-            },
-            ConsonantPlacement::ShallowCut => DistanceConstraints {
-                min: *word_radius,
-                max: word_radius + letter_radius * 0.95,
-            },
-            ConsonantPlacement::OnLine => DistanceConstraints {
-                min: *word_radius,
-                max: *word_radius,
-            },
-        },
+        Letter::Consonant(consonant) | Letter::ConsonantWithVocal { consonant, .. } => {
+            match ConsonantPlacement::from(*consonant) {
+                ConsonantPlacement::DeepCut => DistanceConstraints {
+                    min: (word_radius - letter_radius * 0.95).max(0.0),
+                    max: (word_radius - letter_radius * 0.5).max(0.0),
+                },
+                ConsonantPlacement::Inside => DistanceConstraints {
+                    min: 0.0,
+                    max: (word_radius - letter_radius).max(0.0),
+                },
+                ConsonantPlacement::ShallowCut => DistanceConstraints {
+                    min: *word_radius,
+                    max: word_radius + letter_radius * 0.95,
+                },
+                ConsonantPlacement::OnLine => DistanceConstraints {
+                    min: *word_radius,
+                    max: *word_radius,
+                },
+            }
+        }
     };
 
     for (Radius(word_radius), letters) in changed_word_query.iter() {
@@ -142,7 +144,7 @@ fn update_dot_distance_constraints(
             Letter::Vocal(_) => {
                 continue;
             }
-            Letter::Consonant(_) => {
+            Letter::Consonant(_) | Letter::ConsonantWithVocal { .. } => {
                 let mut dot_iter = dot_query.iter_many_mut(dots.iter());
 
                 while let Some(mut distance_constraints) = dot_iter.fetch_next() {

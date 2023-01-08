@@ -6,7 +6,7 @@ mod word;
 
 use crate::image_types::{
     add_shape_for_dot, add_shape_for_letter, add_shape_for_line_slot, add_shape_for_sentence,
-    add_shape_for_word,
+    add_shape_for_word, NestingSettings,
 };
 use bevy::prelude::*;
 use itertools::Itertools;
@@ -25,6 +25,7 @@ enum TextConverterStage {
     Sentence,
     Word,
     Letter,
+    Nested,
     Decoration,
     Shape,
 }
@@ -34,6 +35,7 @@ pub struct TextConverterPlugin;
 impl Plugin for TextConverterPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<SetText>()
+            .insert_resource(NestingSettings::All)
             .add_stage_before(
                 CoreStage::Update,
                 TextConverterStage::Sentence,
@@ -51,6 +53,11 @@ impl Plugin for TextConverterPlugin {
             )
             .add_stage_after(
                 TextConverterStage::Letter,
+                TextConverterStage::Nested,
+                SystemStage::single(letter::convert_nested_letters),
+            )
+            .add_stage_after(
+                TextConverterStage::Nested,
                 TextConverterStage::Decoration,
                 SystemStage::parallel()
                     .with_system(dot::convert_dots)
@@ -147,6 +154,7 @@ mod test {
         let mut app = App::new();
 
         app.add_event::<SetText>()
+            .insert_resource(NestingSettings::None)
             .add_stage_before(
                 CoreStage::Update,
                 TextConverterStage::Sentence,
@@ -164,6 +172,11 @@ mod test {
             )
             .add_stage_after(
                 TextConverterStage::Letter,
+                TextConverterStage::Nested,
+                SystemStage::single(letter::convert_nested_letters),
+            )
+            .add_stage_after(
+                TextConverterStage::Nested,
                 TextConverterStage::Decoration,
                 SystemStage::parallel()
                     .with_system(dot::convert_dots)
@@ -176,9 +189,11 @@ mod test {
     pub fn test_component_update<C: Component + Clone, F: Component>(
         text_before: &str,
         text_after: &str,
+        nesting_settings: NestingSettings,
         assert: impl Fn(Vec<C>, Vec<C>),
     ) {
         let mut app = create_app();
+        app.insert_resource(nesting_settings);
 
         app.world
             .resource_mut::<Events<SetText>>()

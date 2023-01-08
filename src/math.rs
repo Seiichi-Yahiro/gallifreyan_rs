@@ -1,6 +1,7 @@
+pub mod angle;
+
 use bevy::math::{Quat, Vec2};
 use bevy::prelude::Reflect;
-use std::cmp::Ordering;
 
 pub trait Intersection<T> {
     fn intersection(&self, other: &T) -> IntersectionResult;
@@ -88,67 +89,6 @@ impl Intersection<Circle> for Circle {
             IntersectionResult::Two(q1, q2)
         }
     }
-}
-
-pub fn clamp_angle(angle: f32, min: f32, max: f32) -> f32 {
-    if min > max && ((angle >= min && angle < 360.0) || (angle >= 0.0 && angle <= max)) {
-        angle
-    } else if angle < min || angle > max {
-        let min_diff = (angle - min).abs();
-        let min_distance = min_diff.min(360.0 - min_diff);
-
-        let max_diff = (angle - max).abs();
-        let max_distance = max_diff.min(360.0 - max_diff);
-
-        if min_distance < max_distance {
-            min
-        } else {
-            max
-        }
-    } else {
-        angle
-    }
-}
-
-#[derive(Default, Debug, Copy, Clone, Reflect)]
-pub struct Angle(f32);
-
-impl Angle {
-    pub fn new_degree(angle: f32) -> Self {
-        Self(adjust_angle(angle))
-    }
-
-    pub fn new_radian(angle: f32) -> Self {
-        Self(adjust_angle(angle.to_degrees()))
-    }
-
-    pub fn as_radians(self) -> f32 {
-        self.0.to_radians()
-    }
-
-    pub fn as_degrees(self) -> f32 {
-        self.0
-    }
-}
-
-impl PartialEq for Angle {
-    fn eq(&self, other: &Self) -> bool {
-        self.as_degrees() == other.as_degrees()
-    }
-}
-
-impl PartialOrd for Angle {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.as_degrees().partial_cmp(&other.as_degrees())
-    }
-}
-
-pub fn angle_from_position(position: Vec2) -> Angle {
-    Angle::new_radian(-position.angle_between(Vec2::NEG_Y))
-}
-
-fn adjust_angle(angle: f32) -> f32 {
-    (angle % 360.0 + 360.0) % 360.0
 }
 
 #[cfg(test)]
@@ -246,52 +186,5 @@ mod circle_circle_intersection_test {
         );
 
         assert_eq!(result, expected);
-    }
-}
-
-#[cfg(test)]
-mod angle_test {
-    use super::*;
-
-    #[test]
-    fn should_clamp_angles_closer_to_max() {
-        let result = clamp_angle(90.0, 270.0, 360.0);
-        assert_eq!(result, 360.0);
-    }
-
-    #[test]
-    fn should_clamp_angles_closer_to_min() {
-        let result = clamp_angle(270.0, 0.0, 90.0);
-        assert_eq!(result, 0.0);
-    }
-
-    #[test]
-    fn should_not_clamp_angles_in_range() {
-        let result = clamp_angle(180.0, 90.0, 270.0);
-        assert_eq!(result, 180.0);
-    }
-
-    #[test]
-    fn should_clamp_angles_closer_to_min_when_min_greater_than_max() {
-        let result = clamp_angle(260.0, 270.0, 90.0);
-        assert_eq!(result, 270.0);
-    }
-
-    #[test]
-    fn should_clamp_angles_closer_to_max_when_min_greater_than_max() {
-        let result = clamp_angle(100.0, 270.0, 90.0);
-        assert_eq!(result, 90.0);
-    }
-
-    #[test]
-    fn should_not_clamp_angles_in_range_when_min_greater_than_max_1() {
-        let result = clamp_angle(10.0, 270.0, 90.0);
-        assert_eq!(result, 10.0);
-    }
-
-    #[test]
-    fn should_not_clamp_angles_in_range_when_min_greater_than_max_2() {
-        let result = clamp_angle(350.0, 270.0, 90.0);
-        assert_eq!(result, 350.0);
     }
 }

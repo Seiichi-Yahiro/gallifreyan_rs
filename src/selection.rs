@@ -24,6 +24,7 @@ fn handle_select_events(
     if let Some(&Select(new_selection)) = events.iter().last() {
         match selected_query.get_single() {
             Ok(old_selection) => {
+                debug!("Deselect: {:?}", old_selection);
                 commands.entity(old_selection).remove::<Selected>();
             }
             Err(QuerySingleError::NoEntities(_)) => {
@@ -36,6 +37,7 @@ fn handle_select_events(
         }
 
         if let Some(new_selection) = new_selection {
+            debug!("Select: {:?}", new_selection);
             commands.entity(new_selection).insert(Selected);
         }
     }

@@ -20,6 +20,8 @@ futures = "0.3.25"
 regex = "1.7.0"
 lazy_static = "1.4.0"
 itertools = "0.10.5"
+strum = "0.24"
+strum_macros = "0.24"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 image = "0.24.5"

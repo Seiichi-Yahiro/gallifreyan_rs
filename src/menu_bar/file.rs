@@ -4,7 +4,7 @@ mod os;
 mod svg_export;
 
 use crate::event_set::*;
-use crate::image_types::{Dot, Letter, LineSlot, Sentence, Word};
+use crate::image_types::{Dot, Letter, LineSlot, NestedVocalPositionCorrection, Sentence, Word};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy_egui::egui;
@@ -150,6 +150,7 @@ fn handle_save_event(
             With<Sentence>,
             With<Word>,
             With<Letter>,
+            With<NestedVocalPositionCorrection>,
             With<Dot>,
             With<LineSlot>,
         )>,
@@ -165,6 +166,7 @@ fn handle_save_event(
 
             match scene.serialize_ron(type_registry) {
                 Ok(data) => {
+                    info!("Save to file: {:?}", path_buffer);
                     os::save_to_file(path_buffer, data);
                 }
                 Err(error) => {
@@ -182,6 +184,8 @@ fn handle_export_event(
 ) {
     if events.iter().last().is_some() {
         if let Some(path_buffer) = file_handles.svg.clone() {
+            info!("Export to file: {:?}", path_buffer);
+
             let svg = convert_to_svg(svg_queries).build();
             os::save_to_file(path_buffer, svg);
         }

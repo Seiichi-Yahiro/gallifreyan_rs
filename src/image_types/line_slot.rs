@@ -1,6 +1,6 @@
 use crate::constraints::DistanceConstraints;
 use crate::image_types::{new_stroke_mode, AnglePlacement, PositionData};
-use crate::math::Angle;
+use crate::math::angle::Degree;
 use crate::style::Styles;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
@@ -30,7 +30,7 @@ impl LineSlot {
 
         PositionData {
             distance,
-            angle: Angle::new_degree(angle),
+            angle: Degree::new(angle),
             angle_placement: AnglePlacement::Absolute,
         }
     }

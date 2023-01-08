@@ -12,7 +12,7 @@ pub fn convert_line_slots(
         let number_of_lines = letter.lines();
         let line_points_outside = match letter {
             Letter::Vocal(vocal) => VocalDecoration::from(*vocal) == VocalDecoration::LineOutside,
-            Letter::Consonant(_) => false,
+            Letter::Consonant(_) | Letter::ConsonantWithVocal { .. } => false,
         };
         let mut new_line_slots_iter = 0..number_of_lines;
 
@@ -33,6 +33,10 @@ pub fn convert_line_slots(
                     );
 
                     if *position_data != new_position_data {
+                        debug!(
+                            "Update line_slot position_data: {:?} -> {:?}",
+                            *position_data, new_position_data
+                        );
                         *position_data = new_position_data;
                     }
 
@@ -40,10 +44,13 @@ pub fn convert_line_slots(
                 }
                 // remove line slot
                 (Some((line_slot_entity, _position_data)), None) => {
+                    debug!("Despawn line_slot");
                     commands.entity(line_slot_entity).despawn_recursive();
                 }
                 // add line slot
                 (None, Some(_)) => {
+                    debug!("Spawn line_slot");
+
                     let line_slot_bundle = LineSlotBundle::new(
                         *letter_radius,
                         number_of_lines,

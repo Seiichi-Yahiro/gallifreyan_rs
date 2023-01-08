@@ -19,6 +19,7 @@ use crate::sidebar::SideBarPlugin;
 use crate::style::StylePlugin;
 use crate::svg_view::SVGViewPlugin;
 use crate::ui::UiPlugin;
+use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_egui::EguiPlugin;
@@ -27,16 +28,26 @@ use bevy_prototype_lyon::plugin::ShapePlugin;
 fn main() {
     let mut app = App::new();
 
+    let mut default_plugins = DefaultPlugins.set(WindowPlugin {
+        window: WindowDescriptor {
+            title: "Gallifreyan".to_string(),
+            fit_canvas_to_parent: true,
+            ..default()
+        },
+        ..default()
+    });
+
+    #[cfg(debug_assertions)]
+    {
+        default_plugins = default_plugins.set(LogPlugin {
+            filter: "info,wgpu_core=warn,wgpu_hal=error,gallifreyan_rs=debug".into(),
+            level: bevy::log::Level::DEBUG,
+        });
+    }
+
     app.insert_resource(Msaa { samples: 4 })
         .insert_resource(WinitSettings::desktop_app())
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            window: WindowDescriptor {
-                title: "Gallifreyan".to_string(),
-                fit_canvas_to_parent: true,
-                ..default()
-            },
-            ..default()
-        }))
+        .add_plugins(default_plugins)
         .add_plugin(ShapePlugin)
         .add_plugin(EguiPlugin)
         .add_plugin(UiPlugin)
@@ -51,6 +62,10 @@ fn main() {
         .register_type::<image_types::Letter>()
         .register_type::<image_types::Consonant>()
         .register_type::<image_types::Vocal>()
+        .register_type::<image_types::NestedLetter>()
+        .register_type::<image_types::NestedVocal>()
+        .register_type::<image_types::NestedVocalPositionCorrection>()
+        .register_type::<Option<Entity>>()
         .register_type::<image_types::Dot>()
         .register_type::<image_types::LineSlot>()
         .register_type::<image_types::CircleChildren>()
@@ -61,7 +76,7 @@ fn main() {
         .register_type::<image_types::AnglePlacement>()
         .register_type::<svg_view::Interaction>()
         .register_type::<math::Circle>()
-        .register_type::<math::Angle>();
+        .register_type::<math::angle::Degree>();
 
     #[cfg(not(target_arch = "wasm32"))]
     app.add_startup_system(set_window_icon);

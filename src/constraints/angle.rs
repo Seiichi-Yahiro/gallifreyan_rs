@@ -1,4 +1,4 @@
-use crate::math::Angle;
+use crate::math::angle::Degree;
 use bevy::prelude::*;
 
 pub struct AngleConstraintsPlugin;
@@ -11,15 +11,15 @@ impl Plugin for AngleConstraintsPlugin {
 
 #[derive(Debug, Copy, Clone, Component)]
 pub struct AngleConstraints {
-    pub min: Angle,
-    pub max: Angle,
+    pub min: Degree,
+    pub max: Degree,
 }
 
 impl Default for AngleConstraints {
     fn default() -> Self {
         Self {
-            min: Angle::new_degree(0.0),
-            max: Angle::new_degree(360.0),
+            min: Degree::new(0.0),
+            max: Degree::new(360.0),
         }
     }
 }
