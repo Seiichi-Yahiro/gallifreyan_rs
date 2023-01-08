@@ -1,4 +1,4 @@
-use crate::constraints::DistanceConstraints;
+use crate::constraints::{AngleConstraints, DistanceConstraints};
 use crate::image_types::{
     new_stroke_mode, AnglePlacement, CircleChildren, LineSlotChildren, PositionData, Radius, Text,
 };
@@ -45,6 +45,7 @@ pub struct WordBundle {
     pub line_slots: LineSlotChildren,
     pub interaction: Interaction,
     pub distance_constraints: DistanceConstraints,
+    pub angle_constraints: AngleConstraints,
 }
 
 impl WordBundle {
@@ -58,6 +59,7 @@ impl WordBundle {
             line_slots: LineSlotChildren::default(),
             interaction: Interaction::default(),
             distance_constraints: DistanceConstraints::default(),
+            angle_constraints: AngleConstraints::default(),
         }
     }
 }

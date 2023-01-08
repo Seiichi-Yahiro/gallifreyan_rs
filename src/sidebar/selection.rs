@@ -1,4 +1,4 @@
-use crate::constraints::DistanceConstraints;
+use crate::constraints::{AngleConstraints, DistanceConstraints};
 use crate::image_types::{
     ConsonantPlacement, Letter, LineSlot, PositionData, Radius, VocalPlacement,
 };
@@ -21,6 +21,7 @@ pub struct SelectionSystemParams<'w, 's> {
             Option<&'static Letter>,
             Option<&'static LineSlot>,
             &'static DistanceConstraints,
+            &'static AngleConstraints,
         ),
         With<Selected>,
     >,
@@ -28,13 +29,20 @@ pub struct SelectionSystemParams<'w, 's> {
 }
 
 pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
-    let (parent, mut radius, mut position_data, letter, line_slot, distance_constraints) =
-        match params.selection_query.get_single_mut() {
-            Ok(it) => it,
-            Err(_) => {
-                return;
-            }
-        };
+    let (
+        parent,
+        mut radius,
+        mut position_data,
+        letter,
+        line_slot,
+        distance_constraints,
+        angle_constraints,
+    ) = match params.selection_query.get_single_mut() {
+        Ok(it) => it,
+        Err(_) => {
+            return;
+        }
+    };
 
     egui::TopBottomPanel::bottom("selection")
         .frame(egui::Frame::none())
@@ -82,6 +90,7 @@ pub fn ui_selection(ui: &mut egui::Ui, mut params: SelectionSystemParams) {
                 let new_angle = ui_angle(
                     ui,
                     position_data.angle,
+                    angle_constraints,
                     &parent,
                     &params.global_transform_query,
                 );
@@ -128,6 +137,7 @@ fn ui_distance(ui: &mut egui::Ui, distance: f32, constraints: &DistanceConstrain
 fn ui_angle(
     ui: &mut egui::Ui,
     angle: Degree,
+    angle_constraints: &AngleConstraints,
     parent: &Option<&Parent>,
     global_transform_query: &Query<&GlobalTransform>,
 ) -> Degree {
@@ -150,9 +160,9 @@ fn ui_angle(
     let mut new_angle = angle;
     let angle = AngleSlider::new(
         &mut new_angle,
-        Degree::new(0.0)..=Degree::new(360.0),
+        angle_constraints.min..=angle_constraints.max,
         angle_offset,
-    ); // TODO angle constraints
+    );
     ui.add(angle);
 
     new_angle

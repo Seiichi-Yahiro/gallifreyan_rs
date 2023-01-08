@@ -24,7 +24,7 @@ impl From<f32> for Degree {
 }
 
 impl Degree {
-    pub fn new(degree: f32) -> Self {
+    pub const fn new(degree: f32) -> Self {
         Self(degree)
     }
 
@@ -67,7 +67,7 @@ impl From<f32> for Radian {
 }
 
 impl Radian {
-    pub fn new(radian: f32) -> Self {
+    pub const fn new(radian: f32) -> Self {
         Self(radian)
     }
 
