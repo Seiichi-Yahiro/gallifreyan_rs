@@ -186,6 +186,10 @@ fn on_distance_constraints_update(
             .clamp(distance_constraints.min, distance_constraints.max);
 
         if position_data.distance != new_distance {
+            debug!(
+                "Update distance: {} -> {}",
+                position_data.distance, new_distance
+            );
             position_data.distance = new_distance;
         }
     }
