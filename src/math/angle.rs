@@ -47,11 +47,7 @@ impl Angle for Degree {
     }
 
     fn clamp(self, min: Self, max: Self) -> Self {
-        Degree(clamp_angle(
-            self.normalize().0,
-            min.normalize().0,
-            max.normalize().0,
-        ))
+        Degree(clamp_angle(self.0, min.0, max.0))
     }
 }
 
@@ -124,30 +120,33 @@ ops!(Degree);
 ops!(Radian);
 
 pub fn clamp_angle(angle: f32, min: f32, max: f32) -> f32 {
+    const MIN: f32 = 0.0;
+    const MAX: f32 = 360.0;
+
     assert!(
-        (0.0..=360.0).contains(&angle),
+        (MIN..=MAX).contains(&angle),
         "Angle needs to be between 0 and 360 degrees but was {}",
         angle
     );
     assert!(
-        (0.0..=360.0).contains(&min),
+        (MIN..=MAX).contains(&min),
         "Min needs to be between 0 and 360 degrees but was {}",
         min
     );
     assert!(
-        (0.0..=360.0).contains(&max),
+        (MIN..=MAX).contains(&max),
         "Max needs to be between 0 and 360 degrees but was {}",
         max
     );
 
-    if min > max && ((angle >= min && angle < 360.0) || (angle >= 0.0 && angle <= max)) {
+    if min > max && ((angle >= min && angle < MAX) || (angle >= MIN && angle <= max)) {
         angle
     } else if angle < min || angle > max {
         let min_diff = (angle - min).abs();
-        let min_distance = min_diff.min(360.0 - min_diff);
+        let min_distance = min_diff.min(MAX - min_diff);
 
         let max_diff = (angle - max).abs();
-        let max_distance = max_diff.min(360.0 - max_diff);
+        let max_distance = max_diff.min(MAX - max_diff);
 
         if min_distance < max_distance {
             min

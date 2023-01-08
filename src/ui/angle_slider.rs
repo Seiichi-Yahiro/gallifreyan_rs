@@ -58,6 +58,7 @@ impl<'a> AngleSlider<'a> {
     fn clamp_angle(&mut self) {
         *self.angle = self
             .angle
+            .normalize()
             .clamp(*self.angle_range.start(), *self.angle_range.end());
     }
 
