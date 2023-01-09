@@ -144,6 +144,9 @@ fn draw_word_and_letter(
                         });
 
                     *letter_path = generate_letter_path(**letter_radius, letter_intersections);
+                } else {
+                    error!("{:?} should intersect with word but it doesn't!", letter);
+                    *letter_path = generate_circle_path(**letter_radius);
                 }
             } else {
                 *letter_path = generate_circle_path(**letter_radius);
