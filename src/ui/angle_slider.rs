@@ -42,17 +42,11 @@ impl<'a> AngleSlider<'a> {
         angle_range: RangeInclusive<Degree>,
         angle_offset: Degree,
     ) -> Self {
-        assert!(angle_range.start().inner().is_sign_positive());
-        assert!(angle_range.end().inner().is_sign_positive());
-
-        let mut slf = Self {
+        Self {
             angle,
             angle_range,
             angle_offset,
-        };
-
-        slf.clamp_angle();
-        slf
+        }
     }
 
     fn clamp_angle(&mut self) {
