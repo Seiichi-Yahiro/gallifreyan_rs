@@ -158,15 +158,7 @@ fn draw_word_and_letter(
     }
 }
 
-fn draw_nested_vocal(
-    mut query: Query<
-        (&Radius, &mut Path),
-        (
-            With<NestedVocal>,
-            Or<(Changed<Radius>, Changed<PositionData>)>,
-        ),
-    >,
-) {
+fn draw_nested_vocal(mut query: Query<(&Radius, &mut Path), (With<NestedVocal>, Changed<Radius>)>) {
     for (radius, mut path) in query.iter_mut() {
         debug!("Redraw nested vocal");
         *path = generate_circle_path(**radius);
