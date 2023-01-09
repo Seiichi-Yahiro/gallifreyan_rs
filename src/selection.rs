@@ -22,23 +22,29 @@ fn handle_select_events(
     selected_query: Query<Entity, With<Selected>>,
 ) {
     if let Some(&Select(new_selection)) = events.iter().last() {
-        match selected_query.get_single() {
-            Ok(old_selection) => {
+        match (selected_query.get_single(), new_selection) {
+            (Ok(old_selection), Some(new_selection)) => {
+                if old_selection != new_selection {
+                    debug!(
+                        "Update selection: {:?} -> {:?}",
+                        old_selection, new_selection
+                    );
+                    commands.entity(old_selection).remove::<Selected>();
+                    commands.entity(new_selection).insert(Selected);
+                }
+            }
+            (Ok(old_selection), None) => {
                 debug!("Deselect: {:?}", old_selection);
                 commands.entity(old_selection).remove::<Selected>();
             }
-            Err(QuerySingleError::NoEntities(_)) => {
-                // nothing to do
+            (Err(QuerySingleError::NoEntities(_)), Some(new_selection)) => {
+                debug!("Select: {:?}", new_selection);
+                commands.entity(new_selection).insert(Selected);
             }
-            Err(QuerySingleError::MultipleEntities(_)) => {
+            (Err(QuerySingleError::MultipleEntities(_)), _) => {
                 error!("More than one selected entity!");
-                return;
             }
-        }
-
-        if let Some(new_selection) = new_selection {
-            debug!("Select: {:?}", new_selection);
-            commands.entity(new_selection).insert(Selected);
+            _ => {}
         }
     }
 }
