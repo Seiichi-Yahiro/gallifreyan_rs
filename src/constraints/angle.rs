@@ -60,10 +60,7 @@ fn update_word_angle_constraints(
                             max: right_position_data.angle,
                         };
 
-                        if *middle_angle_constraints != new_middle_angle_constraints {
-                            *middle_angle_constraints = new_middle_angle_constraints;
-                        }
-
+                        update_if_changed!(*middle_angle_constraints, new_middle_angle_constraints);
                         left_angle_constraints.max = middle_position_data.angle;
                         right_angle_constraints.min = middle_position_data.angle;
                     }
@@ -80,10 +77,7 @@ fn update_word_angle_constraints(
                             max: MAX_ANGLE,
                         };
 
-                        if *middle_angle_constraints != new_middle_angle_constraints {
-                            *middle_angle_constraints = new_middle_angle_constraints;
-                        }
-
+                        update_if_changed!(*middle_angle_constraints, new_middle_angle_constraints);
                         left_angle_constraints.max = middle_position_data.angle;
                     }
                 }
@@ -99,19 +93,15 @@ fn update_word_angle_constraints(
                             max: right_position_data.angle,
                         };
 
-                        if *middle_angle_constraints != new_middle_angle_constraints {
-                            *middle_angle_constraints = new_middle_angle_constraints;
-                        }
-
+                        update_if_changed!(*middle_angle_constraints, new_middle_angle_constraints);
                         right_angle_constraints.min = middle_position_data.angle;
                     }
                 }
                 (None, None) => {
                     if let Ok((_, mut angle_constraints)) = word_query.get_mut(changed_word_entity)
                     {
-                        if *angle_constraints != AngleConstraints::default() {
-                            *angle_constraints = AngleConstraints::default();
-                        }
+                        let new_angle_constraints = AngleConstraints::default();
+                        update_if_changed!(*angle_constraints, new_angle_constraints);
                     }
                 }
             }

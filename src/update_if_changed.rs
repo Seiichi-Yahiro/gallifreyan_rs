@@ -5,6 +5,12 @@ macro_rules! update_if_changed {
             $old = $new;
         }
     };
+
+    ($old:expr, $new:expr) => {
+        if $old != $new {
+            $old = $new;
+        }
+    };
 }
 
 pub(crate) use update_if_changed;
