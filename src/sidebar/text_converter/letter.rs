@@ -1,5 +1,6 @@
 use crate::image_types::{Text, *};
 use crate::sidebar::text_converter::split_word_to_chars;
+use crate::update_if_changed::update_if_changed;
 use bevy::prelude::*;
 
 const NESTED_LETTER_TEXT_DELIMITER: &str = "~";
@@ -97,18 +98,13 @@ pub fn convert_letters(
                     **text = new_text;
                     *letter = new_letter;
 
-                    if **radius != new_radius {
-                        debug!("Update letter radius: {} -> {}", **radius, new_radius);
-                        **radius = new_radius;
-                    }
+                    update_if_changed!(**radius, new_radius, "Update letter radius: {} -> {}");
 
-                    if *position_data != new_position_data {
-                        debug!(
-                            "Update letter position_data: {:?} -> {:?}",
-                            *position_data, new_position_data
-                        );
-                        *position_data = new_position_data;
-                    }
+                    update_if_changed!(
+                        *position_data,
+                        new_position_data,
+                        "Update letter position_data: {:?} -> {:?}"
+                    );
 
                     new_children.push(letter_entity);
                 }
@@ -254,21 +250,17 @@ pub fn convert_nested_letters(
                             word_radius,
                         );
 
-                        if **nested_radius != new_nested_radius {
-                            debug!(
-                                "Update nested letter radius: {} -> {}",
-                                **nested_radius, new_nested_radius
-                            );
-                            **nested_radius = new_nested_radius;
-                        }
+                        update_if_changed!(
+                            **nested_radius,
+                            new_nested_radius,
+                            "Update nested letter radius: {} -> {}"
+                        );
 
-                        if *nested_position_data != new_nested_position_data {
-                            debug!(
-                                "Update nested letter position_data: {:?} -> {:?}",
-                                *nested_position_data, new_nested_position_data
-                            );
-                            *nested_position_data = new_nested_position_data;
-                        }
+                        update_if_changed!(
+                            *nested_position_data,
+                            new_nested_position_data,
+                            "Update nested letter position_data: {:?} -> {:?}"
+                        );
                     }
 
                     **nested = Some(nested_entity);

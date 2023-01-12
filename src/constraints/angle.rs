@@ -1,5 +1,6 @@
 use crate::image_types::{CircleChildren, PositionData, Sentence, Word};
 use crate::math::angle::{Angle, Degree};
+use crate::update_if_changed::update_if_changed;
 use bevy::prelude::*;
 use itertools::Itertools;
 
@@ -130,9 +131,6 @@ fn on_angle_constraints_update(
             .normalize()
             .clamp(angle_constraints.min, angle_constraints.max);
 
-        if position_data.angle != new_angle {
-            debug!("Update angle: {:?} -> {:?}", position_data.angle, new_angle);
-            position_data.angle = new_angle;
-        }
+        update_if_changed!(position_data.angle, new_angle, "Update angle: {:?} -> {:?}");
     }
 }

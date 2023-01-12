@@ -2,6 +2,7 @@ use crate::image_types::{
     CircleChildren, ConsonantPlacement, Dot, Letter, LineSlot, LineSlotChildren, PositionData,
     Radius, Sentence, VocalPlacement, Word,
 };
+use crate::update_if_changed::update_if_changed;
 use bevy::prelude::*;
 
 pub struct DistanceConstraintsPlugin;
@@ -185,12 +186,10 @@ fn on_distance_constraints_update(
             .distance
             .clamp(distance_constraints.min, distance_constraints.max);
 
-        if position_data.distance != new_distance {
-            debug!(
-                "Update distance: {} -> {}",
-                position_data.distance, new_distance
-            );
-            position_data.distance = new_distance;
-        }
+        update_if_changed!(
+            position_data.distance,
+            new_distance,
+            "Update distance: {} -> {}"
+        );
     }
 }

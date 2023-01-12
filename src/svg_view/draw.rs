@@ -144,6 +144,9 @@ fn draw_word_and_letter(
                         });
 
                     *letter_path = generate_letter_path(**letter_radius, letter_intersections);
+                } else {
+                    error!("{:?} should intersect with word but it doesn't!", letter);
+                    *letter_path = generate_circle_path(**letter_radius);
                 }
             } else {
                 *letter_path = generate_circle_path(**letter_radius);
@@ -158,15 +161,7 @@ fn draw_word_and_letter(
     }
 }
 
-fn draw_nested_vocal(
-    mut query: Query<
-        (&Radius, &mut Path),
-        (
-            With<NestedVocal>,
-            Or<(Changed<Radius>, Changed<PositionData>)>,
-        ),
-    >,
-) {
+fn draw_nested_vocal(mut query: Query<(&Radius, &mut Path), (With<NestedVocal>, Changed<Radius>)>) {
     for (radius, mut path) in query.iter_mut() {
         debug!("Redraw nested vocal");
         *path = generate_circle_path(**radius);

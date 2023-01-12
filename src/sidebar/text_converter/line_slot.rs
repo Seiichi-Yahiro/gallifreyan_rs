@@ -1,4 +1,5 @@
 use crate::image_types::{Text, *};
+use crate::update_if_changed::update_if_changed;
 use bevy::prelude::*;
 
 pub fn convert_line_slots(
@@ -32,13 +33,11 @@ pub fn convert_line_slots(
                         line_points_outside,
                     );
 
-                    if *position_data != new_position_data {
-                        debug!(
-                            "Update line_slot position_data: {:?} -> {:?}",
-                            *position_data, new_position_data
-                        );
-                        *position_data = new_position_data;
-                    }
+                    update_if_changed!(
+                        *position_data,
+                        new_position_data,
+                        "Update line_slot position_data: {:?} -> {:?}"
+                    );
 
                     new_children.push(line_slot_entity);
                 }
