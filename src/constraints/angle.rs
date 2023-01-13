@@ -1,5 +1,8 @@
-use crate::image_types::{CircleChildren, PositionData, Sentence, Word};
-use crate::math::angle::{Angle, Degree};
+use crate::image_types::{
+    CircleChildren, ConsonantPlacement, Intersections, Letter, LineSlot, LineSlotChildren,
+    PositionData, Radius, Sentence, VocalDecoration, Word,
+};
+use crate::math::angle::{Angle, Degree, Radian};
 use crate::update_if_changed::update_if_changed;
 use bevy::prelude::*;
 use itertools::Itertools;
@@ -13,7 +16,8 @@ impl Plugin for AngleConstraintsPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<AngleConstraints>()
             .add_system(update_word_angle_constraints)
-            .add_system(on_angle_constraints_update.after(update_word_angle_constraints));
+            .add_system(update_line_slot_angle_constraints.after(update_word_angle_constraints))
+            .add_system(on_angle_constraints_update.after(update_line_slot_angle_constraints));
     }
 }
 
@@ -107,6 +111,68 @@ fn update_word_angle_constraints(
                     }
                 }
             }
+        }
+    }
+}
+
+// TODO sentence and word line slots
+fn update_line_slot_angle_constraints(
+    changed_letter_query: Query<
+        (&Letter, &LineSlotChildren, &Intersections, &Transform),
+        Or<(
+            Changed<Letter>,
+            Changed<PositionData>,
+            Changed<Radius>,
+            Changed<Intersections>,
+        )>,
+    >,
+    mut line_slot_query: Query<&mut AngleConstraints, With<LineSlot>>,
+) {
+    for (letter, line_slots, intersections, letter_transform) in changed_letter_query.iter() {
+        let mut line_slot_iter = line_slot_query.iter_many_mut(line_slots.iter());
+
+        while let Some(mut angle_constraints) = line_slot_iter.fetch_next() {
+            *angle_constraints = match letter {
+                Letter::Vocal(vocal) => match VocalDecoration::from(*vocal) {
+                    VocalDecoration::None => AngleConstraints {
+                        min: Degree::new(0.0),
+                        max: Degree::new(360.0),
+                    },
+                    VocalDecoration::LineInside => AngleConstraints {
+                        min: Degree::new(90.0),
+                        max: Degree::new(270.0),
+                    },
+                    VocalDecoration::LineOutside => AngleConstraints {
+                        min: Degree::new(270.0),
+                        max: Degree::new(90.0),
+                    },
+                },
+                Letter::Consonant(consonant) | Letter::ConsonantWithVocal { consonant, .. } => {
+                    match ConsonantPlacement::from(*consonant) {
+                        ConsonantPlacement::OnLine | ConsonantPlacement::Inside => {
+                            AngleConstraints {
+                                min: Degree::new(0.0),
+                                max: Degree::new(360.0),
+                            }
+                        }
+                        ConsonantPlacement::DeepCut | ConsonantPlacement::ShallowCut => {
+                            if let Some(intersections) =
+                                intersections.to_letter_space(letter_transform)
+                            {
+                                let [max, min] = intersections
+                                    .map(Radian::angle_from_vec)
+                                    .map(Radian::to_degrees)
+                                    .map(Degree::normalize);
+
+                                AngleConstraints { min, max }
+                            } else {
+                                error!("{:?} should intersect with word but didn't!", letter);
+                                continue;
+                            }
+                        }
+                    }
+                }
+            };
         }
     }
 }
