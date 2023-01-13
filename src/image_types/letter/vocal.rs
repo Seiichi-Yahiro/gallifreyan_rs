@@ -1,5 +1,5 @@
 use super::consonant::ConsonantPlacement;
-use crate::constraints::DistanceConstraints;
+use crate::constraints::{AngleConstraints, DistanceConstraints};
 use crate::image_types::{
     AnglePlacement, Intersections, Letter, LetterBundle, NestedLetter, PositionData, Radius, Text,
 };
@@ -169,6 +169,7 @@ impl NestedVocalBundle {
                 nested_letter: NestedLetter::default(),
                 intersections: Intersections::default(),
                 distance_constraints: DistanceConstraints::default(),
+                angle_constraints: AngleConstraints::default(),
             },
             nested_vocal: NestedVocal,
         }

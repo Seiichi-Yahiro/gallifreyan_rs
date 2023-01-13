@@ -1,7 +1,7 @@
 mod consonant;
 mod vocal;
 
-use crate::constraints::DistanceConstraints;
+use crate::constraints::{AngleConstraints, DistanceConstraints};
 use crate::image_types::{
     new_stroke_mode, CircleChildren, LineSlotChildren, PositionData, Radius, Text,
 };
@@ -119,6 +119,7 @@ pub struct LetterBundle {
     pub nested_letter: NestedLetter,
     pub intersections: Intersections,
     pub distance_constraints: DistanceConstraints,
+    pub angle_constraints: AngleConstraints,
 }
 
 impl LetterBundle {
@@ -140,6 +141,7 @@ impl LetterBundle {
             nested_letter: NestedLetter::default(),
             intersections: Intersections::default(),
             distance_constraints: DistanceConstraints::default(),
+            angle_constraints: AngleConstraints::default(),
         }
     }
 }
