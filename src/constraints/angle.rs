@@ -11,12 +11,14 @@ pub struct AngleConstraintsPlugin;
 
 impl Plugin for AngleConstraintsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(update_word_angle_constraints)
+        app.register_type::<AngleConstraints>()
+            .add_system(update_word_angle_constraints)
             .add_system(on_angle_constraints_update.after(update_word_angle_constraints));
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Component)]
+#[derive(Debug, Copy, Clone, PartialEq, Component, Reflect)]
+#[reflect(Component)]
 pub struct AngleConstraints {
     pub min: Degree,
     pub max: Degree,

@@ -9,7 +9,8 @@ pub struct DistanceConstraintsPlugin;
 
 impl Plugin for DistanceConstraintsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(update_word_distance_constraints)
+        app.register_type::<DistanceConstraints>()
+            .add_system(update_word_distance_constraints)
             .add_system(update_letter_distance_constraints.after(update_word_distance_constraints))
             .add_system(update_dot_distance_constraints.after(update_letter_distance_constraints))
             .add_system(
@@ -23,7 +24,8 @@ impl Plugin for DistanceConstraintsPlugin {
     }
 }
 
-#[derive(Debug, Copy, Clone, Component)]
+#[derive(Debug, Copy, Clone, Component, Reflect)]
+#[reflect(Component)]
 pub struct DistanceConstraints {
     pub min: f32,
     pub max: f32,
