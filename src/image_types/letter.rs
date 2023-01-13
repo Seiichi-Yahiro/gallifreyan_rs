@@ -103,6 +103,10 @@ impl TryFrom<&str> for Letter {
 #[reflect(Component)]
 pub struct NestedLetter(pub Option<Entity>);
 
+#[derive(Debug, Clone, Default, Deref, DerefMut, Component, Reflect)]
+#[reflect(Component)]
+pub struct Intersections(Option<[Vec2; 2]>); // contains intersections in word space
+
 #[derive(Bundle)]
 pub struct LetterBundle {
     pub letter: Letter,
@@ -113,6 +117,7 @@ pub struct LetterBundle {
     pub line_slots: LineSlotChildren,
     pub interaction: Interaction,
     pub nested_letter: NestedLetter,
+    pub intersections: Intersections,
     pub distance_constraints: DistanceConstraints,
 }
 
@@ -133,6 +138,7 @@ impl LetterBundle {
             line_slots: Default::default(),
             interaction: Interaction::default(),
             nested_letter: NestedLetter::default(),
+            intersections: Intersections::default(),
             distance_constraints: DistanceConstraints::default(),
         }
     }

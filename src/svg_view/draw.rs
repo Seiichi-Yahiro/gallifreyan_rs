@@ -1,11 +1,10 @@
 use crate::image_types::{
-    AnglePlacement, CircleChildren, Dot, Letter, LineSlot, NestedVocal,
+    AnglePlacement, CircleChildren, Dot, Intersections, Letter, LineSlot, NestedVocal,
     NestedVocalPositionCorrection, PositionData, Radius, Sentence, Word, OUTER_CIRCLE_SIZE,
 };
 use crate::math::angle::{Angle, Radian};
 use crate::math::{Circle, Intersection, IntersectionResult};
 use bevy::prelude::*;
-use bevy::utils::HashSet;
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use bevy_prototype_lyon::prelude::*;
 use itertools::Itertools;
@@ -19,7 +18,9 @@ impl Plugin for DrawPlugin {
                 correct_nested_vocal_with_outside_placement_position.before(update_position_data),
             )
             .add_system(draw_sentence)
-            .add_system(draw_word_and_letter.after(update_position_data))
+            .add_system(calculate_intersections.after(update_position_data))
+            .add_system(draw_word.after(calculate_intersections))
+            .add_system(draw_letter.after(calculate_intersections))
             .add_system(draw_nested_vocal)
             .add_system(draw_line_slot.after(update_position_data))
             .add_system(draw_dots);
@@ -79,85 +80,129 @@ fn draw_sentence(mut query: Query<(&mut Path, &Radius), (Changed<Radius>, With<S
     }
 }
 
-fn draw_word_and_letter(
-    changed_word_query: Query<Entity, (With<Word>, Changed<Radius>)>,
+fn calculate_intersections(
+    changed_word_query: Query<&CircleChildren, (With<Word>, Changed<Radius>)>,
     changed_letter_query: Query<
-        &Parent,
+        Entity,
         (
             Or<(Changed<Radius>, Changed<PositionData>, Changed<Letter>)>,
             Without<NestedVocal>,
         ),
     >,
-    mut word_query: Query<(&Radius, &CircleChildren, &mut Path), (With<Word>, Without<Letter>)>,
     mut letter_query: Query<
-        (&Letter, &Radius, &PositionData, &Transform, &mut Path),
-        Without<Word>,
+        (&Parent, &Letter, &Radius, &mut Intersections, &Transform),
+        Without<NestedVocal>,
     >,
+    word_query: Query<&Radius, With<Word>>,
 ) {
-    let words: HashSet<Entity> = changed_letter_query
+    let letters = changed_word_query
         .iter()
-        .map(Parent::get)
-        .chain(changed_word_query.iter())
-        .collect();
+        .flat_map(|children| children.iter().copied())
+        .chain(changed_letter_query.iter())
+        .unique();
 
-    let mut word_iter = word_query.iter_many_mut(words.iter());
+    let mut letter_iter = letter_query.iter_many_mut(letters);
 
-    while let Some((word_radius, letters, mut word_path)) = word_iter.fetch_next() {
-        debug!("Redraw word");
+    while let Some((parent, letter, letter_radius, mut intersections, transform)) =
+        letter_iter.fetch_next()
+    {
+        if letter.is_cutting() {
+            if let Ok(word_radius) = word_query.get(parent.get()) {
+                let word_circle = Circle {
+                    radius: **word_radius,
+                    position: Vec2::ZERO,
+                };
 
-        let word_circle = Circle {
-            radius: **word_radius,
-            position: Vec2::ZERO,
-        };
-
-        let mut word_intersections: Vec<Vec2> = Vec::new();
-
-        let mut letter_iter = letter_query.iter_many_mut(letters.iter());
-
-        while let Some((
-            letter,
-            letter_radius,
-            letter_position_data,
-            letter_transform,
-            mut letter_path,
-        )) = letter_iter.fetch_next()
-        {
-            debug!("Redraw letter: {:?}", letter);
-
-            if letter.is_cutting() {
                 let letter_circle = Circle {
                     radius: **letter_radius,
-                    position: letter_transform.translation.truncate(),
+                    position: transform.translation.truncate(),
                 };
 
                 if let IntersectionResult::Two(a, b) = word_circle.intersection(&letter_circle) {
                     let sorted_intersections =
                         sort_intersections_by_angle(word_circle, letter_circle, a, b);
 
-                    word_intersections.extend(sorted_intersections.iter());
-
-                    let letter_intersections = sorted_intersections
-                        .map(|pos| pos - letter_circle.position)
-                        .map(|pos| {
-                            Vec2::from_angle(-letter_position_data.angle.to_radians().inner())
-                                .rotate(pos)
-                        });
-
-                    *letter_path = generate_letter_path(**letter_radius, letter_intersections);
+                    **intersections = Some(sorted_intersections);
                 } else {
-                    error!("{:?} should intersect with word but it doesn't!", letter);
-                    *letter_path = generate_circle_path(**letter_radius);
+                    error!(
+                        "Letter {:?} should have intersection with word but didn't!",
+                        letter
+                    );
+                    **intersections = None;
                 }
-            } else {
-                *letter_path = generate_circle_path(**letter_radius);
             }
+        } else if intersections.is_some() {
+            **intersections = None;
         }
+    }
+}
 
-        *word_path = if word_intersections.is_empty() {
-            generate_circle_path(**word_radius)
+fn draw_word(
+    changed_word_query: Query<Entity, (With<Word>, Changed<Radius>)>,
+    changed_letter_query: Query<
+        &Parent,
+        (With<Letter>, Without<NestedVocal>, Changed<Intersections>),
+    >,
+    letter_query: Query<&Intersections, With<Letter>>,
+    mut word_query: Query<(Entity, &Radius, &CircleChildren, &mut Path), With<Word>>,
+) {
+    let words = changed_letter_query
+        .iter()
+        .map(|parent| parent.get())
+        .chain(changed_word_query.iter())
+        .unique();
+
+    let mut word_iter = word_query.iter_many_mut(words);
+
+    while let Some((entity, radius, letters, mut path)) = word_iter.fetch_next() {
+        debug!("Redraw word: {:?}", entity);
+
+        let word_intersections: Vec<Vec2> = letter_query
+            .iter_many(letters.iter())
+            .filter_map(|intersections| **intersections)
+            .flatten()
+            .collect();
+
+        if word_intersections.is_empty() {
+            *path = generate_circle_path(**radius);
         } else {
-            generate_word_path(**word_radius, word_intersections)
-        };
+            *path = generate_word_path(**radius, word_intersections);
+        }
+    }
+}
+
+fn draw_letter(
+    mut letter_query: Query<
+        (
+            Entity,
+            &Radius,
+            &Intersections,
+            &PositionData,
+            &Transform,
+            &mut Path,
+        ),
+        (
+            With<Letter>,
+            Without<NestedVocal>,
+            Or<(Changed<Intersections>, Changed<Radius>)>,
+        ),
+    >,
+) {
+    for (entity, radius, intersections, position_data, transform, mut path) in
+        letter_query.iter_mut()
+    {
+        debug!("Redraw letter: {:?}", entity);
+
+        if let Some(intersections) = **intersections {
+            // transform from word space to letter space
+            let letter_intersections = intersections
+                .map(|pos| pos - transform.translation.truncate())
+                .map(|pos| Vec2::from_angle(-position_data.angle.to_radians().inner()).rotate(pos));
+
+            *path = generate_letter_path(**radius, letter_intersections);
+        } else {
+            *path = generate_circle_path(**radius);
+        }
     }
 }
 

@@ -75,6 +75,8 @@ fn main() {
         .register_type::<image_types::Radius>()
         .register_type::<image_types::PositionData>()
         .register_type::<image_types::AnglePlacement>()
+        .register_type::<image_types::Intersections>()
+        .register_type::<Option<[Vec2; 2]>>()
         .register_type::<svg_view::Interaction>()
         .register_type::<math::Circle>()
         .register_type::<math::angle::Degree>();
