@@ -173,14 +173,7 @@ fn draw_word(
 
 fn draw_letter(
     mut letter_query: Query<
-        (
-            Entity,
-            &Radius,
-            &Intersections,
-            &PositionData,
-            &Transform,
-            &mut Path,
-        ),
+        (Entity, &Radius, &Intersections, &Transform, &mut Path),
         (
             With<Letter>,
             Without<NestedVocal>,
@@ -188,16 +181,16 @@ fn draw_letter(
         ),
     >,
 ) {
-    for (entity, radius, intersections, position_data, transform, mut path) in
-        letter_query.iter_mut()
-    {
+    for (entity, radius, intersections, transform, mut path) in letter_query.iter_mut() {
         debug!("Redraw letter: {:?}", entity);
 
         if let Some(intersections) = **intersections {
             // transform from word space to letter space
             let letter_intersections = intersections
-                .map(|pos| pos - transform.translation.truncate())
-                .map(|pos| Vec2::from_angle(-position_data.angle.to_radians().inner()).rotate(pos));
+                .map(|pos| pos.extend(0.0))
+                .map(|pos| pos - transform.translation)
+                .map(|pos| transform.rotation.inverse() * pos)
+                .map(Vec3::truncate);
 
             *path = generate_letter_path(**radius, letter_intersections);
         } else {
