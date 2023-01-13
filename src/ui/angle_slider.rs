@@ -105,10 +105,11 @@ impl<'a> AngleSlider<'a> {
 
         let zero_degree = bevy::math::Vec2::new(0.0, rail_radius);
         let [current_angle, start_angle, end_angle] = [
-            *self.angle + self.angle_offset,
+            *self.angle,
             *self.angle_range.start(),
             *self.angle_range.end(),
         ]
+        .map(|angle| angle + self.angle_offset)
         .map(|angle| -angle.to_radians().inner())
         .map(|angle| bevy::math::Vec2::from_angle(angle).rotate(zero_degree))
         .map(|pos| egui::Pos2::from(pos.to_array()) + rect_center.to_vec2());
