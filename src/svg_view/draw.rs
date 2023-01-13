@@ -159,7 +159,7 @@ fn draw_word(
 
         let word_intersections: Vec<Vec2> = letter_query
             .iter_many(letters.iter())
-            .filter_map(|intersections| **intersections)
+            .filter_map(|intersections| intersections.to_word_space())
             .flatten()
             .collect();
 
@@ -184,15 +184,8 @@ fn draw_letter(
     for (entity, radius, intersections, transform, mut path) in letter_query.iter_mut() {
         debug!("Redraw letter: {:?}", entity);
 
-        if let Some(intersections) = **intersections {
-            // transform from word space to letter space
-            let letter_intersections = intersections
-                .map(|pos| pos.extend(0.0))
-                .map(|pos| pos - transform.translation)
-                .map(|pos| transform.rotation.inverse() * pos)
-                .map(Vec3::truncate);
-
-            *path = generate_letter_path(**radius, letter_intersections);
+        if let Some(intersections) = intersections.to_letter_space(transform) {
+            *path = generate_letter_path(**radius, intersections);
         } else {
             *path = generate_circle_path(**radius);
         }

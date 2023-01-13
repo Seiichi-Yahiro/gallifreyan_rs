@@ -103,9 +103,25 @@ impl TryFrom<&str> for Letter {
 #[reflect(Component)]
 pub struct NestedLetter(pub Option<Entity>);
 
-#[derive(Debug, Clone, Default, Deref, DerefMut, Component, Reflect)]
+#[derive(Debug, Clone, Copy, Default, Deref, DerefMut, Component, Reflect)]
 #[reflect(Component)]
 pub struct Intersections(Option<[Vec2; 2]>); // contains intersections in word space
+
+impl Intersections {
+    pub fn to_word_space(self) -> Option<[Vec2; 2]> {
+        self.0
+    }
+
+    pub fn to_letter_space(self, letter_transform: &Transform) -> Option<[Vec2; 2]> {
+        self.0.map(|intersections| {
+            intersections
+                .map(|pos| pos.extend(0.0))
+                .map(|pos| pos - letter_transform.translation)
+                .map(|pos| letter_transform.rotation.inverse() * pos)
+                .map(Vec3::truncate)
+        })
+    }
+}
 
 #[derive(Bundle)]
 pub struct LetterBundle {
