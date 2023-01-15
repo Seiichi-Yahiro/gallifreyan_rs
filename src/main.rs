@@ -7,6 +7,7 @@ mod menu_bar;
 mod selection;
 mod sidebar;
 mod style;
+mod svg;
 mod svg_builder;
 mod svg_view;
 mod ui;
