@@ -1,185 +1,114 @@
-use crate::image_types::{
-    CircleChildren, Dot, Letter, Radius, Sentence, Text, Word, OUTER_CIRCLE_SIZE, SVG_SIZE,
+use crate::image_types::{LineSlot, Sentence, Text, SVG_SIZE};
+use crate::svg::{
+    CSSRule, Class, Group, SVGElement, Selector, Style, StyleRule, Title, ToAffine2, SVG,
 };
-use crate::svg_builder::{
-    CircleBuilder, Fill, GroupBuilder, MaskBuilder, SVGBuilder, Stroke, Title,
-};
+use bevy::ecs::query::QuerySingleError;
 use bevy::ecs::system::SystemParam;
 use bevy::math::Affine2;
 use bevy::prelude::*;
+use bevy_prototype_lyon::prelude::DrawMode;
+use std::string::ToString;
 
-type SentenceQuery<'w, 's> =
-    Query<'w, 's, (&'static Text, &'static Radius, &'static GlobalTransform), With<Sentence>>;
+const FILL_CLASS: &str = "fill";
+const STROKE_CLASS: &str = "stroke";
 
-type WordQuery<'w, 's> = Query<
+type ComponentQuery<'w, 's> = Query<
     'w,
     's,
     (
-        Entity,
-        &'static Radius,
-        &'static GlobalTransform,
-        &'static CircleChildren,
+        &'static Transform,
+        Option<&'static SVGElement>,
+        Option<&'static Children>,
+        Option<&'static DrawMode>,
     ),
-    With<Word>,
+    Without<LineSlot>,
 >;
-
-type LetterQuery<'w, 's> = Query<
-    'w,
-    's,
-    (
-        Entity,
-        &'static Parent,
-        &'static Letter,
-        &'static Radius,
-        &'static GlobalTransform,
-    ),
-    With<Letter>,
->;
-
-type DotQuery<'w, 's> = Query<'w, 's, (&'static Radius, &'static GlobalTransform), With<Dot>>;
 
 #[derive(SystemParam)]
 pub struct SVGQueries<'w, 's> {
-    pub sentence_query: SentenceQuery<'w, 's>,
-    pub word_query: WordQuery<'w, 's>,
-    pub letter_query: LetterQuery<'w, 's>,
-    pub dot_query: DotQuery<'w, 's>,
+    sentence_query: Query<'w, 's, (Entity, &'static Text), With<Sentence>>,
+    component_query: ComponentQuery<'w, 's>,
 }
 
-pub fn convert_to_svg(svg_queries: SVGQueries) -> SVGBuilder {
-    let mut svg = SVGBuilder::new(SVG_SIZE);
-    if let Ok(text) = svg_queries
+pub fn convert_to_svg(svg_queries: SVGQueries) -> Result<SVG, QuerySingleError> {
+    svg_queries
         .sentence_query
         .get_single()
-        .map(|(text, _, _)| text.to_string())
-    {
-        svg.add(Title::new(text));
-    }
+        .map(|(sentence_entity, text)| {
+            let mut svg = SVG::new(SVG_SIZE);
 
-    let group_transform = Affine2 {
-        translation: Vec2::ZERO,
-        matrix2: Mat2::from_cols(Vec2::X, Vec2::NEG_Y),
-    }
-    .into();
+            svg.push(Title(text.to_string()));
 
-    let mut group = GroupBuilder::new().with_transform(group_transform);
+            let style = {
+                let mut style = Style::new();
 
-    convert_sentences(&svg_queries, &mut group);
-    convert_words(&svg_queries, &mut group);
-    convert_letters(&svg_queries, &mut group);
-    convert_dots(&svg_queries, &mut group);
+                let mut stroke_rule = StyleRule::new();
+                stroke_rule
+                    .selectors
+                    .push(Selector::Class(STROKE_CLASS.to_string()));
+                stroke_rule.rules.push(CSSRule::Stroke(Some(Color::BLACK)));
+                stroke_rule.rules.push(CSSRule::Fill(None));
+                stroke_rule.rules.push(CSSRule::StrokeWidth(1.0));
 
-    svg.add(group);
+                style.push(stroke_rule);
 
-    svg
+                let mut fill_rule = StyleRule::new();
+                fill_rule
+                    .selectors
+                    .push(Selector::Class(FILL_CLASS.to_string()));
+                fill_rule.rules.push(CSSRule::Fill(Some(Color::BLACK)));
+                fill_rule.rules.push(CSSRule::Stroke(None));
+
+                style.push(fill_rule);
+
+                style
+            };
+
+            svg.push(style);
+
+            let mut group = Group::new();
+
+            // mirror along y-axis
+            group.affine2 = Affine2 {
+                translation: Vec2::ZERO,
+                matrix2: Mat2::from_cols(Vec2::X, Vec2::NEG_Y),
+            };
+
+            group = build_svg(&svg_queries.component_query, [sentence_entity], group);
+
+            svg.push(group);
+
+            svg
+        })
 }
 
-fn convert_sentences(svg_queries: &SVGQueries, group: &mut GroupBuilder) {
-    for (_, sentence_radius, sentence_transform) in svg_queries.sentence_query.iter() {
-        let position = sentence_transform.translation().truncate();
+fn build_svg(
+    query: &ComponentQuery,
+    entities: impl IntoIterator<Item = Entity>,
+    mut group: Group,
+) -> Group {
+    for (transform, svg_element, children, draw_mode) in query.iter_many(entities) {
+        let mut local_group = Group::new();
+        local_group.affine2 = transform.to_affine2();
 
-        let outer_circle = CircleBuilder::new(sentence_radius.0 + OUTER_CIRCLE_SIZE)
-            .with_stroke(Stroke::Black)
-            .with_fill(Fill::None)
-            .with_position(position);
+        if let (Some(svg_element), Some(draw_mode)) = (svg_element, draw_mode) {
+            let mut svg_element = svg_element.clone();
 
-        let inner_circle = CircleBuilder::new(sentence_radius.0)
-            .with_stroke(Stroke::Black)
-            .with_fill(Fill::None)
-            .with_position(position);
-
-        group.add(outer_circle);
-        group.add(inner_circle);
-    }
-}
-
-fn convert_words(svg_queries: &SVGQueries, group: &mut GroupBuilder) {
-    for (word_entity, word_radius, word_transform, letters) in svg_queries.word_query.iter() {
-        let cutting_letters = svg_queries
-            .letter_query
-            .iter_many(letters.iter())
-            .filter(|(_, _, letter, _, _)| letter.is_cutting())
-            .collect::<Vec<_>>();
-
-        let word = CircleBuilder::new(word_radius.0)
-            .with_stroke(Stroke::Black)
-            .with_position(word_transform.translation().truncate());
-
-        if cutting_letters.is_empty() {
-            group.add(word.with_fill(Fill::None));
-        } else {
-            let id = format!("{:?}", word_entity);
-            let mut mask = MaskBuilder::new(id.clone());
-
-            let word_mask = CircleBuilder::new(word_radius.0)
-                .with_stroke(Stroke::White)
-                .with_fill(Fill::Black)
-                .with_position(word_transform.translation().truncate());
-
-            mask.add(word_mask);
-
-            for (_, _, _, letter_radius, letter_transform) in cutting_letters {
-                let letter_mask = CircleBuilder::new(letter_radius.0)
-                    .with_stroke(Stroke::Black)
-                    .with_fill(Fill::Black)
-                    .with_position(letter_transform.translation().truncate());
-
-                mask.add(letter_mask);
+            match draw_mode {
+                DrawMode::Fill(_) => svg_element.set_class(Class(FILL_CLASS.to_string())),
+                DrawMode::Stroke(_) => svg_element.set_class(Class(STROKE_CLASS.to_string())),
+                DrawMode::Outlined { .. } => {}
             }
 
-            group.add(mask);
-            group.add(word.with_fill(Fill::Black).with_mask(Some(id)));
+            local_group.push(svg_element);
         }
-    }
-}
 
-fn convert_letters(svg_queries: &SVGQueries, group: &mut GroupBuilder) {
-    for (letter_entity, parent, letter, letter_radius, letter_transform) in
-        svg_queries.letter_query.iter()
-    {
-        if letter.is_cutting() {
-            let id = format!("{:?}", letter_entity);
-            let mut mask = MaskBuilder::new(id.clone());
-
-            let letter_mask = CircleBuilder::new(letter_radius.0)
-                .with_stroke(Stroke::White)
-                .with_fill(Fill::Black)
-                .with_position(letter_transform.translation().truncate());
-
-            mask.add(letter_mask);
-
-            let (word_radius, word_transform) = svg_queries
-                .word_query
-                .get(parent.get())
-                .map(|(_, radius, word_transform, _)| (**radius, *word_transform))
-                .unwrap();
-
-            let letter = CircleBuilder::new(word_radius)
-                .with_stroke(Stroke::Black)
-                .with_fill(Fill::Black)
-                .with_position(word_transform.translation().truncate())
-                .with_mask(Some(id));
-
-            group.add(mask);
-            group.add(letter);
+        if let Some(children) = children {
+            group.push(build_svg(query, children.iter().copied(), local_group));
         } else {
-            let letter = CircleBuilder::new(letter_radius.0)
-                .with_stroke(Stroke::Black)
-                .with_fill(Fill::None)
-                .with_position(letter_transform.translation().truncate());
-
-            group.add(letter);
+            group.push(local_group);
         }
     }
-}
 
-fn convert_dots(svg_queries: &SVGQueries, group: &mut GroupBuilder) {
-    for (dot_radius, dot_transform) in svg_queries.dot_query.iter() {
-        let dot = CircleBuilder::new(dot_radius.0)
-            .with_stroke(Stroke::Black)
-            .with_fill(Fill::Black)
-            .with_position(dot_transform.translation().truncate());
-
-        group.add(dot);
-    }
+    group
 }

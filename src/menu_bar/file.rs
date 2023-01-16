@@ -186,8 +186,14 @@ fn handle_export_event(
         if let Some(path_buffer) = file_handles.svg.clone() {
             info!("Export to file: {:?}", path_buffer);
 
-            let svg = convert_to_svg(svg_queries).build();
-            os::save_to_file(path_buffer, svg);
+            match convert_to_svg(svg_queries) {
+                Ok(svg) => {
+                    os::save_to_file(path_buffer, svg.to_string());
+                }
+                Err(err) => {
+                    error!("Failed to export file to svg: {}", err);
+                }
+            }
         }
     }
 }
