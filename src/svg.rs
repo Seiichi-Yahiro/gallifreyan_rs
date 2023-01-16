@@ -2,12 +2,14 @@ mod circle;
 mod group;
 mod line;
 mod path;
+mod style;
 mod title;
 
 pub use circle::*;
 pub use group::*;
 pub use line::*;
 pub use path::*;
+pub use style::*;
 pub use title::*;
 
 use bevy::log::error;
@@ -16,7 +18,7 @@ use bevy::prelude::{Component, FromReflect, Reflect, ReflectComponent, Transform
 use bevy_prototype_lyon::geometry::Geometry;
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use itertools::Itertools;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::ops::Add;
 
 const DEFAULT_INDENTATION_DEPTH: usize = 4;
@@ -82,6 +84,7 @@ pub enum SVGElement {
     Circle(Circle),
     Line(Line),
     Path(Path),
+    Style(Style),
 }
 
 impl Default for SVGElement {
@@ -107,6 +110,9 @@ impl Geometry for SVGElement {
             }
             SVGElement::Path(it) => {
                 it.add_geometry(b);
+            }
+            SVGElement::Style(_) => {
+                error!("Cannot convert style to geometry!");
             }
         }
     }
@@ -142,14 +148,21 @@ impl From<Path> for SVGElement {
     }
 }
 
+impl From<Style> for SVGElement {
+    fn from(value: Style) -> Self {
+        Self::Style(value)
+    }
+}
+
 impl Display for SVGElement {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            SVGElement::Title(it) => it.fmt(f),
-            SVGElement::Group(it) => it.fmt(f),
-            SVGElement::Circle(it) => it.fmt(f),
-            SVGElement::Line(it) => it.fmt(f),
-            SVGElement::Path(it) => it.fmt(f),
+            SVGElement::Title(it) => Display::fmt(it, f),
+            SVGElement::Group(it) => Display::fmt(it, f),
+            SVGElement::Circle(it) => Display::fmt(it, f),
+            SVGElement::Line(it) => Display::fmt(it, f),
+            SVGElement::Path(it) => Display::fmt(it, f),
+            SVGElement::Style(it) => Display::fmt(it, f),
         }
     }
 }
