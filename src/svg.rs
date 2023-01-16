@@ -112,6 +112,9 @@ impl SVGElement {
             Self::Path(ref mut path) => {
                 path.class = class;
             }
+            Self::Group(ref mut group) => {
+                group.class = class;
+            }
             _ => {}
         }
     }

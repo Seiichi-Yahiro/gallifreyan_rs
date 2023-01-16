@@ -1,4 +1,5 @@
 use super::{Indent, SVGElement, ToCSSString, DEFAULT_INDENTATION_DEPTH};
+use crate::svg::Class;
 use bevy::math::Affine2;
 use bevy::prelude::{FromReflect, Reflect};
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
@@ -10,6 +11,7 @@ use std::fmt::{Display, Formatter};
 pub struct Group {
     pub elements: Vec<SVGElement>,
     pub affine2: Affine2,
+    pub class: Class,
 }
 
 impl Group {
@@ -17,6 +19,7 @@ impl Group {
         Self {
             elements: Vec::new(),
             affine2: Affine2::IDENTITY,
+            class: Class::default(),
         }
     }
 
@@ -30,6 +33,7 @@ impl From<Vec<SVGElement>> for Group {
         Self {
             elements: value,
             affine2: Affine2::IDENTITY,
+            class: Class::default(),
         }
     }
 }
@@ -44,8 +48,9 @@ impl Display for Group {
 
         write!(
             f,
-            "<g transform=\"{}\">\n{}\n</g>",
+            "<g transform=\"{}\" {}>\n{}\n</g>",
             self.affine2.to_css_string(),
+            self.class,
             content
         )
     }
