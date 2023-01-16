@@ -25,8 +25,30 @@ impl Path {
         self.elements.push(element);
     }
 
-    pub fn path(&self) -> String {
-        self.elements.iter().map(ToString::to_string).join(" ")
+    pub fn path(&self, flip_y_axis: bool) -> String {
+        if flip_y_axis {
+            self.elements
+                .iter()
+                .map(|element| match element {
+                    PathElement::MoveTo(it) => PathElement::MoveTo(Vec2::new(it.x, -it.y)),
+                    PathElement::Arc {
+                        end,
+                        large_arc,
+                        radius,
+                    } => PathElement::Arc {
+                        end: Vec2::new(end.x, -end.y),
+                        large_arc: *large_arc,
+                        radius: *radius,
+                    },
+                })
+                .map(|element| element.to_string())
+                .join(" ")
+        } else {
+            self.elements
+                .iter()
+                .map(|element| element.to_string())
+                .join(" ")
+        }
     }
 }
 
@@ -41,7 +63,7 @@ impl From<Vec<PathElement>> for Path {
 
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<path d=\"{}\" {}/>", self.path(), self.class)
+        write!(f, "<path d=\"{}\" {}/>", self.path(true), self.class)
     }
 }
 
@@ -49,7 +71,7 @@ impl Geometry for Path {
     fn add_geometry(&self, b: &mut Builder) {
         shapes::SvgPathShape {
             svg_doc_size_in_px: Default::default(),
-            svg_path_string: self.path(),
+            svg_path_string: self.path(false),
         }
         .add_geometry(b);
     }
