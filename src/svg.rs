@@ -8,7 +8,25 @@ use itertools::Itertools;
 use std::fmt::{Display, Formatter};
 use std::ops::Add;
 
-const INDENTATION: &str = "    ";
+const DEFAULT_INDENTATION_DEPTH: usize = 4;
+
+pub trait Indent: Display {
+    fn indent(&self, depth: usize) -> String {
+        let indentation = " ".repeat(depth);
+        self.to_string()
+            .lines()
+            .map(|line| indentation.clone() + line)
+            .join("\n")
+    }
+}
+
+impl Indent for SVG {}
+impl Indent for SVGElement {}
+impl Indent for Title {}
+impl Indent for Group {}
+impl Indent for Circle {}
+impl Indent for Line {}
+impl Indent for Path {}
 
 pub struct SVG {
     pub size: f32,
@@ -37,13 +55,7 @@ impl Display for SVG {
         let content = self
             .elements
             .iter()
-            .map(|element| {
-                element
-                    .to_string()
-                    .lines()
-                    .map(|line| INDENTATION.to_string() + line)
-                    .join("\n")
-            })
+            .map(|element| element.indent(DEFAULT_INDENTATION_DEPTH))
             .join("\n");
 
         let footer = "</svg>";
@@ -180,13 +192,7 @@ impl Display for Group {
         let content = self
             .elements
             .iter()
-            .map(ToString::to_string)
-            .map(|element| {
-                element
-                    .lines()
-                    .map(|line| INDENTATION.to_string() + line)
-                    .join("\n")
-            })
+            .map(|element| element.indent(DEFAULT_INDENTATION_DEPTH))
             .join("\n");
 
         write!(
