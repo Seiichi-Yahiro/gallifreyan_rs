@@ -1,3 +1,4 @@
+use super::Indent;
 use bevy::prelude::{FromReflect, Reflect, Vec2};
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use bevy_prototype_lyon::prelude::Geometry;
@@ -25,3 +26,5 @@ impl Geometry for Line {
         shapes::Line(self.from, self.to).add_geometry(b);
     }
 }
+
+impl Indent for Line {}

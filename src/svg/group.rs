@@ -58,3 +58,5 @@ impl Geometry for Group {
         }
     }
 }
+
+impl Indent for Group {}

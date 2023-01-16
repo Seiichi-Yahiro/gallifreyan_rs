@@ -1,3 +1,4 @@
+use super::Indent;
 use bevy::prelude::{FromReflect, Reflect, Vec2};
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use bevy_prototype_lyon::prelude::Geometry;
@@ -76,3 +77,5 @@ impl Display for PathElement {
         }
     }
 }
+
+impl Indent for Path {}

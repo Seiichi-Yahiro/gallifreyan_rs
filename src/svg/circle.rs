@@ -1,3 +1,4 @@
+use super::Indent;
 use bevy::prelude::{FromReflect, Reflect};
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use bevy_prototype_lyon::prelude::Geometry;
@@ -30,3 +31,5 @@ impl Geometry for Circle {
         .add_geometry(b);
     }
 }
+
+impl Indent for Circle {}

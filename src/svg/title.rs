@@ -1,3 +1,4 @@
+use super::Indent;
 use bevy::prelude::{FromReflect, Reflect};
 use std::fmt::{Display, Formatter};
 
@@ -11,3 +12,5 @@ impl Display for Title {
         write!(f, "<title>{}</title>", self.text)
     }
 }
+
+impl Indent for Title {}

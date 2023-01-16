@@ -12,7 +12,7 @@ pub use title::*;
 
 use bevy::log::error;
 use bevy::math::{Affine2, Mat2};
-use bevy::prelude::{Color, Component, FromReflect, Reflect, ReflectComponent, Transform};
+use bevy::prelude::{Component, FromReflect, Reflect, ReflectComponent, Transform};
 use bevy_prototype_lyon::geometry::Geometry;
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use itertools::Itertools;
@@ -33,11 +33,6 @@ pub trait Indent: Display {
 
 impl Indent for SVG {}
 impl Indent for SVGElement {}
-impl Indent for Title {}
-impl Indent for Group {}
-impl Indent for Circle {}
-impl Indent for Line {}
-impl Indent for Path {}
 
 pub struct SVG {
     pub size: f32,
