@@ -41,6 +41,19 @@ pub struct SVG {
     pub elements: Vec<SVGElement>,
 }
 
+impl SVG {
+    pub fn new(size: f32) -> Self {
+        Self {
+            size,
+            elements: Vec::new(),
+        }
+    }
+
+    pub fn push(&mut self, element: impl Into<SVGElement>) {
+        self.elements.push(element.into());
+    }
+}
+
 impl Display for SVG {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let document_declaration = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
