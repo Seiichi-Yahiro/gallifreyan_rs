@@ -126,6 +126,19 @@ impl ToCSSString for Option<Color> {
     }
 }
 
+#[derive(Debug, Clone, Default, Reflect, FromReflect)]
+pub struct Class(pub String);
+
+impl Display for Class {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if self.0.is_empty() {
+            write!(f, "")
+        } else {
+            write!(f, "class=\"{}\"", self.0)
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

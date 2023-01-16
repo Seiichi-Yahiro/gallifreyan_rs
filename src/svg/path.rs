@@ -1,4 +1,5 @@
 use super::Indent;
+use crate::svg::Class;
 use bevy::prelude::{FromReflect, Reflect, Vec2};
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use bevy_prototype_lyon::prelude::Geometry;
@@ -7,29 +8,38 @@ use itertools::Itertools;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Default, Clone, Reflect, FromReflect)]
-pub struct Path(pub Vec<PathElement>);
+pub struct Path {
+    pub elements: Vec<PathElement>,
+    pub class: Class,
+}
 
 impl Path {
     pub fn new() -> Self {
-        Self(Vec::new())
+        Self {
+            elements: Vec::new(),
+            class: Class::default(),
+        }
     }
 
     pub fn push(&mut self, element: PathElement) {
-        self.0.push(element);
+        self.elements.push(element);
     }
 }
 
 impl From<Vec<PathElement>> for Path {
     fn from(value: Vec<PathElement>) -> Self {
-        Self(value)
+        Self {
+            elements: value,
+            class: Class::default(),
+        }
     }
 }
 
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let path = self.0.iter().map(ToString::to_string).join(" ");
+        let path = self.elements.iter().map(ToString::to_string).join(" ");
 
-        write!(f, "<path d=\"{}\" />", path)
+        write!(f, "<path d=\"{}\" {}/>", path, self.class)
     }
 }
 

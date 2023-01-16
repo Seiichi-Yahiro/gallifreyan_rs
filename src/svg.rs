@@ -100,6 +100,23 @@ pub enum SVGElement {
     Style(Style),
 }
 
+impl SVGElement {
+    pub fn set_class(&mut self, class: Class) {
+        match self {
+            Self::Circle(ref mut circle) => {
+                circle.class = class;
+            }
+            Self::Line(ref mut line) => {
+                line.class = class;
+            }
+            Self::Path(ref mut path) => {
+                path.class = class;
+            }
+            _ => {}
+        }
+    }
+}
+
 impl Default for SVGElement {
     fn default() -> Self {
         Self::Group(Group::default())
@@ -216,21 +233,28 @@ mod test {
     fn should_create_simple_svg() {
         let title = Title("TITLE".to_string());
 
-        let circle = Circle { radius: 1.0 };
+        let circle = Circle {
+            radius: 1.0,
+            class: Class("test-class".to_string()),
+        };
 
         let line = Line {
             from: Vec2::ZERO,
             to: Vec2::ONE,
+            class: Class::default(),
         };
 
-        let path = Path(vec![
-            PathElement::MoveTo(Vec2::ZERO),
-            PathElement::Arc {
-                radius: 10.0,
-                large_arc: false,
-                end: Vec2::ONE,
-            },
-        ]);
+        let path = Path {
+            elements: vec![
+                PathElement::MoveTo(Vec2::ZERO),
+                PathElement::Arc {
+                    radius: 10.0,
+                    large_arc: false,
+                    end: Vec2::ONE,
+                },
+            ],
+            class: Class::default(),
+        };
 
         let group1 = Group {
             elements: vec![circle.into(), line.into()],
@@ -258,8 +282,8 @@ mod test {
     <title>TITLE</title>
     <g transform="matrix(1 0 0 1 0 0)">
         <g transform="matrix(1 0 0 1 0 0)">
-            <circle cx="0" cy="0" r="1" />
-            <line x1="0" y1="0" x2="1" y2="1"/>
+            <circle cx="0" cy="0" r="1" class="test-class"/>
+            <line x1="0" y1="0" x2="1" y2="1" />
         </g>
         <path d="M 0 0 A 10 10 0 0 1 1 1" />
     </g>
