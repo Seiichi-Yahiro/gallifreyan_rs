@@ -201,9 +201,7 @@ mod test {
 
     #[test]
     fn should_create_simple_svg() {
-        let title = Title {
-            text: "TITLE".to_string(),
-        };
+        let title = Title("TITLE".to_string());
 
         let circle = Circle { radius: 1.0 };
 
