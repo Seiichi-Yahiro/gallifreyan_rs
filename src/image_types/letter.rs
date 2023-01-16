@@ -5,6 +5,7 @@ use crate::image_types::{
     new_stroke_mode, CircleChildren, LineSlotChildren, PositionData, Radius, Text,
 };
 use crate::style::Styles;
+use crate::svg;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
 use bevy::utils::HashSet;
@@ -112,6 +113,7 @@ pub struct LetterBundle {
     pub line_slots: LineSlotChildren,
     pub interaction: Interaction,
     pub nested_letter: NestedLetter,
+    pub svg_element: svg::SVGElement,
 }
 
 impl LetterBundle {
@@ -131,6 +133,7 @@ impl LetterBundle {
             line_slots: Default::default(),
             interaction: Interaction::default(),
             nested_letter: NestedLetter::default(),
+            svg_element: svg::SVGElement::Circle(svg::Circle::default()),
         }
     }
 }

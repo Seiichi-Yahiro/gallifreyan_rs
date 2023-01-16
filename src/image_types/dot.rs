@@ -5,6 +5,7 @@ use crate::svg_view::Interaction;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::DrawMode;
+use crate::svg;
 
 #[derive(Debug, Copy, Clone, Default, Component, Reflect)]
 #[reflect(Component)]
@@ -45,6 +46,7 @@ pub struct DotBundle {
     pub radius: Radius,
     pub position_data: PositionData,
     pub interaction: Interaction,
+    pub svg_element: svg::SVGElement,
 }
 
 impl DotBundle {
@@ -54,6 +56,7 @@ impl DotBundle {
             radius: Radius(Dot::radius(consonant_radius)),
             position_data: Dot::position_data(consonant_radius, number_of_dots, index),
             interaction: Interaction::default(),
+            svg_element: svg::SVGElement::Circle(svg::Circle::default())
         }
     }
 }

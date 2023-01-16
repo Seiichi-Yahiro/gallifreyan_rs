@@ -2,8 +2,10 @@ use crate::image_types::{
     AnglePlacement, CircleChildren, Dot, Letter, LineSlot, NestedVocal,
     NestedVocalPositionCorrection, PositionData, Radius, Sentence, Word, OUTER_CIRCLE_SIZE,
 };
+use crate::math;
 use crate::math::angle::{Angle, Radian};
-use crate::math::{Circle, Intersection, IntersectionResult};
+use crate::math::{Intersection, IntersectionResult};
+use crate::svg;
 use bevy::prelude::*;
 use bevy::utils::HashSet;
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
@@ -14,19 +16,20 @@ pub struct DrawPlugin;
 
 impl Plugin for DrawPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(update_position_data)
+        app.add_system(update_transform)
             .add_system(
-                correct_nested_vocal_with_outside_placement_position.before(update_position_data),
+                correct_nested_vocal_with_outside_placement_position.before(update_transform),
             )
-            .add_system(draw_sentence)
-            .add_system(draw_word_and_letter.after(update_position_data))
-            .add_system(draw_nested_vocal)
-            .add_system(draw_line_slot.after(update_position_data))
-            .add_system(draw_dots);
+            .add_system(draw_sentence.before(draw))
+            .add_system(draw_word_and_letter.after(update_transform).before(draw))
+            .add_system(draw_nested_vocal.before(draw))
+            .add_system(draw_line_slot.after(update_transform).before(draw))
+            .add_system(draw_dots)
+            .add_system(draw);
     }
 }
 
-fn update_position_data(mut query: Query<(&mut Transform, &PositionData), Changed<PositionData>>) {
+fn update_transform(mut query: Query<(&mut Transform, &PositionData), Changed<PositionData>>) {
     for (mut transform, position_data) in query.iter_mut() {
         let translation = Vec3::new(0.0, -position_data.distance, transform.translation.z);
         let rotation = Quat::from_rotation_z(position_data.angle.to_radians().inner());
@@ -57,25 +60,30 @@ fn correct_nested_vocal_with_outside_placement_position(
     }
 }
 
-fn draw_sentence(mut query: Query<(&mut Path, &Radius), (Changed<Radius>, With<Sentence>)>) {
-    for (mut path, radius) in query.iter_mut() {
+fn draw(mut query: Query<(&svg::SVGElement, &mut Path), Changed<svg::SVGElement>>) {
+    for (svg_element, mut path) in query.iter_mut() {
+        let mut path_builder = Builder::new();
+        svg_element.add_geometry(&mut path_builder);
+        *path = Path(path_builder.build());
+    }
+}
+
+fn draw_sentence(
+    mut query: Query<(&mut svg::SVGElement, &Radius), (Changed<Radius>, With<Sentence>)>,
+) {
+    for (mut svg_element, radius) in query.iter_mut() {
         debug!("Redraw sentence");
         let radius = **radius;
 
-        let outer_circle = shapes::Circle {
-            radius: radius + OUTER_CIRCLE_SIZE,
-            center: Default::default(),
-        };
+        let mut group = svg::Group::new();
 
-        let inner_circle = shapes::Circle {
-            radius,
-            center: Default::default(),
-        };
+        let outer_circle = svg::Circle::new(radius + OUTER_CIRCLE_SIZE);
+        let inner_circle = svg::Circle::new(radius);
 
-        let mut path_builder = Builder::new();
-        outer_circle.add_geometry(&mut path_builder);
-        inner_circle.add_geometry(&mut path_builder);
-        *path = Path(path_builder.build());
+        group.push(outer_circle);
+        group.push(inner_circle);
+
+        *svg_element = svg::SVGElement::Group(group);
     }
 }
 
@@ -88,9 +96,18 @@ fn draw_word_and_letter(
             Without<NestedVocal>,
         ),
     >,
-    mut word_query: Query<(&Radius, &CircleChildren, &mut Path), (With<Word>, Without<Letter>)>,
+    mut word_query: Query<
+        (&Radius, &CircleChildren, &mut svg::SVGElement),
+        (With<Word>, Without<Letter>),
+    >,
     mut letter_query: Query<
-        (&Letter, &Radius, &PositionData, &Transform, &mut Path),
+        (
+            &Letter,
+            &Radius,
+            &PositionData,
+            &Transform,
+            &mut svg::SVGElement,
+        ),
         Without<Word>,
     >,
 ) {
@@ -102,10 +119,10 @@ fn draw_word_and_letter(
 
     let mut word_iter = word_query.iter_many_mut(words.iter());
 
-    while let Some((word_radius, letters, mut word_path)) = word_iter.fetch_next() {
+    while let Some((word_radius, letters, mut word_svg_element)) = word_iter.fetch_next() {
         debug!("Redraw word");
 
-        let word_circle = Circle {
+        let word_circle = math::Circle {
             radius: **word_radius,
             position: Vec2::ZERO,
         };
@@ -119,13 +136,13 @@ fn draw_word_and_letter(
             letter_radius,
             letter_position_data,
             letter_transform,
-            mut letter_path,
+            mut letter_svg_element,
         )) = letter_iter.fetch_next()
         {
             debug!("Redraw letter: {:?}", letter);
 
             if letter.is_cutting() {
-                let letter_circle = Circle {
+                let letter_circle = math::Circle {
                     radius: **letter_radius,
                     position: letter_transform.translation.truncate(),
                 };
@@ -143,32 +160,58 @@ fn draw_word_and_letter(
                                 .rotate(pos)
                         });
 
-                    *letter_path = generate_letter_path(**letter_radius, letter_intersections);
+                    *letter_svg_element =
+                        generate_letter_path(**letter_radius, letter_intersections).into();
                 } else {
                     error!("{:?} should intersect with word but it doesn't!", letter);
-                    *letter_path = generate_circle_path(**letter_radius);
+                    *letter_svg_element = svg::Circle::new(**letter_radius).into();
                 }
             } else {
-                *letter_path = generate_circle_path(**letter_radius);
+                *letter_svg_element = svg::Circle::new(**letter_radius).into();
             }
         }
 
-        *word_path = if word_intersections.is_empty() {
-            generate_circle_path(**word_radius)
+        *word_svg_element = if word_intersections.is_empty() {
+            svg::Circle::new(**word_radius).into()
         } else {
-            generate_word_path(**word_radius, word_intersections)
+            generate_word_path(**word_radius, word_intersections).into()
         };
     }
 }
 
-fn draw_nested_vocal(mut query: Query<(&Radius, &mut Path), (With<NestedVocal>, Changed<Radius>)>) {
-    for (radius, mut path) in query.iter_mut() {
+fn draw_nested_vocal(
+    mut query: Query<(&Radius, &mut svg::SVGElement), (With<NestedVocal>, Changed<Radius>)>,
+) {
+    for (radius, mut svg_element) in query.iter_mut() {
         debug!("Redraw nested vocal");
-        *path = generate_circle_path(**radius);
+
+        *svg_element = svg::Circle::new(**radius).into();
     }
 }
 
-fn sort_intersections_by_angle(c1: Circle, c2: Circle, a: Vec2, b: Vec2) -> [Vec2; 2] {
+fn draw_dots(mut query: Query<(&mut svg::SVGElement, &Radius), (Changed<Radius>, With<Dot>)>) {
+    for (mut svg_element, radius) in query.iter_mut() {
+        debug!("Redraw dot");
+
+        *svg_element = svg::Circle::new(**radius).into();
+    }
+}
+
+fn draw_line_slot(
+    mut query: Query<(&mut svg::SVGElement, &Transform), (With<LineSlot>, Changed<PositionData>)>,
+) {
+    for (mut svg_element, transform) in query.iter_mut() {
+        debug!("Redraw line_slot");
+
+        *svg_element = svg::Line::new(
+            Vec2::ZERO,
+            transform.translation.truncate().normalize_or_zero() * 10.0,
+        )
+        .into();
+    }
+}
+
+fn sort_intersections_by_angle(c1: math::Circle, c2: math::Circle, a: Vec2, b: Vec2) -> [Vec2; 2] {
     let angle_a = Radian::angle_from_vec(a).to_degrees().normalize();
     let angle_b = Radian::angle_from_vec(b).to_degrees().normalize();
 
@@ -183,94 +226,53 @@ fn sort_intersections_by_angle(c1: Circle, c2: Circle, a: Vec2, b: Vec2) -> [Vec
     }
 }
 
-fn generate_circle_path(radius: f32) -> Path {
-    let circle = shapes::Circle {
-        radius,
-        center: Default::default(),
-    };
-
-    generate_path_from_geometry(circle)
-}
-
-fn generate_arc_path_string(radius: f32, [start, end]: [Vec2; 2]) -> String {
+fn generate_arc_path(radius: f32, [start, end]: [Vec2; 2]) -> svg::Path {
     let start_angle = Radian::angle_from_vec(start).to_degrees().normalize();
     let end_angle = Radian::angle_from_vec(end).to_degrees().normalize();
 
     let is_large_arc = (end_angle - start_angle).inner().abs() > 180.0;
-    let large_arc_flag = i32::from(!(is_large_arc ^ (start_angle < end_angle)));
+    let large_arc_flag = !(is_large_arc ^ (start_angle < end_angle));
 
-    let sweep = 1;
+    let mut path = svg::Path::new();
 
-    format!(
-        "M {} {} A {} {} 0 {} {} {} {}",
-        start.x, -start.y, radius, radius, large_arc_flag, sweep, end.x, -end.y
-    )
+    path.push(svg::PathElement::MoveTo(Vec2::new(start.x, -start.y)));
+    path.push(svg::PathElement::Arc {
+        radius,
+        large_arc: large_arc_flag,
+        end: Vec2::new(end.x, -end.y),
+    });
+
+    path
 }
 
-fn generate_word_path(word_radius: f32, intersections: Vec<Vec2>) -> Path {
-    let svg_path_string = intersections
+fn generate_word_path(word_radius: f32, intersections: Vec<Vec2>) -> svg::Path {
+    intersections
         .into_iter()
         .circular_tuple_windows::<(_, _)>()
         .skip(1)
         .step_by(2)
-        .map(|(start, end)| generate_arc_path_string(word_radius, [start, end]))
-        .join(" ");
-
-    let path_shape = shapes::SvgPathShape {
-        svg_doc_size_in_px: Default::default(),
-        svg_path_string,
-    };
-
-    generate_path_from_geometry(path_shape)
+        .flat_map(|(start, end)| generate_arc_path(word_radius, [start, end]).elements)
+        .collect::<Vec<_>>()
+        .into()
 }
 
-fn generate_path_from_geometry(geometry: impl Geometry) -> Path {
-    let mut path_builder = Builder::new();
-    geometry.add_geometry(&mut path_builder);
-    Path(path_builder.build())
-}
-
-fn generate_letter_path(letter_radius: f32, [end, start]: [Vec2; 2]) -> Path {
-    let svg_path_string = generate_arc_path_string(letter_radius, [start, end]);
-
-    let path_shape = shapes::SvgPathShape {
-        svg_doc_size_in_px: Default::default(),
-        svg_path_string,
-    };
-
-    generate_path_from_geometry(path_shape)
-}
-
-fn draw_dots(mut query: Query<(&mut Path, &Radius), (Changed<Radius>, With<Dot>)>) {
-    for (mut path, radius) in query.iter_mut() {
-        debug!("Redraw dot");
-        *path = generate_circle_path(**radius);
-    }
-}
-
-fn draw_line_slot(
-    mut query: Query<(&mut Path, &Transform), (With<LineSlot>, Changed<PositionData>)>,
-) {
-    for (mut path, transform) in query.iter_mut() {
-        debug!("Redraw line_slot");
-        let end = transform.translation.truncate().normalize_or_zero() * 10.0;
-        let line = shapes::Line(Vec2::ZERO, end);
-        *path = generate_path_from_geometry(line);
-    }
+fn generate_letter_path(letter_radius: f32, [end, start]: [Vec2; 2]) -> svg::Path {
+    generate_arc_path(letter_radius, [start, end])
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::svg::PathElement;
 
     #[test]
     fn should_not_swap_intersections_for_non_overlapping_origin() {
-        let c1 = Circle {
+        let c1 = math::Circle {
             radius: 10.0,
             position: Default::default(),
         };
 
-        let c2 = Circle {
+        let c2 = math::Circle {
             radius: 5.0,
             position: Vec2::new(c1.radius, 0.0),
         };
@@ -285,12 +287,12 @@ mod test {
 
     #[test]
     fn should_swap_intersections_for_non_overlapping_origin() {
-        let c1 = Circle {
+        let c1 = math::Circle {
             radius: 10.0,
             position: Default::default(),
         };
 
-        let c2 = Circle {
+        let c2 = math::Circle {
             radius: 5.0,
             position: Vec2::new(c1.radius, 0.0),
         };
@@ -305,12 +307,12 @@ mod test {
 
     #[test]
     fn should_not_swap_intersections_for_overlapping_origin() {
-        let c1 = Circle {
+        let c1 = math::Circle {
             radius: 10.0,
             position: Default::default(),
         };
 
-        let c2 = Circle {
+        let c2 = math::Circle {
             radius: 5.0,
             position: Vec2::new(0.0, -c1.radius),
         };
@@ -325,12 +327,12 @@ mod test {
 
     #[test]
     fn should_swap_intersections_for_overlapping_origin() {
-        let c1 = Circle {
+        let c1 = math::Circle {
             radius: 10.0,
             position: Default::default(),
         };
 
-        let c2 = Circle {
+        let c2 = math::Circle {
             radius: 5.0,
             position: Vec2::new(0.0, -c1.radius),
         };
@@ -349,10 +351,13 @@ mod test {
         let a = Vec2::new(r, 0.0);
         let b = Vec2::new(0.0, r);
 
-        let result = generate_arc_path_string(r, [a, b]);
-        let expected = "M 5 -0 A 5 5 0 0 1 0 -5";
+        let result = generate_arc_path(r, [a, b]).elements[1];
 
-        assert_eq!(result, expected);
+        if let PathElement::Arc { large_arc, .. } = result {
+            assert!(!large_arc);
+        } else {
+            panic!("Wasn't an arc!");
+        }
     }
 
     #[test]
@@ -361,10 +366,13 @@ mod test {
         let a = Vec2::new(r, 0.0);
         let b = Vec2::new(-r, -0.5);
 
-        let result = generate_arc_path_string(r, [a, b]);
-        let expected = "M 5 -0 A 5 5 0 1 1 -5 0.5";
+        let result = generate_arc_path(r, [a, b]).elements[1];
 
-        assert_eq!(result, expected);
+        if let PathElement::Arc { large_arc, .. } = result {
+            assert!(large_arc);
+        } else {
+            panic!("Wasn't an arc!");
+        }
     }
 
     #[test]
@@ -373,10 +381,13 @@ mod test {
         let a = Vec2::new(-r, -0.5);
         let b = Vec2::new(r, -0.5);
 
-        let result = generate_arc_path_string(r, [a, b]);
-        let expected = "M -5 0.5 A 5 5 0 0 1 5 0.5";
+        let result = generate_arc_path(r, [a, b]).elements[1];
 
-        assert_eq!(result, expected);
+        if let PathElement::Arc { large_arc, .. } = result {
+            assert!(!large_arc);
+        } else {
+            panic!("Wasn't an arc!");
+        }
     }
 
     #[test]
@@ -385,9 +396,12 @@ mod test {
         let a = Vec2::new(-r, 0.0);
         let b = Vec2::new(0.0, r);
 
-        let result = generate_arc_path_string(r, [a, b]);
-        let expected = "M -5 -0 A 5 5 0 1 1 0 -5";
+        let result = generate_arc_path(r, [a, b]).elements[1];
 
-        assert_eq!(result, expected);
+        if let PathElement::Arc { large_arc, .. } = result {
+            assert!(large_arc);
+        } else {
+            panic!("Wasn't an arc!");
+        }
     }
 }

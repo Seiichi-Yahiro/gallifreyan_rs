@@ -8,6 +8,7 @@ use crate::svg_view::Interaction;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::DrawMode;
+use crate::svg;
 
 pub const OUTER_CIRCLE_SIZE: f32 = 10.0;
 
@@ -38,6 +39,7 @@ pub struct SentenceBundle {
     pub words: CircleChildren,
     pub line_slots: LineSlotChildren,
     pub interaction: Interaction,
+    pub svg_element: svg::SVGElement
 }
 
 impl SentenceBundle {
@@ -50,6 +52,7 @@ impl SentenceBundle {
             words: CircleChildren::default(),
             line_slots: LineSlotChildren::default(),
             interaction: Interaction::default(),
+            svg_element: svg::SVGElement::Group(svg::Group::new())
         }
     }
 }

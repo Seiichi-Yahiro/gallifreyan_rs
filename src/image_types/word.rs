@@ -7,6 +7,7 @@ use crate::svg_view::Interaction;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::DrawMode;
+use crate::svg;
 
 #[derive(Debug, Copy, Clone, Default, Component, Reflect)]
 #[reflect(Component)]
@@ -43,6 +44,7 @@ pub struct WordBundle {
     pub letters: CircleChildren,
     pub line_slots: LineSlotChildren,
     pub interaction: Interaction,
+    pub svg_element: svg::SVGElement,
 }
 
 impl WordBundle {
@@ -55,6 +57,7 @@ impl WordBundle {
             letters: CircleChildren::default(),
             line_slots: LineSlotChildren::default(),
             interaction: Interaction::default(),
+            svg_element: svg::SVGElement::Circle(svg::Circle::default())
         }
     }
 }

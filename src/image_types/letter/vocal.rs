@@ -3,6 +3,7 @@ use crate::image_types::{
     AnglePlacement, Letter, LetterBundle, NestedLetter, PositionData, Radius, Text,
 };
 use crate::math::angle::Degree;
+use crate::svg;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
 use strum_macros::EnumIter;
@@ -166,6 +167,7 @@ impl NestedVocalBundle {
                 line_slots: Default::default(),
                 interaction: Interaction::default(),
                 nested_letter: NestedLetter::default(),
+                svg_element: svg::SVGElement::Circle(svg::Circle::default()),
             },
             nested_vocal: NestedVocal,
         }

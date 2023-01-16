@@ -1,6 +1,7 @@
 use crate::image_types::{new_stroke_mode, AnglePlacement, PositionData};
 use crate::math::angle::Degree;
 use crate::style::Styles;
+use crate::svg;
 use crate::svg_view::Interaction;
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
@@ -40,6 +41,7 @@ pub struct LineSlotBundle {
     pub line_slot: LineSlot,
     pub position_data: PositionData,
     pub interaction: Interaction,
+    pub svg_element: svg::SVGElement,
 }
 
 impl LineSlotBundle {
@@ -58,6 +60,7 @@ impl LineSlotBundle {
                 point_outside,
             ),
             interaction: Interaction::default(),
+            svg_element: svg::SVGElement::Line(svg::Line::default()),
         }
     }
 }
