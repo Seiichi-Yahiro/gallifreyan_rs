@@ -1,9 +1,20 @@
+mod circle;
+mod group;
+mod line;
+mod path;
+mod title;
+
+pub use circle::*;
+pub use group::*;
+pub use line::*;
+pub use path::*;
+pub use title::*;
+
 use bevy::log::error;
-use bevy::math::{Affine2, Mat2, Vec2};
+use bevy::math::{Affine2, Mat2};
 use bevy::prelude::{Color, Component, FromReflect, Reflect, ReflectComponent, Transform};
 use bevy_prototype_lyon::geometry::Geometry;
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
-use bevy_prototype_lyon::shapes;
 use itertools::Itertools;
 use std::fmt::{Display, Formatter};
 use std::ops::Add;
@@ -148,228 +159,6 @@ impl Display for SVGElement {
     }
 }
 
-#[derive(Debug, Default, Clone, Reflect, FromReflect)]
-pub struct Title {
-    text: String,
-}
-
-impl Display for Title {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<title>{}</title>", self.text)
-    }
-}
-
-#[derive(Debug, Default, Clone, Reflect, FromReflect)]
-pub struct Group {
-    pub elements: Vec<SVGElement>,
-    pub affine2: Affine2,
-}
-
-impl Group {
-    pub fn new() -> Self {
-        Self {
-            elements: Vec::new(),
-            affine2: Affine2::IDENTITY,
-        }
-    }
-
-    pub fn push(&mut self, element: impl Into<SVGElement>) {
-        self.elements.push(element.into());
-    }
-}
-
-impl From<Vec<SVGElement>> for Group {
-    fn from(value: Vec<SVGElement>) -> Self {
-        Self {
-            elements: value,
-            affine2: Affine2::IDENTITY,
-        }
-    }
-}
-
-impl Display for Group {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let content = self
-            .elements
-            .iter()
-            .map(|element| element.indent(DEFAULT_INDENTATION_DEPTH))
-            .join("\n");
-
-        write!(
-            f,
-            "<g transform=\"{}\">\n{}\n</g>",
-            self.affine2.to_css_string(),
-            content
-        )
-    }
-}
-
-impl Geometry for Group {
-    fn add_geometry(&self, b: &mut Builder) {
-        for element in &self.elements {
-            element.add_geometry(b);
-        }
-    }
-}
-
-#[derive(Debug, Default, Copy, Clone, Reflect, FromReflect)]
-pub struct Circle {
-    pub radius: f32,
-}
-
-impl Circle {
-    pub fn new(radius: f32) -> Self {
-        Self { radius }
-    }
-}
-
-impl Display for Circle {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<circle cx=\"0\" cy=\"0\" r=\"{}\" />", self.radius)
-    }
-}
-
-impl Geometry for Circle {
-    fn add_geometry(&self, b: &mut Builder) {
-        shapes::Circle {
-            radius: self.radius,
-            center: Default::default(),
-        }
-        .add_geometry(b);
-    }
-}
-
-#[derive(Debug, Default, Copy, Clone, Reflect, FromReflect)]
-pub struct Line {
-    pub from: Vec2,
-    pub to: Vec2,
-}
-
-impl Display for Line {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\"/>",
-            self.from.x, self.from.y, self.to.x, self.to.y
-        )
-    }
-}
-
-impl Geometry for Line {
-    fn add_geometry(&self, b: &mut Builder) {
-        shapes::Line(self.from, self.to).add_geometry(b);
-    }
-}
-
-#[derive(Debug, Default, Clone, Reflect, FromReflect)]
-pub struct Path(pub Vec<PathElement>);
-
-impl Path {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn push(&mut self, element: PathElement) {
-        self.0.push(element);
-    }
-}
-
-impl From<Vec<PathElement>> for Path {
-    fn from(value: Vec<PathElement>) -> Self {
-        Self(value)
-    }
-}
-
-impl Display for Path {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let path = self.0.iter().map(ToString::to_string).join(" ");
-
-        write!(f, "<path d=\"{}\" />", path)
-    }
-}
-
-impl Geometry for Path {
-    fn add_geometry(&self, b: &mut Builder) {
-        shapes::SvgPathShape {
-            svg_doc_size_in_px: Default::default(),
-            svg_path_string: self.to_string(),
-        }
-        .add_geometry(b);
-    }
-}
-
-#[derive(Debug, Copy, Clone, Reflect, FromReflect)]
-pub enum PathElement {
-    MoveTo(Vec2),
-    Arc {
-        radius: f32,
-        large_arc: bool,
-        end: Vec2,
-    },
-}
-
-impl Display for PathElement {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PathElement::MoveTo(pos) => {
-                write!(f, "M {} {}", pos.x, pos.y)
-            }
-            PathElement::Arc {
-                radius,
-                large_arc,
-                end,
-            } => {
-                write!(
-                    f,
-                    "A {} {} 0 {} 1 {} {}",
-                    radius,
-                    radius,
-                    i32::from(*large_arc),
-                    end.x,
-                    end.y
-                )
-            }
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, Reflect, FromReflect)]
-pub enum DrawMode {
-    Fill(Color),
-    Stroke(Color),
-}
-
-impl Default for DrawMode {
-    fn default() -> Self {
-        Self::Stroke(Color::BLACK)
-    }
-}
-
-/*impl Display for DrawMode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            DrawMode::Fill(color) => {
-                write!(
-                    f,
-                    "stroke=\"none\" fill=\"rgb({}, {}, {})\"",
-                    color.r() * 255.0,
-                    color.g() * 255.0,
-                    color.b() * 255.0
-                )
-            }
-            DrawMode::Stroke(color) => {
-                write!(
-                    f,
-                    "stroke=\"rgb({}, {}, {})\" fill=\"none\"",
-                    color.r() * 255.0,
-                    color.g() * 255.0,
-                    color.b() * 255.0
-                )
-            }
-        }
-    }
-}*/
-
 pub trait ToAffine2 {
     fn to_affine2(&self) -> Affine2;
 }
@@ -400,6 +189,7 @@ impl ToCSSString for Affine2 {
 #[cfg(test)]
 mod test {
     use super::*;
+    use bevy::prelude::Vec2;
 
     #[test]
     fn should_create_simple_svg() {
