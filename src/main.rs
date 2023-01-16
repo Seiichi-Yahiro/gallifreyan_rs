@@ -8,7 +8,6 @@ mod selection;
 mod sidebar;
 mod style;
 mod svg;
-mod svg_builder;
 mod svg_view;
 mod ui;
 mod update_if_changed;
