@@ -24,6 +24,10 @@ impl Path {
     pub fn push(&mut self, element: PathElement) {
         self.elements.push(element);
     }
+
+    pub fn path(&self) -> String {
+        self.elements.iter().map(ToString::to_string).join(" ")
+    }
 }
 
 impl From<Vec<PathElement>> for Path {
@@ -37,9 +41,7 @@ impl From<Vec<PathElement>> for Path {
 
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let path = self.elements.iter().map(ToString::to_string).join(" ");
-
-        write!(f, "<path d=\"{}\" {}/>", path, self.class)
+        write!(f, "<path d=\"{}\" {}/>", self.path(), self.class)
     }
 }
 
@@ -47,7 +49,7 @@ impl Geometry for Path {
     fn add_geometry(&self, b: &mut Builder) {
         shapes::SvgPathShape {
             svg_doc_size_in_px: Default::default(),
-            svg_path_string: self.to_string(),
+            svg_path_string: self.path(),
         }
         .add_geometry(b);
     }
