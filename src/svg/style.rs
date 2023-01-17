@@ -90,6 +90,7 @@ pub enum CSSRule {
     Stroke(Option<Color>),
     Fill(Option<Color>),
     StrokeWidth(f32),
+    StrokeLineCap(StrokeLineCap),
 }
 
 impl Display for CSSRule {
@@ -103,6 +104,32 @@ impl Display for CSSRule {
             }
             CSSRule::StrokeWidth(width) => {
                 write!(f, "stroke-width: {};", width)
+            }
+            CSSRule::StrokeLineCap(cap) => {
+                write!(f, "stroke-linecap: {};", cap)
+            }
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Reflect, FromReflect)]
+pub enum StrokeLineCap {
+    Butt,
+    Round,
+    Square,
+}
+
+impl Display for StrokeLineCap {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StrokeLineCap::Butt => {
+                write!(f, "butt")
+            }
+            StrokeLineCap::Round => {
+                write!(f, "round")
+            }
+            StrokeLineCap::Square => {
+                write!(f, "square")
             }
         }
     }
@@ -157,6 +184,9 @@ mod test {
         style_rule_1.rules.push(CSSRule::Fill(None));
         style_rule_1.rules.push(CSSRule::Stroke(Some(Color::PINK)));
         style_rule_1.rules.push(CSSRule::StrokeWidth(2.0));
+        style_rule_1
+            .rules
+            .push(CSSRule::StrokeLineCap(StrokeLineCap::Round));
 
         let mut style_rule_2 = StyleRule::new();
         style_rule_2
@@ -177,6 +207,7 @@ mod test {
         fill: none;
         stroke: rgb(255, 20.4, 147.9);
         stroke-width: 2;
+        stroke-linecap: round;
     }
 
     .foo {

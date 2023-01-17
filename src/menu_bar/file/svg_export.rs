@@ -1,6 +1,7 @@
 use crate::image_types::{LineSlot, Sentence, Text, SVG_SIZE};
 use crate::svg::{
-    CSSRule, Class, Group, SVGElement, Selector, Style, StyleRule, Title, ToAffine2, SVG,
+    CSSRule, Class, Group, SVGElement, Selector, StrokeLineCap, Style, StyleRule, Title, ToAffine2,
+    SVG,
 };
 use bevy::ecs::query::QuerySingleError;
 use bevy::ecs::system::SystemParam;
@@ -49,6 +50,9 @@ pub fn convert_to_svg(svg_queries: SVGQueries) -> Result<SVG, QuerySingleError> 
                 stroke_rule.rules.push(CSSRule::Stroke(Some(Color::BLACK)));
                 stroke_rule.rules.push(CSSRule::Fill(None));
                 stroke_rule.rules.push(CSSRule::StrokeWidth(1.0));
+                stroke_rule
+                    .rules
+                    .push(CSSRule::StrokeLineCap(StrokeLineCap::Round));
 
                 style.push(stroke_rule);
 
@@ -68,7 +72,7 @@ pub fn convert_to_svg(svg_queries: SVGQueries) -> Result<SVG, QuerySingleError> 
 
             let mut group = Group::new();
 
-            // mirror along y-axis
+            // mirror along y-axis because svg uses a mirrored y-axis
             group.affine2 = Affine2 {
                 translation: Vec2::ZERO,
                 matrix2: Mat2::from_cols(Vec2::X, Vec2::NEG_Y),
