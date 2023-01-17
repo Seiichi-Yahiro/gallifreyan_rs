@@ -63,7 +63,16 @@ impl From<Vec<PathElement>> for Path {
 
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<path d=\"{}\" {}/>", self.path(true), self.class)
+        let attributes = [
+            format!("d=\"{}\"", self.path(true)),
+            format!("{}", self.class),
+        ];
+
+        write!(
+            f,
+            "<path {}/>",
+            attributes.into_iter().filter(|it| !it.is_empty()).join(" ")
+        )
     }
 }
 
@@ -113,3 +122,43 @@ impl Display for PathElement {
 }
 
 impl Indent for Path {}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn should_create_path_tag_without_class() {
+        let mut path = Path::new();
+        path.push(PathElement::MoveTo(Vec2::X));
+        path.push(PathElement::Arc {
+            radius: 10.0,
+            large_arc: true,
+            end: Vec2::Y,
+        });
+
+        let result = format!("{}", path);
+
+        let expected = r#"<path d="M 1 -0 A 10 10 0 1 1 0 -1"/>"#;
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_create_path_tag_with_class() {
+        let mut path = Path::new();
+        path.class = Class("foo".to_string());
+        path.push(PathElement::MoveTo(Vec2::X));
+        path.push(PathElement::Arc {
+            radius: 10.0,
+            large_arc: true,
+            end: Vec2::Y,
+        });
+
+        let result = format!("{}", path);
+
+        let expected = r#"<path d="M 1 -0 A 10 10 0 1 1 0 -1" class="foo"/>"#;
+
+        assert_eq!(result, expected);
+    }
+}

@@ -262,11 +262,13 @@ mod test {
         let group1 = Group {
             elements: vec![circle.into(), line.into()],
             affine2: Default::default(),
+            class: Class::default(),
         };
 
         let group2 = Group {
             elements: vec![group1.into(), path.into()],
             affine2: Default::default(),
+            class: Class::default(),
         };
 
         let svg = SVG {
@@ -286,9 +288,9 @@ mod test {
     <g transform="matrix(1 0 0 1 0 0)">
         <g transform="matrix(1 0 0 1 0 0)">
             <circle cx="0" cy="0" r="1" class="test-class"/>
-            <line x1="0" y1="0" x2="1" y2="1" />
+            <line x1="0" y1="0" x2="1" y2="1"/>
         </g>
-        <path d="M 0 0 A 10 10 0 0 1 1 1" />
+        <path d="M 0 -0 A 10 10 0 0 1 1 -1"/>
     </g>
 </svg>"#;
 

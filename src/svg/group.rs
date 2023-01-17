@@ -40,6 +40,11 @@ impl From<Vec<SVGElement>> for Group {
 
 impl Display for Group {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let attributes = [
+            format!("transform=\"{}\"", self.affine2.to_css_string()),
+            format!("{}", self.class),
+        ];
+
         let content = self
             .elements
             .iter()
@@ -48,9 +53,8 @@ impl Display for Group {
 
         write!(
             f,
-            "<g transform=\"{}\" {}>\n{}\n</g>",
-            self.affine2.to_css_string(),
-            self.class,
+            "<g {}>\n{}\n</g>",
+            attributes.into_iter().filter(|it| !it.is_empty()).join(" "),
             content
         )
     }
@@ -65,3 +69,41 @@ impl Geometry for Group {
 }
 
 impl Indent for Group {}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn should_create_nested_group_tag_without_class() {
+        let mut group = Group::new();
+        group.push(Group::new());
+
+        let result = format!("{}", group);
+
+        let expected = r#"<g transform="matrix(1 0 0 1 0 0)">
+    <g transform="matrix(1 0 0 1 0 0)">
+    
+    </g>
+</g>"#;
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_create_group_tag_with_class() {
+        let mut group = Group::new();
+        group.class = Class("foo".to_string());
+        group.push(Group::new());
+
+        let result = format!("{}", group);
+
+        let expected = r#"<g transform="matrix(1 0 0 1 0 0)" class="foo">
+    <g transform="matrix(1 0 0 1 0 0)">
+    
+    </g>
+</g>"#;
+
+        assert_eq!(result, expected);
+    }
+}

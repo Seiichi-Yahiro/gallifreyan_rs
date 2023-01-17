@@ -4,6 +4,7 @@ use bevy::prelude::{FromReflect, Reflect, Vec2};
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use bevy_prototype_lyon::prelude::Geometry;
 use bevy_prototype_lyon::shapes;
+use itertools::Itertools;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Default, Clone, Reflect, FromReflect)]
@@ -25,10 +26,18 @@ impl Line {
 
 impl Display for Line {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let attributes = [
+            format!("x1=\"{}\"", self.from.x),
+            format!("y1=\"{}\"", self.from.y),
+            format!("x2=\"{}\"", self.to.x),
+            format!("y2=\"{}\"", self.to.y),
+            format!("{}", self.class),
+        ];
+
         write!(
             f,
-            "<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" {}/>",
-            self.from.x, self.from.y, self.to.x, self.to.y, self.class
+            "<line {}/>",
+            attributes.into_iter().filter(|it| !it.is_empty()).join(" ")
         )
     }
 }
@@ -40,3 +49,29 @@ impl Geometry for Line {
 }
 
 impl Indent for Line {}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn should_create_line_tag_without_class() {
+        let line = Line::new(Vec2::X, Vec2::Y);
+        let result = format!("{}", line);
+
+        let expected = r#"<line x1="1" y1="0" x2="0" y2="1"/>"#;
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_create_line_tag_with_class() {
+        let mut line = Line::new(Vec2::X, Vec2::Y);
+        line.class = Class("foo".to_string());
+        let result = format!("{}", line);
+
+        let expected = r#"<line x1="1" y1="0" x2="0" y2="1" class="foo"/>"#;
+
+        assert_eq!(result, expected);
+    }
+}

@@ -1,10 +1,11 @@
 use super::Indent;
+use crate::svg::Class;
 use bevy::prelude::{FromReflect, Reflect};
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use bevy_prototype_lyon::prelude::Geometry;
 use bevy_prototype_lyon::shapes;
+use itertools::Itertools;
 use std::fmt::{Display, Formatter};
-use crate::svg::Class;
 
 #[derive(Debug, Default, Clone, Reflect, FromReflect)]
 pub struct Circle {
@@ -23,7 +24,18 @@ impl Circle {
 
 impl Display for Circle {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<circle cx=\"0\" cy=\"0\" r=\"{}\" {}/>", self.radius, self.class)
+        let attributes = [
+            "cx=\"0\"".to_string(),
+            "cy=\"0\"".to_string(),
+            format!("r=\"{}\"", self.radius),
+            format!("{}", self.class),
+        ];
+
+        write!(
+            f,
+            "<circle {}/>",
+            attributes.into_iter().filter(|it| !it.is_empty()).join(" ")
+        )
     }
 }
 
@@ -38,3 +50,29 @@ impl Geometry for Circle {
 }
 
 impl Indent for Circle {}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn should_create_circle_tag_without_class() {
+        let circle = Circle::new(10.0);
+        let result = format!("{}", circle);
+
+        let expected = r#"<circle cx="0" cy="0" r="10"/>"#;
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_create_circle_tag_with_class() {
+        let mut circle = Circle::new(10.0);
+        circle.class = Class("foo".to_string());
+        let result = format!("{}", circle);
+
+        let expected = r#"<circle cx="0" cy="0" r="10" class="foo"/>"#;
+
+        assert_eq!(result, expected);
+    }
+}
