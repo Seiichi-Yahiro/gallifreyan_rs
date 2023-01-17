@@ -119,7 +119,6 @@ args = [
     "--package", "${RUST_PROJECT_PACKAGE}",
     "--bin", "${RUST_PROJECT_BIN}"
 ]
-env = { "CARGO_TARGET_DIR" = "${CARGO_TEST_TARGET_DIR}", "RUSTFLAGS" = "-C instrument-coverage", "LLVM_PROFILE_FILE" = "${PROFRAW_DIR}/${RUST_PROJECT_BIN}-%p-%m.profraw" }
 
 [tasks.clean_coverage]
 script_runner = "@duckscript"
@@ -167,3 +166,4 @@ rm -r ${PROFRAW_DIR}
 [tasks.coverage]
 clear = true
 run_task = { name = ["coverage_html", "remove_profraw", "echo_coverage"] }
+env = { "CARGO_TARGET_DIR" = "${CARGO_TEST_TARGET_DIR}", "RUSTFLAGS" = "-C instrument-coverage", "LLVM_PROFILE_FILE" = "${PROFRAW_DIR}/${RUST_PROJECT_BIN}-%p-%m.profraw" }
