@@ -16,6 +16,7 @@ use crate::menu_bar::MenuBarPlugin;
 use crate::selection::EventPlugin;
 use crate::sidebar::SideBarPlugin;
 use crate::style::StylePlugin;
+use crate::svg::SVGPlugin;
 use crate::svg_view::SVGViewPlugin;
 use crate::ui::UiPlugin;
 use bevy::log::LogPlugin;
@@ -55,6 +56,7 @@ fn main() {
         .add_plugin(MenuBarPlugin)
         .add_plugin(SideBarPlugin)
         .add_plugin(SVGViewPlugin)
+        .add_plugin(SVGPlugin)
         .register_type::<image_types::Sentence>()
         .register_type::<image_types::Word>()
         .register_type::<image_types::Letter>()

@@ -11,6 +11,7 @@ use std::fmt::{Display, Formatter};
 pub struct Line {
     pub from: Vec2,
     pub to: Vec2,
+    #[reflect(ignore)]
     pub class: Class,
 }
 

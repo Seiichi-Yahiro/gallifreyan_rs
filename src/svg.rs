@@ -12,6 +12,7 @@ pub use path::*;
 pub use style::*;
 pub use title::*;
 
+use bevy::app::{App, Plugin};
 use bevy::log::error;
 use bevy::math::{Affine2, Mat2};
 use bevy::prelude::{Component, FromReflect, Reflect, ReflectComponent, Transform};
@@ -22,6 +23,19 @@ use std::fmt::{Debug, Display, Formatter};
 use std::ops::Add;
 
 const DEFAULT_INDENTATION_DEPTH: usize = 4;
+
+pub struct SVGPlugin;
+
+impl Plugin for SVGPlugin {
+    fn build(&self, app: &mut App) {
+        app.register_type::<SVGElement>()
+            .register_type::<Circle>()
+            .register_type::<Group>()
+            .register_type::<Line>()
+            .register_type::<Path>()
+            .register_type::<PathElement>();
+    }
+}
 
 pub trait Indent: Display {
     fn indent(&self, depth: usize) -> String {

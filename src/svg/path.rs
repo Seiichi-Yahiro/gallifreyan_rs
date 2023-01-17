@@ -10,6 +10,7 @@ use std::fmt::{Display, Formatter};
 #[derive(Debug, Default, Clone, Reflect, FromReflect)]
 pub struct Path {
     pub elements: Vec<PathElement>,
+    #[reflect(ignore)]
     pub class: Class,
 }
 

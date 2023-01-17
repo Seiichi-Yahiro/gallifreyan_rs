@@ -10,6 +10,7 @@ use std::fmt::{Display, Formatter};
 #[derive(Debug, Default, Clone, Reflect, FromReflect)]
 pub struct Circle {
     pub radius: f32,
+    #[reflect(ignore)]
     pub class: Class,
 }
 

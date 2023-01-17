@@ -10,7 +10,9 @@ use std::fmt::{Display, Formatter};
 #[derive(Debug, Default, Clone, Reflect, FromReflect)]
 pub struct Group {
     pub elements: Vec<SVGElement>,
+    #[reflect(ignore)]
     pub affine2: Affine2,
+    #[reflect(ignore)]
     pub class: Class,
 }
 
