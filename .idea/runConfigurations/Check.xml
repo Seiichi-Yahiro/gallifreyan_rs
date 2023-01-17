@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Check" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <option name="command" value="check --package gallifreyan_rs --bin gallifreyan_rs" />
+    <option name="command" value="check --package gallifreyan_rs --bin gallifreyan" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <option name="channel" value="DEFAULT" />
     <option name="requiredFeatures" value="true" />

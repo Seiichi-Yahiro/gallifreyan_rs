@@ -6,7 +6,7 @@
 
 [env]
 RUST_PROJECT_PACKAGE = "gallifreyan_rs"
-RUST_PROJECT_BIN = "gallifreyan_rs"
+RUST_PROJECT_BIN = "gallifreyan"
 WASM_OUTPUT_NAME = "gallifreyan_wasm"
 WASM_OUTPUT_DIR = "./wasm/build"
 
