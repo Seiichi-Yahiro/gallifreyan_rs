@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  viewBox="-500 -500 1000 1000"
+>
+    <title>bchdhgf</title>
+    <style>
+        .stroke {
+            stroke: rgb(0, 0, 0);
+            fill: none;
+            stroke-width: 1;
+            stroke-linecap: round;
+        }
+        .fill {
+            fill: rgb(0, 0, 0);
+            stroke: none;
+        }
+    </style>
+    <g transform="matrix(1 0 0 -1 0 0)">
+        <g transform="matrix(1 0 0 1 0 0)">
+            <g transform="matrix(1 0 0 1 0 0)" class="stroke">
+                <circle cx="0" cy="0" r="460"/>
+                <circle cx="0" cy="0" r="450"/>
+            </g>
+            <g transform="matrix(1 0 0 1 0 0)">
+                <path d="M 30.033573 -222.98651 A 225 225 0 0 1 178.0952 -137.5031 M 208.12877 -85.48342 A 225 225 0 0 1 208.12875 85.483444 M 178.09518 137.50311 A 225 225 0 0 1 30.033554 222.98651 M -30.033592 222.98651 A 225 225 0 0 1 -178.09528 137.50296 M -208.12872 85.48351 A 225 225 0 0 1 -208.12872 -85.48351 M -178.09528 -137.50296 A 225 225 0 0 1 -30.033573 -222.98651" class="stroke"/>
+                <g transform="matrix(1 0 0 1 0 -193.35938)">
+                    <path d="M 30.033573 -29.627136 A 42.1875 42.1875 0 1 1 -30.033573 -29.627136" class="stroke"/>
+                </g>
+                <g transform="matrix(0.5 0.8660254 -0.8660254 0.5 167.45413 -96.67969)">
+                    <path d="M 30.03357 -29.627136 A 42.1875 42.1875 0 1 1 -30.033577 -29.627138" class="stroke"/>
+                    <g transform="matrix(1 0 0 1 13.72279 33.129738)">
+                        <circle cx="0" cy="0" r="4.21875" class="fill"/>
+                    </g>
+                    <g transform="matrix(1 0 0 1 -13.722788 33.129738)">
+                        <circle cx="0" cy="0" r="4.21875" class="fill"/>
+                    </g>
+                </g>
+                <g transform="matrix(-0.5000001 0.8660254 -0.8660254 -0.5000001 167.45412 96.67971)">
+                    <path d="M 30.03357 -29.627138 A 42.1875 42.1875 0 1 1 -30.033571 -29.627136" class="stroke"/>
+                    <g transform="matrix(1 0 0 1 25.356405 25.356407)">
+                        <circle cx="0" cy="0" r="4.21875" class="fill"/>
+                    </g>
+                    <g transform="matrix(1 0 0 1 -0.0000031349261 35.859375)">
+                        <circle cx="0" cy="0" r="4.21875" class="fill"/>
+                    </g>
+                    <g transform="matrix(1 0 0 1 -25.356407 25.356411)">
+                        <circle cx="0" cy="0" r="4.21875" class="fill"/>
+                    </g>
+                </g>
+                <g transform="matrix(-1 -0.00000008742278 0.00000008742278 -1 -0.000016904014 193.35938)">
+                    <path d="M 30.033573 -29.627138 A 42.1875 42.1875 0 1 1 -30.033573 -29.627134" class="stroke"/>
+                </g>
+                <g transform="matrix(-0.5 -0.8660255 0.8660255 -0.5 -167.45415 96.67967)">
+                    <path d="M 30.033443 -29.627136 A 42.1875 42.1875 0 1 1 -30.033443 -29.627129" class="stroke"/>
+                </g>
+                <g transform="matrix(0.49999988 -0.8660255 0.8660255 0.49999988 -167.45415 -96.67967)">
+                    <path d="M 30.033443 -29.627129 A 42.1875 42.1875 0 1 1 -30.033443 -29.627136" class="stroke"/>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

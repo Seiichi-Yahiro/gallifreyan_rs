@@ -9,7 +9,7 @@ use crate::plugins::text_converter::components::{
 use crate::utils::event_set::*;
 use bevy::prelude::*;
 use futures::channel::oneshot;
-use svg_export::{convert_to_svg, SVGQueries};
+pub use svg_export::{convert_to_svg, SVGQueries};
 
 pub struct FilePlugin;
 
