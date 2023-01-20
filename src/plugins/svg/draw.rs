@@ -1,7 +1,7 @@
 use crate::math;
 use crate::math::angle::{Angle, Radian};
 use crate::math::{Intersection, IntersectionResult};
-use crate::plugins::style::Styles;
+use crate::plugins::color_theme::{ColorDependency, ColorTheme, DRAW_COLOR};
 use crate::plugins::svg::SVGElement;
 use crate::plugins::text_converter::components::{
     AnglePlacement, CircleChildren, Dot, Letter, LineSlot, NestedVocal,
@@ -29,27 +29,9 @@ impl Plugin for DrawPlugin {
             .add_system(draw_line_slot.after(update_transform).before(draw))
             .add_system(draw_dots)
             .add_system(draw)
-            .add_system_to_stage(CoreStage::PostUpdate, update_color_from_styles)
+            .add_system_to_stage(CoreStage::PostUpdate, update_colors)
             .add_system_to_stage(PostTextConverterStage, add_shape)
             .add_system_to_stage(PostTextConverterStage, add_svg_element);
-    }
-}
-
-pub fn update_color_from_styles(mut query: Query<&mut DrawMode>, styles: Res<Styles>) {
-    if !styles.is_changed() {
-        return;
-    }
-
-    for mut draw_mode in query.iter_mut() {
-        match draw_mode.as_mut() {
-            DrawMode::Fill(fill) => {
-                fill.color = styles.svg_color;
-            }
-            DrawMode::Stroke(stroke) => {
-                stroke.color = styles.svg_color;
-            }
-            DrawMode::Outlined { .. } => {}
-        }
     }
 }
 
@@ -72,26 +54,57 @@ fn new_fill_mode(color: Color) -> FillMode {
     }
 }
 
+fn update_colors(
+    color_theme: Res<ColorTheme>,
+    mut query: Query<(&ColorDependency, &mut DrawMode)>,
+) {
+    if !color_theme.is_changed() {
+        return;
+    }
+
+    for (dependency, mut draw_mode) in query.iter_mut() {
+        if let Some(new_color) = color_theme.get(dependency.0) {
+            match draw_mode.as_mut() {
+                DrawMode::Fill(fill) => {
+                    fill.color = new_color;
+                }
+                DrawMode::Stroke(stroke) => {
+                    stroke.color = new_color;
+                }
+                DrawMode::Outlined { .. } => {}
+            }
+        } else {
+            error!("Couldn't find {} key in color theme!", dependency.0);
+        }
+    }
+}
+
 fn add_shape(
     mut commands: Commands,
     stroke_query: Query<Entity, Or<(Added<Sentence>, Added<Word>, Added<Letter>, Added<LineSlot>)>>,
     fill_query: Query<Entity, Added<Dot>>,
-    styles: Res<Styles>,
+    color_theme: Res<ColorTheme>,
 ) {
     for entity in stroke_query.iter() {
-        commands.entity(entity).insert(ShapeBundle {
-            mode: DrawMode::Stroke(new_stroke_mode(styles.svg_color)),
-            transform: Transform::from_xyz(0.0, 0.0, 0.1),
-            ..default()
-        });
+        commands
+            .entity(entity)
+            .insert(ShapeBundle {
+                mode: DrawMode::Stroke(new_stroke_mode(color_theme.get(DRAW_COLOR).unwrap())),
+                transform: Transform::from_xyz(0.0, 0.0, 0.1),
+                ..default()
+            })
+            .insert(ColorDependency(DRAW_COLOR));
     }
 
     for entity in fill_query.iter() {
-        commands.entity(entity).insert(ShapeBundle {
-            mode: DrawMode::Fill(new_fill_mode(styles.svg_color)),
-            transform: Transform::from_xyz(0.0, 0.0, 0.1),
-            ..default()
-        });
+        commands
+            .entity(entity)
+            .insert(ShapeBundle {
+                mode: DrawMode::Fill(new_fill_mode(color_theme.get(DRAW_COLOR).unwrap())),
+                transform: Transform::from_xyz(0.0, 0.0, 0.1),
+                ..default()
+            })
+            .insert(ColorDependency(DRAW_COLOR));
     }
 }
 

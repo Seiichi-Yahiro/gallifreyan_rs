@@ -36,7 +36,7 @@ fn main() {
         .add_plugin(ShapePlugin)
         .add_plugin(EguiPlugin)
         .add_plugin(plugins::text_converter::TextConverterPlugin)
-        .add_plugin(plugins::style::StylePlugin)
+        .add_plugin(plugins::color_theme::ColorThemePlugin)
         .add_plugin(plugins::ui::UiPlugin)
         .add_plugin(plugins::svg_view::SVGViewPlugin)
         .add_plugin(plugins::svg::SVGPlugin)
