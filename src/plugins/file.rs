@@ -2,7 +2,7 @@
 #[cfg_attr(target_arch = "wasm32", path = "file/wasm.rs")]
 pub mod os;
 
-use crate::plugins::svg::export::{convert_to_svg, SVGExportSystemParams};
+use crate::plugins::svg::export::SVGExportSystemParams;
 use crate::plugins::text_converter::components::{
     Dot, Letter, LineSlot, NestedVocalPositionCorrection, Sentence, Word,
 };
@@ -146,13 +146,13 @@ fn handle_save_event(
 fn handle_export_event(
     mut events: EventReader<Export>,
     file_handles: os::FileHandlesResource,
-    svg_export_params: SVGExportSystemParams,
+    svg_export: SVGExportSystemParams,
 ) {
     if events.iter().last().is_some() {
         if let Some(path_buffer) = file_handles.svg.clone() {
             info!("Export to file: {:?}", path_buffer);
 
-            match convert_to_svg(svg_export_params) {
+            match svg_export.create_svg() {
                 Ok(svg) => {
                     os::save_to_file(path_buffer, svg.to_string());
                 }

@@ -31,90 +31,93 @@ pub struct SVGExportSystemParams<'w, 's> {
     component_query: ComponentQuery<'w, 's>,
 }
 
-pub fn convert_to_svg(params: SVGExportSystemParams) -> Result<SVG, QuerySingleError> {
-    params
-        .sentence_query
-        .get_single()
-        .map(|(sentence_entity, text)| {
-            let mut svg = SVG::new(SVG_SIZE);
+impl<'w, 's> SVGExportSystemParams<'w, 's> {
+    pub fn create_svg(&self) -> Result<SVG, QuerySingleError> {
+        self.sentence_query
+            .get_single()
+            .map(|(sentence_entity, text)| {
+                let mut svg = SVG::new(SVG_SIZE);
 
-            svg.push(Title(text.to_string()));
+                svg.push(Title(text.to_string()));
 
-            let style = {
-                let mut style = Style::new();
+                let style = {
+                    let mut style = Style::new();
 
-                let mut stroke_rule = StyleRule::new();
-                stroke_rule
-                    .selectors
-                    .push(Selector::Class(STROKE_CLASS.to_string()));
-                stroke_rule.rules.push(CSSRule::Stroke(Some(Color::BLACK)));
-                stroke_rule.rules.push(CSSRule::Fill(None));
-                stroke_rule.rules.push(CSSRule::StrokeWidth(1.0));
-                stroke_rule
-                    .rules
-                    .push(CSSRule::StrokeLineCap(StrokeLineCap::Round));
+                    let mut stroke_rule = StyleRule::new();
+                    stroke_rule
+                        .selectors
+                        .push(Selector::Class(STROKE_CLASS.to_string()));
+                    stroke_rule.rules.push(CSSRule::Stroke(Some(Color::BLACK)));
+                    stroke_rule.rules.push(CSSRule::Fill(None));
+                    stroke_rule.rules.push(CSSRule::StrokeWidth(1.0));
+                    stroke_rule
+                        .rules
+                        .push(CSSRule::StrokeLineCap(StrokeLineCap::Round));
 
-                style.push(stroke_rule);
+                    style.push(stroke_rule);
 
-                let mut fill_rule = StyleRule::new();
-                fill_rule
-                    .selectors
-                    .push(Selector::Class(FILL_CLASS.to_string()));
-                fill_rule.rules.push(CSSRule::Fill(Some(Color::BLACK)));
-                fill_rule.rules.push(CSSRule::Stroke(None));
+                    let mut fill_rule = StyleRule::new();
+                    fill_rule
+                        .selectors
+                        .push(Selector::Class(FILL_CLASS.to_string()));
+                    fill_rule.rules.push(CSSRule::Fill(Some(Color::BLACK)));
+                    fill_rule.rules.push(CSSRule::Stroke(None));
 
-                style.push(fill_rule);
+                    style.push(fill_rule);
 
-                style
-            };
+                    style
+                };
 
-            svg.push(style);
+                svg.push(style);
 
-            let mut group = Group::new();
+                let mut group = Group::new();
 
-            // mirror along y-axis because svg uses a mirrored y-axis
-            group.affine2 = Affine2 {
-                translation: Vec2::ZERO,
-                matrix2: Mat2::from_cols(Vec2::X, Vec2::NEG_Y),
-            };
+                // mirror along y-axis because svg uses a mirrored y-axis
+                group.affine2 = Affine2 {
+                    translation: Vec2::ZERO,
+                    matrix2: Mat2::from_cols(Vec2::X, Vec2::NEG_Y),
+                };
 
-            group = build_svg(&params.component_query, [sentence_entity], group);
+                group = self.convert_components_to_svg([sentence_entity], group);
 
-            svg.push(group);
+                svg.push(group);
 
-            svg
-        })
-}
-
-fn build_svg(
-    query: &ComponentQuery,
-    entities: impl IntoIterator<Item = Entity>,
-    mut group: Group,
-) -> Group {
-    for (transform, svg_element, children, draw_mode) in query.iter_many(entities) {
-        let mut local_group = Group::new();
-        local_group.affine2 = transform.to_affine2();
-
-        if let (Some(svg_element), Some(draw_mode)) = (svg_element, draw_mode) {
-            let mut svg_element = svg_element.clone();
-
-            match draw_mode {
-                DrawMode::Fill(_) => svg_element.set_class(Class(FILL_CLASS.to_string())),
-                DrawMode::Stroke(_) => svg_element.set_class(Class(STROKE_CLASS.to_string())),
-                DrawMode::Outlined { .. } => {}
-            }
-
-            local_group.push(svg_element);
-        }
-
-        if let Some(children) = children {
-            group.push(build_svg(query, children.iter().copied(), local_group));
-        } else {
-            group.push(local_group);
-        }
+                svg
+            })
     }
 
-    group
+    fn convert_components_to_svg(
+        &self,
+        entities: impl IntoIterator<Item = Entity>,
+        mut group: Group,
+    ) -> Group {
+        for (transform, svg_element, children, draw_mode) in
+            self.component_query.iter_many(entities)
+        {
+            let mut local_group = Group::new();
+            local_group.affine2 = transform.to_affine2();
+
+            if let (Some(svg_element), Some(draw_mode)) = (svg_element, draw_mode) {
+                let mut svg_element = svg_element.clone();
+
+                match draw_mode {
+                    DrawMode::Fill(_) => svg_element.set_class(Class(FILL_CLASS.to_string())),
+                    DrawMode::Stroke(_) => svg_element.set_class(Class(STROKE_CLASS.to_string())),
+                    DrawMode::Outlined { .. } => {}
+                }
+
+                local_group.push(svg_element);
+            }
+
+            if let Some(children) = children {
+                group.push(self.convert_components_to_svg(children.iter().copied(), local_group));
+            } else {
+                group.push(local_group);
+            }
+        }
+
+        group
+    }
 }
 
 #[cfg(test)]
@@ -132,8 +135,8 @@ mod test {
 
         let (sender, receiver) = sync_channel::<String>(1);
 
-        app.add_system(move |params: SVGExportSystemParams| {
-            let result = convert_to_svg(params).unwrap().to_string();
+        app.add_system(move |svg_export: SVGExportSystemParams| {
+            let result = svg_export.create_svg().unwrap().to_string();
             sender.send(result).unwrap();
         });
 

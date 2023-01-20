@@ -1,9 +1,6 @@
 use bevy::prelude::{App, Color, Events};
 use gallifreyan_lib::plugins::color_theme::{ColorTheme, DRAW_COLOR};
-use gallifreyan_lib::plugins::svg::{
-    export::{convert_to_svg, SVGExportSystemParams},
-    SVGPlugin,
-};
+use gallifreyan_lib::plugins::svg::{export::SVGExportSystemParams, SVGPlugin};
 use gallifreyan_lib::plugins::text_converter::components::NestingSettings;
 use gallifreyan_lib::plugins::text_converter::{SetText, TextConverterPlugin};
 use std::sync::mpsc::sync_channel;
@@ -26,8 +23,8 @@ fn assert_svg(text: &str, file: &str, nesting_settings: NestingSettings) {
 
     let (sender, receiver) = sync_channel::<String>(1);
 
-    app.add_system(move |params: SVGExportSystemParams| {
-        let svg = convert_to_svg(params).unwrap();
+    app.add_system(move |svg_export: SVGExportSystemParams| {
+        let svg = svg_export.create_svg().unwrap();
         sender.send(svg.to_string()).unwrap();
     });
 
