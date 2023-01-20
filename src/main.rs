@@ -1,14 +1,9 @@
-#![feature(option_result_contains)]
-
-mod math;
-mod plugins;
-mod utils;
-
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_egui::EguiPlugin;
 use bevy_prototype_lyon::plugin::ShapePlugin;
+use gallifreyan_lib::{math, plugins};
 
 fn main() {
     let mut app = App::new();
