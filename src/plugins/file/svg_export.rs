@@ -260,7 +260,6 @@ mod test {
             stroke-width: 1;
             stroke-linecap: round;
         }
-    
         .fill {
             fill: rgb(0, 0, 0);
             stroke: none;

@@ -13,7 +13,7 @@ impl Display for Style {
             .0
             .iter()
             .map(|rule| rule.indent(DEFAULT_INDENTATION_DEPTH))
-            .join("\n\n");
+            .join("\n");
 
         write!(f, "<style>\n{}\n</style>", rules)
     }
@@ -209,7 +209,6 @@ mod test {
         stroke-width: 2;
         stroke-linecap: round;
     }
-
     .foo {
         fill: rgb(255, 20.4, 147.9);
         stroke: none;
