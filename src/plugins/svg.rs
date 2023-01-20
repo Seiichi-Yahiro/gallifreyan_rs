@@ -1,5 +1,6 @@
 mod circle;
 pub mod draw;
+pub mod export;
 mod group;
 mod line;
 mod path;

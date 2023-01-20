@@ -26,13 +26,13 @@ type ComponentQuery<'w, 's> = Query<
 >;
 
 #[derive(SystemParam)]
-pub struct SVGQueries<'w, 's> {
+pub struct SVGExportSystemParams<'w, 's> {
     sentence_query: Query<'w, 's, (Entity, &'static Text), With<Sentence>>,
     component_query: ComponentQuery<'w, 's>,
 }
 
-pub fn convert_to_svg(svg_queries: SVGQueries) -> Result<SVG, QuerySingleError> {
-    svg_queries
+pub fn convert_to_svg(params: SVGExportSystemParams) -> Result<SVG, QuerySingleError> {
+    params
         .sentence_query
         .get_single()
         .map(|(sentence_entity, text)| {
@@ -78,7 +78,7 @@ pub fn convert_to_svg(svg_queries: SVGQueries) -> Result<SVG, QuerySingleError> 
                 matrix2: Mat2::from_cols(Vec2::X, Vec2::NEG_Y),
             };
 
-            group = build_svg(&svg_queries.component_query, [sentence_entity], group);
+            group = build_svg(&params.component_query, [sentence_entity], group);
 
             svg.push(group);
 
@@ -132,7 +132,7 @@ mod test {
 
         let (sender, receiver) = sync_channel::<String>(1);
 
-        app.add_system(move |params: SVGQueries| {
+        app.add_system(move |params: SVGExportSystemParams| {
             let result = convert_to_svg(params).unwrap().to_string();
             sender.send(result).unwrap();
         });

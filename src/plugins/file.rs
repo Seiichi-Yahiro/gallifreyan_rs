@@ -1,15 +1,14 @@
 #[cfg_attr(not(target_arch = "wasm32"), path = "file/native.rs")]
 #[cfg_attr(target_arch = "wasm32", path = "file/wasm.rs")]
 pub mod os;
-mod svg_export;
 
+use crate::plugins::svg::export::{convert_to_svg, SVGExportSystemParams};
 use crate::plugins::text_converter::components::{
     Dot, Letter, LineSlot, NestedVocalPositionCorrection, Sentence, Word,
 };
 use crate::utils::event_set::*;
 use bevy::prelude::*;
 use futures::channel::oneshot;
-pub use svg_export::{convert_to_svg, SVGQueries};
 
 pub struct FilePlugin;
 
@@ -147,13 +146,13 @@ fn handle_save_event(
 fn handle_export_event(
     mut events: EventReader<Export>,
     file_handles: os::FileHandlesResource,
-    svg_queries: SVGQueries,
+    svg_export_params: SVGExportSystemParams,
 ) {
     if events.iter().last().is_some() {
         if let Some(path_buffer) = file_handles.svg.clone() {
             info!("Export to file: {:?}", path_buffer);
 
-            match convert_to_svg(svg_queries) {
+            match convert_to_svg(svg_export_params) {
                 Ok(svg) => {
                     os::save_to_file(path_buffer, svg.to_string());
                 }
