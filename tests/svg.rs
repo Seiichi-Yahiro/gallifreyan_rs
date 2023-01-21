@@ -5,112 +5,110 @@ use gallifreyan_lib::plugins::text_converter::components::NestingSettings;
 use gallifreyan_lib::plugins::text_converter::{SetText, TextConverterPlugin};
 use std::sync::mpsc::sync_channel;
 
-fn assert_svg(text: &str, file: &str, nesting_settings: NestingSettings) {
-    let mut app = App::new();
-    let mut color_theme = ColorTheme::default();
-    color_theme.insert(DRAW_COLOR, Color::BLACK, Color::BLACK);
+trait TestApp {
+    fn new_test(nesting_settings: NestingSettings) -> Self;
+    fn set_text(&mut self, text: &str) -> &mut Self;
+    fn assert_svg(&mut self, file: &str);
+}
 
-    app.add_plugin(TextConverterPlugin)
-        .insert_resource(color_theme)
-        .add_plugin(SVGPlugin)
-        .insert_resource(nesting_settings);
+impl TestApp for App {
+    fn new_test(nesting_settings: NestingSettings) -> Self {
+        let mut app = App::new();
+        let mut color_theme = ColorTheme::default();
+        color_theme.insert(DRAW_COLOR, Color::BLACK, Color::BLACK);
 
-    app.world
-        .resource_mut::<Events<SetText>>()
-        .send(SetText(text.to_string()));
+        app.add_plugin(TextConverterPlugin)
+            .insert_resource(color_theme)
+            .add_plugin(SVGPlugin)
+            .insert_resource(nesting_settings);
 
-    app.update();
+        app
+    }
 
-    let (sender, receiver) = sync_channel::<String>(1);
+    fn set_text(&mut self, text: &str) -> &mut Self {
+        self.world
+            .resource_mut::<Events<SetText>>()
+            .send(SetText(text.to_string()));
 
-    app.add_system(move |svg_export: SVGExportSystemParams| {
-        let svg = svg_export.create_svg().unwrap();
-        sender.send(svg.to_string()).unwrap();
-    });
+        self.update();
 
-    app.update();
+        self
+    }
 
-    let result = receiver.recv().unwrap();
-    assert_eq!(result, file.replace("\r\n", "\n"));
+    fn assert_svg(&mut self, file: &str) {
+        let (sender, receiver) = sync_channel::<String>(1);
+
+        self.add_system(move |svg_export: SVGExportSystemParams| {
+            let svg = svg_export.create_svg().unwrap();
+            sender.send(svg.to_string()).unwrap();
+        });
+
+        self.update();
+
+        let result = receiver.recv().unwrap();
+        assert_eq!(result, file.replace("\r\n", "\n"));
+    }
 }
 
 #[test]
 fn vocal_nesting_a() {
-    assert_svg(
-        "abajatatha",
-        include_str!("svg/abajatatha.svg"),
-        NestingSettings::All,
-    );
+    App::new_test(NestingSettings::All)
+        .set_text("abajatatha")
+        .assert_svg(include_str!("svg/abajatatha.svg"));
 }
 
 #[test]
 fn vocal_nesting_e() {
-    assert_svg(
-        "ebejetethe",
-        include_str!("svg/ebejetethe.svg"),
-        NestingSettings::All,
-    );
+    App::new_test(NestingSettings::All)
+        .set_text("ebejetethe")
+        .assert_svg(include_str!("svg/ebejetethe.svg"));
 }
 
 #[test]
 fn vocal_nesting_i() {
-    assert_svg(
-        "ibijitithi",
-        include_str!("svg/ibijitithi.svg"),
-        NestingSettings::All,
-    );
+    App::new_test(NestingSettings::All)
+        .set_text("ibijitithi")
+        .assert_svg(include_str!("svg/ibijitithi.svg"));
 }
 
 #[test]
 fn vocal_nesting_o() {
-    assert_svg(
-        "obojototho",
-        include_str!("svg/obojototho.svg"),
-        NestingSettings::All,
-    );
+    App::new_test(NestingSettings::All)
+        .set_text("obojototho")
+        .assert_svg(include_str!("svg/obojototho.svg"));
 }
 
 #[test]
 fn vocal_nesting_u() {
-    assert_svg(
-        "ubujututhu",
-        include_str!("svg/ubujututhu.svg"),
-        NestingSettings::All,
-    );
+    App::new_test(NestingSettings::All)
+        .set_text("ubujututhu")
+        .assert_svg(include_str!("svg/ubujututhu.svg"));
 }
 
 #[test]
 fn consonant_deep_cut() {
-    assert_svg(
-        "bchdhgf",
-        include_str!("svg/bchdhgf.svg"),
-        NestingSettings::None,
-    );
+    App::new_test(NestingSettings::None)
+        .set_text("bchdhgf")
+        .assert_svg(include_str!("svg/bchdhgf.svg"));
 }
 
 #[test]
 fn consonant_inside() {
-    assert_svg(
-        "jphklcnpm",
-        include_str!("svg/jphklcnpm.svg"),
-        NestingSettings::None,
-    );
+    App::new_test(NestingSettings::None)
+        .set_text("jphklcnpm")
+        .assert_svg(include_str!("svg/jphklcnpm.svg"));
 }
 
 #[test]
 fn consonant_shallow_cut() {
-    assert_svg(
-        "twhshrvws",
-        include_str!("svg/twhshrvws.svg"),
-        NestingSettings::None,
-    );
+    App::new_test(NestingSettings::None)
+        .set_text("twhshrvws")
+        .assert_svg(include_str!("svg/twhshrvws.svg"));
 }
 
 #[test]
 fn consonant_on_line() {
-    assert_svg(
-        "thghyzqquxng",
-        include_str!("svg/thghyzqquxng.svg"),
-        NestingSettings::None,
-    );
+    App::new_test(NestingSettings::None)
+        .set_text("thghyzqquxng")
+        .assert_svg(include_str!("svg/thghyzqquxng.svg"));
 }
