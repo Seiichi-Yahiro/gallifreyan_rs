@@ -31,7 +31,7 @@ fn assert_svg(text: &str, file: &str, nesting_settings: NestingSettings) {
     app.update();
 
     let result = receiver.recv().unwrap();
-    assert_eq!(result, file);
+    assert_eq!(result, file.replace("\r\n", "\n"));
 }
 
 #[test]
