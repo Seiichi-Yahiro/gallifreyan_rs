@@ -2,7 +2,6 @@ use crate::math;
 use crate::math::angle::{Angle, Radian};
 use crate::math::{Intersection, IntersectionResult};
 use crate::plugins::color_theme::{ColorDependency, ColorTheme, DRAW_COLOR};
-use crate::plugins::svg::SVGElement;
 use crate::plugins::text_converter::components::{
     AnglePlacement, CircleChildren, Dot, Letter, LineSlot, NestedVocal,
     NestedVocalPositionCorrection, PositionData, Radius, Sentence, Word, OUTER_CIRCLE_SIZE,
@@ -120,12 +119,12 @@ fn add_svg_element(
                 Added<Dot>,
                 Added<LineSlot>,
             )>,
-            Without<SVGElement>,
+            Without<super::SVGElement>,
         ),
     >,
 ) {
     for entity in query.iter() {
-        commands.entity(entity).insert(SVGElement::default());
+        commands.entity(entity).insert(super::SVGElement::default());
     }
 }
 
