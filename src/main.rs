@@ -20,7 +20,7 @@ fn main() {
     #[cfg(debug_assertions)]
     {
         default_plugins = default_plugins.set(LogPlugin {
-            filter: "info,wgpu_core=warn,wgpu_hal=error,gallifreyan_rs=debug".into(),
+            filter: "info,wgpu_core=warn,wgpu_hal=error,gallifreyan_lib=debug".into(),
             level: bevy::log::Level::DEBUG,
         });
     }
