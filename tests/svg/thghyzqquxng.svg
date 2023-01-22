@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  viewBox="-500 -500 1000 1000"
+>
+    <title>thghyzqquxng</title>
+    <style>
+        .stroke {
+            stroke: rgb(0, 0, 0);
+            fill: none;
+            stroke-width: 1;
+            stroke-linecap: round;
+        }
+        .fill {
+            fill: rgb(0, 0, 0);
+            stroke: none;
+        }
+    </style>
+    <g transform="matrix(1 0 0 -1 0 0)">
+        <g transform="matrix(1 0 0 1 0 0)">
+            <g transform="matrix(1 0 0 1 0 0)" class="stroke">
+                <circle cx="0" cy="0" r="460"/>
+                <circle cx="0" cy="0" r="450"/>
+            </g>
+            <g transform="matrix(1 0 0 1 0 0)">
+                <circle cx="0" cy="0" r="225" class="stroke"/>
+                <g transform="matrix(1 0 0 1 0 -225)">
+                    <circle cx="0" cy="0" r="33.75" class="stroke"/>
+                </g>
+                <g transform="matrix(0.7071067 0.7071068 -0.7071068 0.7071067 159.09903 -159.09901)">
+                    <circle cx="0" cy="0" r="33.75" class="stroke"/>
+                    <g transform="matrix(1 0 0 1 -0.000002507941 28.6875)">
+                        <circle cx="0" cy="0" r="3.375" class="fill"/>
+                    </g>
+                </g>
+                <g transform="matrix(0.000000059604645 0.99999994 -0.99999994 0.000000059604645 225 0)">
+                    <circle cx="0" cy="0" r="33.75" class="stroke"/>
+                    <g transform="matrix(1 0 0 1 10.978232 26.503792)">
+                        <circle cx="0" cy="0" r="3.375" class="fill"/>
+                    </g>
+                    <g transform="matrix(1 0 0 1 -10.97823 26.503792)">
+                        <circle cx="0" cy="0" r="3.375" class="fill"/>
+                    </g>
+                </g>
+                <g transform="matrix(-0.7071067 0.70710677 -0.70710677 -0.7071067 159.09903 159.09903)">
+                    <circle cx="0" cy="0" r="33.75" class="stroke"/>
+                    <g transform="matrix(1 0 0 1 20.285126 20.285126)">
+                        <circle cx="0" cy="0" r="3.375" class="fill"/>
+                    </g>
+                    <g transform="matrix(1 0 0 1 -0.000002507941 28.6875)">
+                        <circle cx="0" cy="0" r="3.375" class="fill"/>
+                    </g>
+                    <g transform="matrix(1 0 0 1 -20.285126 20.28513)">
+                        <circle cx="0" cy="0" r="3.375" class="fill"/>
+                    </g>
+                </g>
+                <g transform="matrix(-1 -0.00000008742278 0.00000008742278 -1 -0.000019670124 225)">
+                    <circle cx="0" cy="0" r="33.75" class="stroke"/>
+                    <g transform="matrix(1 0 0 1 26.503794 10.9782295)">
+                        <circle cx="0" cy="0" r="3.375" class="fill"/>
+                    </g>
+                    <g transform="matrix(1 0 0 1 10.978232 26.503792)">
+                        <circle cx="0" cy="0" r="3.375" class="fill"/>
+                    </g>
+                    <g transform="matrix(1 0 0 1 -10.97823 26.503792)">
+                        <circle cx="0" cy="0" r="3.375" class="fill"/>
+                    </g>
+                    <g transform="matrix(1 0 0 1 -26.503792 10.978233)">
+                        <circle cx="0" cy="0" r="3.375" class="fill"/>
+                    </g>
+                </g>
+                <g transform="matrix(-0.70710695 -0.7071067 0.7071067 -0.70710695 -159.09901 159.09904)">
+                    <circle cx="0" cy="0" r="33.75" class="stroke"/>
+                </g>
+                <g transform="matrix(0.000000059604645 -0.99999994 0.99999994 0.000000059604645 -225 0)">
+                    <circle cx="0" cy="0" r="33.75" class="stroke"/>
+                </g>
+                <g transform="matrix(0.7071067 -0.7071068 0.7071068 0.7071067 -159.09904 -159.09901)">
+                    <circle cx="0" cy="0" r="33.75" class="stroke"/>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

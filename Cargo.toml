@@ -5,16 +5,36 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+name = "gallifreyan_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "gallifreyan"
+path = "src/main.rs"
+
 [profile.wasm-release]
 inherits = "release"
 opt-level = "z"
 lto = "fat"
 codegen-units = 1
 
+[dependencies.bevy]
+version = "0.9.1"
+default-features = false
+features = [
+    "bevy_asset",
+    "bevy_core_pipeline",
+    "bevy_render",
+    "bevy_sprite",
+    "bevy_scene",
+    "bevy_winit",
+    "x11"
+]
+
 [dependencies]
-bevy = "0.9.1"
 bevy_prototype_lyon = "0.7.0"
-bevy_egui = { version = "0.18.0", features = ["immutable_ctx"] }
+bevy_egui = { version = "0.19.0", features = ["immutable_ctx"] }
 rfd = "0.10.0"
 futures = "0.3.25"
 regex = "1.7.0"

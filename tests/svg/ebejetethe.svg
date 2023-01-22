@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  viewBox="-500 -500 1000 1000"
+>
+    <title>ebejetethe</title>
+    <style>
+        .stroke {
+            stroke: rgb(0, 0, 0);
+            fill: none;
+            stroke-width: 1;
+            stroke-linecap: round;
+        }
+        .fill {
+            fill: rgb(0, 0, 0);
+            stroke: none;
+        }
+    </style>
+    <g transform="matrix(1 0 0 -1 0 0)">
+        <g transform="matrix(1 0 0 1 0 0)">
+            <g transform="matrix(1 0 0 1 0 0)" class="stroke">
+                <circle cx="0" cy="0" r="460"/>
+                <circle cx="0" cy="0" r="450"/>
+            </g>
+            <g transform="matrix(1 0 0 1 0 0)">
+                <path d="M 222.15146 -35.68927 A 225 225 0 0 1 -90.43361 206.02612 M -167.99693 149.6731 A 225 225 0 1 1 200.70193 -101.70415" class="stroke"/>
+                <g transform="matrix(1 0 0 1 0 -225)">
+                    <circle cx="0" cy="0" r="19.285715" class="stroke"/>
+                </g>
+                <g transform="matrix(0.309017 0.95105654 -0.95105654 0.309017 179.59683 -58.354557)">
+                    <path d="M 34.70607 -33.467896 A 48.214287 48.214287 0 1 1 -34.706078 -33.467903" class="stroke"/>
+                    <g transform="matrix(1 0 0 1 0 0)">
+                        <circle cx="0" cy="0" r="19.285715" class="stroke"/>
+                    </g>
+                </g>
+                <g transform="matrix(-0.80901706 0.58778524 -0.58778524 -0.80901706 89.74222 123.51957)">
+                    <circle cx="0" cy="0" r="48.214287" class="stroke"/>
+                    <g transform="matrix(1 0 0 1 0 0)">
+                        <circle cx="0" cy="0" r="19.285715" class="stroke"/>
+                    </g>
+                </g>
+                <g transform="matrix(-0.80901706 -0.5877852 0.5877852 -0.80901706 -132.25166 182.02884)">
+                    <path d="M 47.93676 5.1658096 A 48.214287 48.214287 0 0 1 -47.936768 5.165819" class="stroke"/>
+                    <g transform="matrix(1 0 0 1 0 0)">
+                        <circle cx="0" cy="0" r="19.285715" class="stroke"/>
+                    </g>
+                </g>
+                <g transform="matrix(0.30901718 -0.9510565 0.9510565 0.30901718 -213.9877 -69.52887)">
+                    <circle cx="0" cy="0" r="48.214287" class="stroke"/>
+                    <g transform="matrix(1 0 0 1 0 0)">
+                        <circle cx="0" cy="0" r="19.285715" class="stroke"/>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

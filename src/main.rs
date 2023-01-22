@@ -1,30 +1,9 @@
-#![feature(option_result_contains)]
-
-mod constraints;
-mod event_set;
-mod image_types;
-mod math;
-mod menu_bar;
-mod selection;
-mod sidebar;
-mod style;
-mod svg_builder;
-mod svg_view;
-mod ui;
-mod update_if_changed;
-
-use crate::constraints::ConstraintsPlugin;
-use crate::menu_bar::MenuBarPlugin;
-use crate::selection::EventPlugin;
-use crate::sidebar::SideBarPlugin;
-use crate::style::StylePlugin;
-use crate::svg_view::SVGViewPlugin;
-use crate::ui::UiPlugin;
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_egui::EguiPlugin;
 use bevy_prototype_lyon::plugin::ShapePlugin;
+use gallifreyan_lib::{math, plugins};
 
 fn main() {
     let mut app = App::new();
@@ -41,7 +20,7 @@ fn main() {
     #[cfg(debug_assertions)]
     {
         default_plugins = default_plugins.set(LogPlugin {
-            filter: "info,wgpu_core=warn,wgpu_hal=error,gallifreyan_rs=debug".into(),
+            filter: "info,wgpu_core=warn,wgpu_hal=error,gallifreyan_lib=debug".into(),
             level: bevy::log::Level::DEBUG,
         });
     }
@@ -51,33 +30,15 @@ fn main() {
         .add_plugins(default_plugins)
         .add_plugin(ShapePlugin)
         .add_plugin(EguiPlugin)
-        .add_plugin(UiPlugin)
-        .add_plugin(StylePlugin)
-        .add_plugin(EventPlugin)
-        .add_plugin(MenuBarPlugin)
-        .add_plugin(SideBarPlugin)
-        .add_plugin(SVGViewPlugin)
-        .add_plugin(ConstraintsPlugin)
-        .register_type::<image_types::Sentence>()
-        .register_type::<image_types::Word>()
-        .register_type::<image_types::Letter>()
-        .register_type::<image_types::Consonant>()
-        .register_type::<image_types::Vocal>()
-        .register_type::<image_types::NestedLetter>()
-        .register_type::<image_types::NestedVocal>()
-        .register_type::<image_types::NestedVocalPositionCorrection>()
-        .register_type::<Option<Entity>>()
-        .register_type::<image_types::Dot>()
-        .register_type::<image_types::LineSlot>()
-        .register_type::<image_types::CircleChildren>()
-        .register_type::<image_types::LineSlotChildren>()
-        .register_type::<image_types::Text>()
-        .register_type::<image_types::Radius>()
-        .register_type::<image_types::PositionData>()
-        .register_type::<image_types::AnglePlacement>()
-        .register_type::<image_types::Intersections>()
-        .register_type::<Option<[Vec2; 2]>>()
-        .register_type::<svg_view::Interaction>()
+        .add_plugin(plugins::text_converter::TextConverterPlugin)
+        .add_plugin(plugins::color_theme::ColorThemePlugin)
+        .add_plugin(plugins::ui::UiPlugin)
+        .add_plugin(plugins::svg_view::SVGViewPlugin)
+        .add_plugin(plugins::constraints::ConstraintsPlugin)
+        .add_plugin(plugins::svg::SVGPlugin)
+        .add_plugin(plugins::interaction::InteractionPlugin)
+        .add_plugin(plugins::selection::SelectionPlugin)
+        .add_plugin(plugins::file::FilePlugin)
         .register_type::<math::Circle>()
         .register_type::<math::angle::Degree>();
 
