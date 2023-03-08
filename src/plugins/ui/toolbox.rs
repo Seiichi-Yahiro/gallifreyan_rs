@@ -1,20 +1,21 @@
-use super::UiStage;
+use super::{UiBaseSet, UiSet};
 use crate::plugins::svg_view::{CenterView, ViewMode};
 use bevy::prelude::*;
 use bevy_egui::egui::epaint::Shadow;
-use bevy_egui::{egui, EguiContext};
+use bevy_egui::{egui, EguiContexts};
 
 pub struct ToolBoxPlugin;
 
 impl Plugin for ToolBoxPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_to_stage(UiStage, ui.after(super::sidebar::UiSystemLabel));
+        app.add_system(ui.in_base_set(UiBaseSet).in_set(UiSet::Window));
     }
 }
 
 fn ui(
-    mut egui_context: ResMut<EguiContext>,
-    mut view_mode: ResMut<State<ViewMode>>,
+    mut egui_contexts: EguiContexts,
+    current_view_mode: Res<State<ViewMode>>,
+    mut next_view_mode: ResMut<NextState<ViewMode>>,
     mut center_view_events: EventWriter<CenterView>,
 ) {
     egui::Window::new("toolbox")
@@ -22,31 +23,29 @@ fn ui(
         .collapsible(false)
         .title_bar(false)
         .frame(
-            egui::Frame::window(&egui_context.ctx_mut().style()).shadow(Shadow {
+            egui::Frame::window(&egui_contexts.ctx_mut().style()).shadow(Shadow {
                 extrusion: 0.0,
                 color: egui::Color32::BLACK,
             }),
         )
         .fixed_size(egui::Vec2::new(20.0, 60.0))
         .anchor(egui::Align2::LEFT_TOP, egui::Vec2::splat(5.0))
-        .show(egui_context.ctx_mut(), |ui| {
+        .show(egui_contexts.ctx_mut(), |ui| {
             ui.vertical_centered_justified(|ui| {
-                let current_view_mode = *view_mode.current();
-
                 if ui
-                    .selectable_label(current_view_mode == ViewMode::Select, "☝")
+                    .selectable_label(current_view_mode.0 == ViewMode::Select, "☝")
                     .on_hover_text("Select mode")
                     .clicked()
                 {
-                    view_mode.set(ViewMode::Select).ok();
+                    next_view_mode.set(ViewMode::Select);
                 }
 
                 if ui
-                    .selectable_label(current_view_mode == ViewMode::Pan, "✋")
+                    .selectable_label(current_view_mode.0 == ViewMode::Pan, "✋")
                     .on_hover_text("Pan mode")
                     .clicked()
                 {
-                    view_mode.set(ViewMode::Pan).ok();
+                    next_view_mode.set(ViewMode::Pan);
                 }
 
                 if ui.button("⛶").on_hover_text("Center view").clicked() {

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use bevy_egui::egui::Color32;
-use bevy_egui::{egui, EguiContext};
+use bevy_egui::{egui, EguiContexts};
 
 pub struct ColorThemePlugin;
 
@@ -70,8 +70,8 @@ impl Default for ColorTheme {
     }
 }
 
-fn setup_color_theme(mut color_theme: ResMut<ColorTheme>, mut egui_context: ResMut<EguiContext>) {
-    color_theme.set_theme(Theme::Dark, egui_context.ctx_mut());
+fn setup_color_theme(mut color_theme: ResMut<ColorTheme>, mut egui_contexts: EguiContexts) {
+    color_theme.set_theme(Theme::Dark, egui_contexts.ctx_mut());
 
     let dark = egui::Visuals::dark();
     let light = egui::Visuals::light();

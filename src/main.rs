@@ -9,11 +9,11 @@ fn main() {
     let mut app = App::new();
 
     let mut default_plugins = DefaultPlugins.set(WindowPlugin {
-        window: WindowDescriptor {
+        primary_window: Some(Window {
             title: "Gallifreyan".to_string(),
             fit_canvas_to_parent: true,
             ..default()
-        },
+        }),
         ..default()
     });
 
@@ -25,7 +25,7 @@ fn main() {
         });
     }
 
-    app.insert_resource(Msaa { samples: 4 })
+    app.insert_resource(Msaa::Sample4)
         .insert_resource(WinitSettings::desktop_app())
         .add_plugins(default_plugins)
         .add_plugin(ShapePlugin)
@@ -48,10 +48,15 @@ fn main() {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn set_window_icon(windows: NonSend<bevy::winit::WinitWindows>) {
-    let primary = windows
-        .get_window(bevy::window::WindowId::primary())
-        .unwrap();
+fn set_window_icon(
+    winit_windows: NonSend<bevy::winit::WinitWindows>,
+    bevy_windows: Query<Entity, With<Window>>,
+) {
+    let window_entity = bevy_windows
+        .get_single()
+        .expect("There should only be one window!");
+
+    let primary = winit_windows.get_window(window_entity).unwrap();
 
     let (icon_rgba, icon_width, icon_height) = {
         let image = image::load_from_memory(include_bytes!("../wasm/favicon-32x32.png"))

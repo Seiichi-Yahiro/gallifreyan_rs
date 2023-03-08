@@ -6,7 +6,7 @@ use crate::plugins::text_converter::components::{
     AnglePlacement, CircleChildren, Dot, Letter, LineSlot, NestedVocal,
     NestedVocalPositionCorrection, PositionData, Radius, Sentence, Word, OUTER_CIRCLE_SIZE,
 };
-use crate::plugins::text_converter::PostTextConverterStage;
+use crate::plugins::text_converter::TextConverterBaseSet;
 use bevy::prelude::*;
 use bevy::utils::HashSet;
 use bevy_prototype_lyon::entity::ShapeBundle;
@@ -28,9 +28,10 @@ impl Plugin for DrawPlugin {
             .add_system(draw_line_slot.after(update_transform).before(draw))
             .add_system(draw_dots)
             .add_system(draw)
-            .add_system_to_stage(CoreStage::PostUpdate, update_colors)
-            .add_system_to_stage(PostTextConverterStage, add_shape)
-            .add_system_to_stage(PostTextConverterStage, add_svg_element);
+            .add_system(update_colors.in_base_set(CoreSet::PostUpdate))
+            .add_systems(
+                (add_shape, add_svg_element).in_base_set(TextConverterBaseSet::PostTextConverter),
+            );
     }
 }
 
@@ -39,15 +40,15 @@ const STROKE_OPTIONS: StrokeOptions = StrokeOptions::DEFAULT
     .with_line_join(LineJoin::Round)
     .with_line_width(1.0);
 
-fn new_stroke_mode(color: Color) -> StrokeMode {
-    StrokeMode {
+fn new_stroke(color: Color) -> Stroke {
+    Stroke {
         options: STROKE_OPTIONS,
         color,
     }
 }
 
-fn new_fill_mode(color: Color) -> FillMode {
-    FillMode {
+fn new_fill(color: Color) -> Fill {
+    Fill {
         options: FillOptions::DEFAULT,
         color,
     }
@@ -55,22 +56,20 @@ fn new_fill_mode(color: Color) -> FillMode {
 
 fn update_colors(
     color_theme: Res<ColorTheme>,
-    mut query: Query<(&ColorDependency, &mut DrawMode)>,
+    mut query: Query<(&ColorDependency, Option<&mut Stroke>, Option<&mut Fill>)>,
 ) {
     if !color_theme.is_changed() {
         return;
     }
 
-    for (dependency, mut draw_mode) in query.iter_mut() {
+    for (dependency, mut stroke, mut fill) in query.iter_mut() {
         if let Some(new_color) = color_theme.get(dependency.0) {
-            match draw_mode.as_mut() {
-                DrawMode::Fill(fill) => {
-                    fill.color = new_color;
-                }
-                DrawMode::Stroke(stroke) => {
-                    stroke.color = new_color;
-                }
-                DrawMode::Outlined { .. } => {}
+            if let Some(stroke) = stroke.as_mut() {
+                stroke.color = new_color;
+            }
+            
+            if let Some(fill) = fill.as_mut() {
+                fill.color = new_color;
             }
         } else {
             error!("Couldn't find {} key in color theme!", dependency.0);
@@ -88,10 +87,10 @@ fn add_shape(
         commands
             .entity(entity)
             .insert(ShapeBundle {
-                mode: DrawMode::Stroke(new_stroke_mode(color_theme.get(DRAW_COLOR).unwrap())),
                 transform: Transform::from_xyz(0.0, 0.0, 0.1),
                 ..default()
             })
+            .insert(new_stroke(color_theme.get(DRAW_COLOR).unwrap()))
             .insert(ColorDependency(DRAW_COLOR));
     }
 
@@ -99,10 +98,10 @@ fn add_shape(
         commands
             .entity(entity)
             .insert(ShapeBundle {
-                mode: DrawMode::Fill(new_fill_mode(color_theme.get(DRAW_COLOR).unwrap())),
                 transform: Transform::from_xyz(0.0, 0.0, 0.1),
                 ..default()
             })
+            .insert(new_fill(color_theme.get(DRAW_COLOR).unwrap()))
             .insert(ColorDependency(DRAW_COLOR));
     }
 }

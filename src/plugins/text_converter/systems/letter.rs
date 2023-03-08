@@ -266,36 +266,34 @@ pub fn convert_nested_letters(
                     **nested = Some(nested_entity);
                 } else {
                     // spawn nested
-                    let vocal_id = commands
-                        .entity(letter_entity)
-                        .add_children(|child_builder| {
-                            let vocal_bundle = NestedVocalBundle::new(
-                                new_nested_text,
-                                *vocal,
-                                ConsonantPlacement::from(*consonant),
-                                **letter_radius,
+
+                    let vocal_bundle = NestedVocalBundle::new(
+                        new_nested_text,
+                        *vocal,
+                        ConsonantPlacement::from(*consonant),
+                        **letter_radius,
+                        letter_position_data.distance,
+                        word_radius,
+                    );
+
+                    let vocal_id = if VocalPlacement::Outside == VocalPlacement::from(*vocal) {
+                        debug!("Spawn nested letter with position correction: {:?}", letter);
+
+                        let position_correction_id = commands
+                            .spawn(NestedVocalPositionCorrectionBundle::new(
                                 letter_position_data.distance,
-                                word_radius,
-                            );
+                            ))
+                            .set_parent(letter_entity)
+                            .id();
 
-                            if VocalPlacement::Outside == VocalPlacement::from(*vocal) {
-                                debug!(
-                                    "Spawn nested letter with position correction: {:?}",
-                                    letter
-                                );
-
-                                child_builder
-                                    .spawn(NestedVocalPositionCorrectionBundle::new(
-                                        letter_position_data.distance,
-                                    ))
-                                    .add_children(|child_builder| {
-                                        child_builder.spawn(vocal_bundle).id()
-                                    })
-                            } else {
-                                debug!("Spawn nested letter: {:?}", letter);
-                                child_builder.spawn(vocal_bundle).id()
-                            }
-                        });
+                        commands
+                            .spawn(vocal_bundle)
+                            .set_parent(position_correction_id)
+                            .id()
+                    } else {
+                        debug!("Spawn nested letter: {:?}", letter);
+                        commands.spawn(vocal_bundle).set_parent(letter_entity).id()
+                    };
 
                     **nested = Some(vocal_id);
                 }

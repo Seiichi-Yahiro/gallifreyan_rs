@@ -124,7 +124,7 @@ impl NestedVocalPositionCorrectionBundle {
     pub fn new(consonant_distance: f32) -> Self {
         Self {
             nested_vocal_position_correction: NestedVocalPositionCorrection,
-            spatial_bundle: SpatialBundle::VISIBLE_IDENTITY,
+            spatial_bundle: SpatialBundle::INHERITED_IDENTITY,
             position_data: PositionData {
                 angle: Degree::new(0.0),
                 distance: -consonant_distance,

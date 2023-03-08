@@ -14,17 +14,13 @@ lazy_static! {
         .unwrap();
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
-pub enum TextConverterStage {
-    Sentence,
-    Word,
-    Letter,
-    Nested,
-    Decoration,
+#[derive(SystemSet, Debug, Eq, PartialEq, Copy, Clone, Hash)]
+#[system_set(base)]
+pub enum TextConverterBaseSet {
+    TextConverter,
+    PostTextConverter,
+    PostTextConverterFlush,
 }
-
-#[derive(StageLabel)]
-pub struct PostTextConverterStage;
 
 pub struct TextConverterPlugin;
 
@@ -32,37 +28,34 @@ impl Plugin for TextConverterPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<SetText>()
             .insert_resource(NestingSettings::All)
-            .add_stage_before(
-                CoreStage::Update,
-                TextConverterStage::Sentence,
-                SystemStage::single(systems::sentence::convert_sentence),
+            .configure_sets(
+                (
+                    TextConverterBaseSet::TextConverter,
+                    TextConverterBaseSet::PostTextConverter,
+                    TextConverterBaseSet::PostTextConverterFlush,
+                )
+                    .chain()
+                    .before(CoreSet::Update),
             )
-            .add_stage_after(
-                TextConverterStage::Sentence,
-                TextConverterStage::Word,
-                SystemStage::single(systems::word::convert_words),
+            .add_systems(
+                (
+                    systems::sentence::convert_sentence,
+                    apply_system_buffers,
+                    systems::word::convert_words,
+                    apply_system_buffers,
+                    systems::letter::convert_letters,
+                    apply_system_buffers,
+                    systems::letter::convert_nested_letters,
+                    apply_system_buffers,
+                    systems::dot::convert_dots,
+                    systems::line_slot::convert_line_slots,
+                    apply_system_buffers,
+                )
+                    .chain()
+                    .in_base_set(TextConverterBaseSet::TextConverter),
             )
-            .add_stage_after(
-                TextConverterStage::Word,
-                TextConverterStage::Letter,
-                SystemStage::single(systems::letter::convert_letters),
-            )
-            .add_stage_after(
-                TextConverterStage::Letter,
-                TextConverterStage::Nested,
-                SystemStage::single(systems::letter::convert_nested_letters),
-            )
-            .add_stage_after(
-                TextConverterStage::Nested,
-                TextConverterStage::Decoration,
-                SystemStage::parallel()
-                    .with_system(systems::dot::convert_dots)
-                    .with_system(systems::line_slot::convert_line_slots),
-            )
-            .add_stage_after(
-                TextConverterStage::Decoration,
-                PostTextConverterStage,
-                SystemStage::parallel(),
+            .add_system(
+                apply_system_buffers.in_base_set(TextConverterBaseSet::PostTextConverterFlush),
             )
             .register_type::<components::Sentence>()
             .register_type::<components::Word>()

@@ -7,7 +7,7 @@ use bevy::ecs::query::QuerySingleError;
 use bevy::ecs::system::SystemParam;
 use bevy::math::Affine2;
 use bevy::prelude::*;
-use bevy_prototype_lyon::prelude::DrawMode;
+use bevy_prototype_lyon::prelude::{Fill, Stroke};
 use std::string::ToString;
 
 const FILL_CLASS: &str = "fill";
@@ -20,7 +20,8 @@ type ComponentQuery<'w, 's> = Query<
         &'static Transform,
         Option<&'static SVGElement>,
         Option<&'static Children>,
-        Option<&'static DrawMode>,
+        Option<&'static Stroke>,
+        Option<&'static Fill>,
     ),
     Without<LineSlot>,
 >;
@@ -91,19 +92,21 @@ impl<'w, 's> SVGExportSystemParams<'w, 's> {
         entities: impl IntoIterator<Item = Entity>,
         mut group: Group,
     ) -> Group {
-        for (transform, svg_element, children, draw_mode) in
+        for (transform, svg_element, children, stroke, fill) in
             self.component_query.iter_many(entities)
         {
             let mut local_group = Group::new();
             local_group.affine2 = transform.to_affine2();
 
-            if let (Some(svg_element), Some(draw_mode)) = (svg_element, draw_mode) {
+            if let Some(svg_element) = svg_element {
                 let mut svg_element = svg_element.clone();
 
-                match draw_mode {
-                    DrawMode::Fill(_) => svg_element.set_class(Class(FILL_CLASS.to_string())),
-                    DrawMode::Stroke(_) => svg_element.set_class(Class(STROKE_CLASS.to_string())),
-                    DrawMode::Outlined { .. } => {}
+                if stroke.is_some() {
+                    svg_element.set_class(Class(STROKE_CLASS.to_string()))
+                }
+
+                if fill.is_some() {
+                    svg_element.set_class(Class(FILL_CLASS.to_string()))
                 }
 
                 local_group.push(svg_element);
@@ -125,8 +128,6 @@ mod test {
     use super::*;
     use crate::plugins::svg::{Circle, Path, PathElement};
     use crate::plugins::text_converter::components::*;
-    use bevy_prototype_lyon::draw::StrokeMode;
-    use bevy_prototype_lyon::prelude::FillMode;
     use std::sync::mpsc::sync_channel;
 
     #[test]
@@ -149,7 +150,7 @@ mod test {
                 class: Default::default(),
             }),
             Transform::IDENTITY,
-            DrawMode::Stroke(StrokeMode::color(Color::BLACK)),
+            Stroke::color(Color::BLACK),
         );
 
         app.world.spawn(sentence).with_children(|child_builder| {
@@ -170,7 +171,7 @@ mod test {
             let word = (
                 SVGElement::Path(path),
                 Transform::IDENTITY,
-                DrawMode::Stroke(StrokeMode::color(Color::BLACK)),
+                Stroke::color(Color::BLACK),
             );
 
             child_builder.spawn(word).with_children(|child_builder| {
@@ -185,7 +186,7 @@ mod test {
                 let b = (
                     SVGElement::Path(b_path),
                     Transform::from_xyz(0.0, -174.375, 0.0),
-                    DrawMode::Stroke(StrokeMode::color(Color::BLACK)),
+                    Stroke::color(Color::BLACK),
                 );
 
                 child_builder.spawn(b);
@@ -197,14 +198,14 @@ mod test {
                         rotation: Quat::from_xyzw(0.0, 0.0, 0.86602545, 0.49999997),
                         scale: Vec3::ONE,
                     },
-                    DrawMode::Stroke(StrokeMode::color(Color::BLACK)),
+                    Stroke::color(Color::BLACK),
                 );
 
                 child_builder.spawn(ph).with_children(|child_builder| {
                     let dot = (
                         SVGElement::Circle(Circle::new(6.75)),
                         Transform::from_xyz(-0.000005015882, 57.375, 0.0),
-                        DrawMode::Fill(FillMode::color(Color::BLACK)),
+                        Fill::color(Color::BLACK),
                     );
 
                     child_builder.spawn(dot);
@@ -225,7 +226,7 @@ mod test {
                         rotation: Quat::from_xyzw(0.0, 0.0, 0.8660254, -0.50000006),
                         scale: Vec3::ONE,
                     },
-                    DrawMode::Stroke(StrokeMode::color(Color::BLACK)),
+                    Stroke::color(Color::BLACK),
                 );
 
                 child_builder.spawn(v).with_children(|child_builder| {
@@ -237,7 +238,7 @@ mod test {
                             let a = (
                                 SVGElement::Circle(Circle::new(27.0)),
                                 Transform::from_xyz(0.0, -265.5, 0.0),
-                                DrawMode::Stroke(StrokeMode::color(Color::BLACK)),
+                                Stroke::color(Color::BLACK),
                             );
 
                             child_builder.spawn(a);

@@ -1,11 +1,11 @@
 use crate::plugins::file::{os, FileActions, FileHandleAction, Save};
+use crate::utils::event_set::SendEvent;
 use bevy::ecs::system::SystemParam;
 use bevy_egui::egui;
-use crate::utils::event_set::SendEvent;
 
 #[derive(SystemParam)]
-pub struct FileSystemParams<'w, 's> {
-    file_actions: FileActions<'w, 's>,
+pub struct FileSystemParams<'w> {
+    file_actions: FileActions<'w>,
     file_handles: os::FileHandlesResource<'w>,
 }
 
