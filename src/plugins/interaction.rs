@@ -1,15 +1,16 @@
 use crate::math::Circle;
 use crate::plugins::text_converter::components::{Dot, Letter, LineSlot, Radius, Sentence, Word};
-use crate::plugins::text_converter::PostTextConverterStage;
+use crate::plugins::text_converter::TextConverterBaseSet;
 use bevy::prelude::*;
 
 pub struct InteractionPlugin;
 
 impl Plugin for InteractionPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_to_stage(PostTextConverterStage, add_interaction)
-            .add_system_to_stage(CoreStage::Last, update_circle_hitbox)
-            .add_system_to_stage(CoreStage::Last, update_line_slot_hitbox);
+        app.add_system(add_interaction.in_base_set(TextConverterBaseSet::PostTextConverter))
+            .add_systems(
+                (update_circle_hitbox, update_line_slot_hitbox).in_base_set(CoreSet::Last),
+            );
     }
 }
 

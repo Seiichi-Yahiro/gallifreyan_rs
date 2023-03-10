@@ -63,7 +63,7 @@ pub struct TreeSystemParams<'w, 's> {
     word_query: WordQuery<'w, 's>,
     letter_query: LetterQuery<'w, 's>,
     nested_letter_query: NestedLetterQuery<'w, 's>,
-    select_event: EventWriter<'w, 's, Select>,
+    select_event: EventWriter<'w, Select>,
     selected_query: Query<'w, 's, Entity, With<Selected>>,
 }
 

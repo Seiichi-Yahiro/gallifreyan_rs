@@ -3,7 +3,7 @@ use crate::plugins::text_converter::components::{
     CircleChildren, ConsonantPlacement, Dot, Letter, LineSlot, LineSlotChildren, PositionData,
     Radius, Sentence, VocalDecoration, Word,
 };
-use crate::plugins::text_converter::PostTextConverterStage;
+use crate::plugins::text_converter::TextConverterBaseSet;
 use crate::utils::update_if_changed::update_if_changed;
 use bevy::prelude::*;
 use itertools::Itertools;
@@ -16,12 +16,14 @@ pub struct AngleConstraintsPlugin;
 impl Plugin for AngleConstraintsPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<AngleConstraints>()
-            .add_system(update_word_angle_constraints)
-            //.add_system(update_line_slot_angle_constraints.after(update_word_angle_constraints))
-            .add_system(
-                on_angle_constraints_update.after(update_word_angle_constraints), /*.after(update_line_slot_angle_constraints)*/
+            .add_systems(
+                (
+                    update_word_angle_constraints,
+                    /*update_line_slot_angle_constraints,*/ on_angle_constraints_update,
+                )
+                    .chain(),
             )
-            .add_system_to_stage(PostTextConverterStage, add_angle_constraints);
+            .add_system(add_angle_constraints.in_base_set(TextConverterBaseSet::PostTextConverter));
     }
 }
 

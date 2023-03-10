@@ -1,21 +1,20 @@
 pub mod vocal_nesting;
 
-use super::UiStage;
+use super::{UiBaseSet, UiSet};
 use crate::plugins::color_theme::{ColorTheme, Theme};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy_egui::egui;
-use std::marker::PhantomData;
 
 pub struct SettingsPlugin;
 
 impl Plugin for SettingsPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<OpenedSettingWindows>()
-            .add_system_to_stage(
-                UiStage,
-                vocal_nesting::ui.after(super::super::sidebar::UiSystemLabel),
-            );
+        app.init_resource::<OpenedSettingWindows>().add_system(
+            vocal_nesting::ui
+                .in_base_set(UiBaseSet)
+                .in_set(UiSet::Window),
+        );
     }
 }
 
@@ -24,13 +23,10 @@ pub struct OpenedSettingWindows {
     vocal_nesting: bool,
 }
 
-// TODO remove phantom in new bevy version
 #[derive(SystemParam)]
-pub struct SettingsSystemParams<'w, 's> {
+pub struct SettingsSystemParams<'w> {
     color_theme: ResMut<'w, ColorTheme>,
     opened_setting_windows: ResMut<'w, OpenedSettingWindows>,
-    #[system_param(ignore)]
-    _phantom: PhantomData<&'s ()>,
 }
 
 pub fn ui(ui: &mut egui::Ui, mut params: SettingsSystemParams) {

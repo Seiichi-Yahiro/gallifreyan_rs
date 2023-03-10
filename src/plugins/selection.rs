@@ -8,8 +8,8 @@ use bevy::app::{App, Plugin};
 use bevy::ecs::query::QuerySingleError;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use bevy_egui::EguiContext;
-use bevy_prototype_lyon::prelude::DrawMode;
+use bevy_egui::EguiContexts;
+use bevy_prototype_lyon::prelude::{Fill, Stroke};
 
 pub struct SelectionPlugin;
 
@@ -17,15 +17,15 @@ impl Plugin for SelectionPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<Select>()
             .add_system(handle_select_events)
-            .add_system_to_stage(CoreStage::PostUpdate, remove_selection_color)
-            .add_system_to_stage(
-                CoreStage::PostUpdate,
-                set_selection_color.after(remove_selection_color),
+            .add_systems(
+                (remove_selection_color, set_selection_color)
+                    .chain()
+                    .in_base_set(CoreSet::PostUpdate),
             )
-            .add_system_set(
-                SystemSet::on_update(ViewMode::Select)
-                    .with_system(select_on_click)
-                    .with_system(drag.before(select_on_click)),
+            .add_systems(
+                (drag, select_on_click)
+                    .chain()
+                    .in_set(OnUpdate(ViewMode::Select)),
             );
     }
 }
@@ -71,7 +71,15 @@ fn handle_select_events(
 
 #[derive(SystemParam)]
 struct DrawModeParams<'w, 's> {
-    draw_mode_query: Query<'w, 's, (&'static mut ColorDependency, &'static mut DrawMode)>,
+    draw_mode_query: Query<
+        'w,
+        's,
+        (
+            &'static mut ColorDependency,
+            Option<&'static mut Stroke>,
+            Option<&'static mut Fill>,
+        ),
+    >,
     children_query: Query<'w, 's, &'static Children>,
     color_theme: Res<'w, ColorTheme>,
 }
@@ -83,17 +91,15 @@ impl<'w, 's> DrawModeParams<'w, 's> {
             let entities = std::iter::once(entity).chain(children);
             let mut iter = self.draw_mode_query.iter_many_mut(entities);
 
-            while let Some((mut color_dependency, mut draw_mode)) = iter.fetch_next() {
+            while let Some((mut color_dependency, mut stroke, mut fill)) = iter.fetch_next() {
                 *color_dependency = ColorDependency(dependency);
 
-                match draw_mode.as_mut() {
-                    DrawMode::Fill(fill) => {
-                        fill.color = new_color;
-                    }
-                    DrawMode::Stroke(stroke) => {
-                        stroke.color = new_color;
-                    }
-                    DrawMode::Outlined { .. } => {}
+                if let Some(stroke) = stroke.as_mut() {
+                    stroke.color = new_color;
+                }
+
+                if let Some(fill) = fill.as_mut() {
+                    fill.color = new_color;
                 }
             }
         } else {
@@ -112,10 +118,10 @@ fn set_selection_color(
 }
 
 fn remove_selection_color(
-    deselected: RemovedComponents<Selected>,
+    mut deselected: RemovedComponents<Selected>,
     mut draw_mode_params: DrawModeParams,
 ) {
-    for deselected_entity in deselected.iter() {
+    for deselected_entity in &mut deselected {
         draw_mode_params.set_color_for_entity_and_children(deselected_entity, DRAW_COLOR);
     }
 }
@@ -123,7 +129,7 @@ fn remove_selection_color(
 fn select_on_click(
     mut events: EventWriter<Select>,
     world_cursor: Res<WorldCursor>,
-    egui_context: Res<EguiContext>,
+    egui_contexts: EguiContexts,
     mouse_button_input: Res<Input<MouseButton>>,
     hit_box_query: Query<(Entity, &Interaction)>,
 ) {
@@ -131,7 +137,7 @@ fn select_on_click(
         return;
     }
 
-    let ctx = egui_context.ctx();
+    let ctx = egui_contexts.ctx();
 
     if ctx.is_pointer_over_area() || ctx.is_using_pointer() {
         return;
@@ -148,7 +154,7 @@ fn select_on_click(
 
 fn drag(
     world_cursor: Res<WorldCursor>,
-    egui_context: Res<EguiContext>,
+    egui_contexts: EguiContexts,
     hit_box_query: Query<(Entity, &Interaction)>,
     mut selected_query: Query<
         (
@@ -180,7 +186,7 @@ fn drag(
     };
 
     if mouse_button_input.just_pressed(MouseButton::Left) {
-        let ctx = egui_context.ctx();
+        let ctx = egui_contexts.ctx();
         let is_ui_blocking =
             ctx.is_pointer_over_area() || ctx.is_using_pointer() || ctx.wants_keyboard_input();
 

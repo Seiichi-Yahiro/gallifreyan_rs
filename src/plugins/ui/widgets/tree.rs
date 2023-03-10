@@ -32,8 +32,7 @@ impl<'a, T: Copy + Hash + Debug> CollapsingTreeItem<'a, T> {
         let hover_id = ui.make_persistent_id(format!("{:?}_hover", self.id));
         let is_hovered = ui
             .ctx()
-            .data()
-            .get_temp::<bool>(hover_id)
+            .data_mut(|it| it.get_temp::<bool>(hover_id))
             .unwrap_or_default();
 
         let frame = egui::Frame {
@@ -98,8 +97,7 @@ impl<'a, T: Copy + Hash + Debug> CollapsingTreeItem<'a, T> {
         });
 
         ui.ctx()
-            .data()
-            .insert_temp(hover_id, header_response.response.hovered());
+            .data_mut(|it| it.insert_temp(hover_id, header_response.response.hovered()));
 
         let header_text_response = header_response.inner;
 

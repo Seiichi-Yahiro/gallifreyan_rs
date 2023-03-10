@@ -1,31 +1,37 @@
 use crate::plugins::text_converter::components::SVG_SIZE;
+use crate::plugins::ui::UiBaseSet;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 use bevy::render::camera::Viewport;
-use bevy_egui::{egui, EguiContext};
+use bevy_egui::{egui, EguiContexts};
 
 pub struct SVGViewPlugin;
 
 impl Plugin for SVGViewPlugin {
     fn build(&self, app: &mut App) {
-        app.add_state(ViewMode::Select)
+        app.add_state::<ViewMode>()
             .add_event::<CenterView>()
             .init_resource::<WorldCursor>()
             .add_startup_system(setup)
-            .add_system_to_stage(CoreStage::PreUpdate, calculate_world_cursor)
-            .add_system(adjust_view_port)
-            .add_system_set(
-                SystemSet::on_update(ViewMode::Pan)
-                    .with_system(camera_pan)
-                    .after(adjust_view_port),
+            .add_systems(
+                (adjust_view_port, calculate_world_cursor)
+                    .chain()
+                    .after(UiBaseSet),
             )
-            .add_system(camera_zoom.after(adjust_view_port))
-            .add_system(center_view.after(adjust_view_port));
+            .add_systems(
+                (
+                    camera_pan.in_set(OnUpdate(ViewMode::Pan)),
+                    camera_zoom,
+                    center_view,
+                )
+                    .after(calculate_world_cursor),
+            );
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+#[derive(States, Debug, Copy, Clone, Eq, PartialEq, Hash, Default)]
 pub enum ViewMode {
+    #[default]
     Select,
     Pan,
 }
@@ -51,17 +57,19 @@ impl Default for AvailableRect {
 }
 
 fn adjust_view_port(
-    egui_context: Res<EguiContext>,
-    windows: Res<Windows>,
+    egui_contexts: EguiContexts,
+    windows: Query<&Window>,
     mut camera_query: Query<&mut Camera, With<SVGViewCamera>>,
     mut available_rect: Local<AvailableRect>,
 ) {
-    let new_rect = egui_context.ctx().available_rect();
+    let new_rect = egui_contexts.ctx().available_rect();
 
     if **available_rect != new_rect {
         **available_rect = new_rect;
 
-        let window = windows.primary();
+        let window = windows
+            .get_single()
+            .expect("There should only be one window!");
         let scale_factor = window.scale_factor();
 
         let mut camera = camera_query.single_mut();
@@ -95,11 +103,13 @@ pub struct WorldCursor {
 
 fn calculate_world_cursor(
     mut world_cursor: ResMut<WorldCursor>,
-    windows: Res<Windows>,
+    windows: Query<&Window>,
     camera_query: Query<(&Camera, &OrthographicProjection, &GlobalTransform)>,
     mut last_cursor_pos: Local<Option<Vec2>>,
 ) {
-    let window = windows.primary();
+    let window = windows
+        .get_single()
+        .expect("There should only be one window!");
 
     let current_cursor_pos = match window.cursor_position() {
         Some(current_pos) => current_pos,
@@ -116,12 +126,9 @@ fn calculate_world_cursor(
             .map(|(min, _max)| min)
             .unwrap_or(Vec2::ZERO);
 
-        let projection_size = Vec2::new(
-            projection.right - projection.left,
-            projection.top - projection.bottom,
-        ) * projection.scale;
-
-        let world_units_per_device_pixel = projection_size / viewport_size;
+        // projection size already contains the projection scale factor
+        // projection size represents the area of the world currently visible in world units
+        let world_units_per_device_pixel = projection.area.size() / viewport_size;
 
         let cursor_delta = current_cursor_pos - last_cursor_pos.unwrap_or(current_cursor_pos);
         world_cursor.delta = cursor_delta * world_units_per_device_pixel;
@@ -144,10 +151,10 @@ fn camera_pan(
     world_cursor: Res<WorldCursor>,
     mouse_button_input: Res<Input<MouseButton>>,
     mut is_panning: Local<bool>,
-    egui_context: Res<EguiContext>,
+    egui_contexts: EguiContexts,
 ) {
     if mouse_button_input.just_pressed(MouseButton::Left) {
-        let ctx = egui_context.ctx();
+        let ctx = egui_contexts.ctx();
         *is_panning =
             !(ctx.is_pointer_over_area() || ctx.is_using_pointer() || ctx.wants_keyboard_input());
     }
@@ -177,9 +184,9 @@ fn camera_zoom(
         With<SVGViewCamera>,
     >,
     mut scroll_events: EventReader<MouseWheel>,
-    egui_ctx: Res<EguiContext>,
+    egui_contexts: EguiContexts,
 ) {
-    if egui_ctx.ctx().is_pointer_over_area() {
+    if egui_contexts.ctx().is_pointer_over_area() {
         return;
     }
 
@@ -200,15 +207,19 @@ fn camera_zoom(
     if let Ok((camera, mut projection, mut transform, global_transform)) =
         camera_query.get_single_mut()
     {
-        projection.scale *= 1.0 - scroll * 0.001;
-
-        let projection_size = Vec2::new(projection.right, projection.top);
+        // gets the relative (-1 to 1) cursor position on the viewport
         let ndc = camera.world_to_ndc(global_transform, world_cursor.pos.extend(0.0));
 
         if let Some(ndc) = ndc {
-            transform.translation = (world_cursor.pos
-                - ndc.truncate() * projection_size * projection.scale)
+            let scale_factor = 1.0 - scroll * 0.001;
+            let scaled_projection_size = projection.area.half_size() * scale_factor;
+            let relative_cursor_pos_in_scaled_area = ndc.truncate() * scaled_projection_size;
+
+            // the cursor position needs to be in the same spot after zooming
+            transform.translation = (world_cursor.pos - relative_cursor_pos_in_scaled_area)
                 .extend(transform.translation.z);
+
+            projection.scale *= scale_factor;
         }
     }
 }
@@ -219,13 +230,15 @@ fn center_view(
         (&Camera, &mut OrthographicProjection, &mut Transform),
         With<SVGViewCamera>,
     >,
-    windows: Res<Windows>,
+    windows: Query<&Window>,
 ) {
     if events.iter().last().is_some() {
         let (camera, mut orthographic_projection, mut transform) = camera_query.single_mut();
 
         let viewport_size = camera.logical_viewport_size().unwrap_or_else(|| {
-            let window = windows.primary();
+            let window = windows
+                .get_single()
+                .expect("There should only be one window!");
             Vec2::new(window.width(), window.height())
         });
 

@@ -10,9 +10,9 @@ pub struct TextState {
 }
 
 #[derive(SystemParam)]
-pub struct TextInputSystemParams<'w, 's> {
+pub struct TextInputSystemParams<'w> {
     ui_state: ResMut<'w, TextState>,
-    set_text_event: EventWriter<'w, 's, SetText>,
+    set_text_event: EventWriter<'w, SetText>,
 }
 
 pub fn ui_text_input(ui: &mut egui::Ui, mut params: TextInputSystemParams) {

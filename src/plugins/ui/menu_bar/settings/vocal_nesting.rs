@@ -1,7 +1,7 @@
 use crate::plugins::text_converter::components::{Consonant, NestingSettings, Vocal};
 use bevy::prelude::*;
 use bevy::utils::hashbrown::HashSet;
-use bevy_egui::{egui, EguiContext};
+use bevy_egui::{egui, EguiContexts};
 use strum::IntoEnumIterator;
 
 #[derive(Default)]
@@ -12,14 +12,14 @@ pub struct Rules {
 }
 
 pub fn ui(
-    mut egui_context: ResMut<EguiContext>,
+    mut egui_contexts: EguiContexts,
     mut opened_setting_windows: ResMut<super::OpenedSettingWindows>,
     mut nesting_settings: ResMut<NestingSettings>,
     mut rules: Local<Rules>,
 ) {
     egui::Window::new("Vocal Nesting")
         .open(&mut opened_setting_windows.vocal_nesting)
-        .show(egui_context.ctx_mut(), |ui| {
+        .show(egui_contexts.ctx_mut(), |ui| {
             if ui
                 .radio(matches!(*nesting_settings, NestingSettings::None), "None")
                 .clicked()

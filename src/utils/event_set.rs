@@ -23,13 +23,13 @@ macro_rules! event_set {
     ($vis:vis $name:ident {$($event:ident),+}) => {
         #[allow(non_snake_case)]
         #[derive(bevy::ecs::system::SystemParam)]
-        $vis struct $name<'w, 's> {
+        $vis struct $name<'w> {
             $(
-                $event: bevy::prelude::EventWriter<'w, 's, $event>
+                $event: bevy::prelude::EventWriter<'w, $event>
             ),+
         }
 
-        impl<'w, 's> EventSet for $name<'w, 's> {
+        impl<'w> EventSet for $name<'w> {
             fn add_events(app: &mut App) {
                 $(
                     app.add_event::<$event>();
@@ -38,7 +38,7 @@ macro_rules! event_set {
         }
 
         $(
-            impl<'w, 's> SendEvent<$event> for $name<'w, 's> {
+            impl<'w> SendEvent<$event> for $name<'w> {
                 fn dispatch(&mut self, event: $event) {
                     self.$event.send(event);
                 }

@@ -2,7 +2,7 @@ use crate::plugins::text_converter::components::{
     CircleChildren, ConsonantPlacement, Dot, Letter, LineSlot, LineSlotChildren, PositionData,
     Radius, Sentence, VocalPlacement, Word,
 };
-use crate::plugins::text_converter::PostTextConverterStage;
+use crate::plugins::text_converter::TextConverterBaseSet;
 use crate::utils::update_if_changed::update_if_changed;
 use bevy::prelude::*;
 
@@ -11,18 +11,19 @@ pub struct DistanceConstraintsPlugin;
 impl Plugin for DistanceConstraintsPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<DistanceConstraints>()
-            .add_system(update_word_distance_constraints)
-            .add_system(update_letter_distance_constraints.after(update_word_distance_constraints))
-            .add_system(update_dot_distance_constraints.after(update_letter_distance_constraints))
-            .add_system(
-                update_line_slot_distance_constraints.after(update_letter_distance_constraints),
+            .add_systems(
+                (
+                    update_word_distance_constraints,
+                    update_letter_distance_constraints,
+                    update_dot_distance_constraints,
+                    update_line_slot_distance_constraints,
+                    on_distance_constraints_update,
+                )
+                    .chain(),
             )
             .add_system(
-                on_distance_constraints_update
-                    .after(update_dot_distance_constraints)
-                    .after(update_line_slot_distance_constraints),
-            )
-            .add_system_to_stage(PostTextConverterStage, add_distance_constraints);
+                add_distance_constraints.in_base_set(TextConverterBaseSet::PostTextConverter),
+            );
     }
 }
 

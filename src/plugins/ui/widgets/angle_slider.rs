@@ -71,12 +71,12 @@ impl<'a> AngleSlider<'a> {
     fn handle_keyboard_input(&mut self, ui: &mut egui::Ui) {
         let increment: usize = [egui::Key::ArrowRight, egui::Key::ArrowUp]
             .into_iter()
-            .map(|key| ui.input().num_presses(key))
+            .map(|key| ui.input(|it| it.num_presses(key)))
             .sum();
 
         let decrement: usize = [egui::Key::ArrowLeft, egui::Key::ArrowDown]
             .into_iter()
-            .map(|key| ui.input().num_presses(key))
+            .map(|key| ui.input(|it| it.num_presses(key)))
             .sum();
 
         let step = increment as i32 - decrement as i32;

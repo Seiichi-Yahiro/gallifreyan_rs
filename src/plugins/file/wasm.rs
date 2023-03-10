@@ -9,7 +9,7 @@ pub type FileHandlesResourceMut<'w> = NonSendMut<'w, super::FileHandles>;
 
 pub type FileHandleReceiverResourceMut<'w> = NonSendMut<'w, super::FileHandleReceiver>;
 
-#[wasm_bindgen(module = "/src/menu_bar/file/web.js")]
+#[wasm_bindgen(module = "/src/plugins/file/web.js")]
 extern "C" {
     #[wasm_bindgen(catch)]
     async fn openRONFile() -> Result<JsValue, JsValue>;
