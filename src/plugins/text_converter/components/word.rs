@@ -2,8 +2,7 @@ use super::{AnglePlacement, CircleChildren, LineSlotChildren, PositionData, Radi
 use crate::math::angle::Degree;
 use bevy::prelude::*;
 
-#[derive(Debug, Copy, Clone, Default, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Debug, Copy, Clone, Default, Component)]
 pub struct Word;
 
 impl Word {

@@ -7,8 +7,7 @@ use bevy::utils::HashSet;
 pub use consonant::*;
 pub use vocal::*;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Component)]
 pub enum Letter {
     Vocal(Vocal),
     Consonant(Consonant),
@@ -92,8 +91,7 @@ impl TryFrom<&str> for Letter {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default, Deref, DerefMut, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Debug, Copy, Clone, Default, Deref, DerefMut, Component)]
 pub struct NestedLetter(pub Option<Entity>);
 
 #[derive(Bundle)]

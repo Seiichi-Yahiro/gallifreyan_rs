@@ -17,7 +17,7 @@ pub use title::*;
 use bevy::app::{App, Plugin};
 use bevy::log::error;
 use bevy::math::{Affine2, Mat2};
-use bevy::prelude::{Component, FromReflect, Reflect, ReflectComponent, Transform};
+use bevy::prelude::{Component, Transform};
 use bevy_prototype_lyon::geometry::Geometry;
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use itertools::Itertools;
@@ -30,13 +30,7 @@ pub struct SVGPlugin;
 
 impl Plugin for SVGPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<SVGElement>()
-            .register_type::<Circle>()
-            .register_type::<Group>()
-            .register_type::<Line>()
-            .register_type::<Path>()
-            .register_type::<PathElement>()
-            .add_plugin(draw::DrawPlugin);
+        app.add_plugin(draw::DrawPlugin);
     }
 }
 
@@ -106,8 +100,7 @@ impl Display for SVG {
     }
 }
 
-#[derive(Debug, Clone, Component, Reflect, FromReflect)]
-#[reflect(Component)]
+#[derive(Debug, Clone, Component)]
 pub enum SVGElement {
     Title(Title),
     Group(Group),

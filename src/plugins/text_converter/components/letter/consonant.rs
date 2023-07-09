@@ -1,9 +1,8 @@
 use super::super::{AnglePlacement, PositionData};
 use crate::math::angle::Degree;
-use bevy::prelude::*;
 use strum_macros::EnumIter;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Reflect, FromReflect, EnumIter)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, EnumIter)]
 pub enum Consonant {
     B,
     J,

@@ -1,7 +1,6 @@
 pub mod angle;
 
 use bevy::math::{Quat, Vec2};
-use bevy::prelude::Reflect;
 
 pub trait Intersection<T> {
     fn intersection(&self, other: &T) -> IntersectionResult;
@@ -15,7 +14,7 @@ pub enum IntersectionResult {
     Two(Vec2, Vec2),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Default, Reflect)]
+#[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub struct Circle {
     pub radius: f32,
     pub position: Vec2,

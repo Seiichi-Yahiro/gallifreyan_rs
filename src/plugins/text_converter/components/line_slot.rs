@@ -2,8 +2,7 @@ use super::{AnglePlacement, PositionData};
 use crate::math::angle::Degree;
 use bevy::prelude::*;
 
-#[derive(Debug, Copy, Clone, Default, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Debug, Copy, Clone, Default, Component)]
 pub struct LineSlot;
 
 impl LineSlot {

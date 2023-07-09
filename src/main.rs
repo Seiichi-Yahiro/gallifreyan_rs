@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_egui::EguiPlugin;
 use bevy_prototype_lyon::plugin::ShapePlugin;
-use gallifreyan_lib::{math, plugins};
+use gallifreyan_lib::plugins;
 
 fn main() {
     let mut app = App::new();
@@ -37,9 +37,7 @@ fn main() {
         .add_plugin(plugins::svg::SVGPlugin)
         .add_plugin(plugins::interaction::InteractionPlugin)
         .add_plugin(plugins::selection::SelectionPlugin)
-        .add_plugin(plugins::file::FilePlugin)
-        .register_type::<math::Circle>()
-        .register_type::<math::angle::Degree>();
+        .add_plugin(plugins::file::FilePlugin);
 
     #[cfg(not(target_arch = "wasm32"))]
     app.add_startup_system(set_window_icon);

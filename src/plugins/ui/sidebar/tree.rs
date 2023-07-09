@@ -3,6 +3,7 @@ use crate::plugins::text_converter::components::{
     CircleChildren, Letter, LineSlotChildren, NestedLetter, NestedVocal, Sentence, Text, Word,
 };
 use crate::plugins::ui::widgets::tree::CollapsingTreeItem;
+use crate::utils::contains::Contains;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy_egui::egui;

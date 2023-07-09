@@ -1,15 +1,14 @@
 use super::{Class, Indent};
-use bevy::prelude::{FromReflect, Reflect, Vec2};
+use bevy::prelude::Vec2;
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use bevy_prototype_lyon::prelude::Geometry;
 use bevy_prototype_lyon::shapes;
 use itertools::Itertools;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Default, Clone, Reflect, FromReflect)]
+#[derive(Debug, Default, Clone)]
 pub struct Path {
     pub elements: Vec<PathElement>,
-    #[reflect(ignore)]
     pub class: Class,
 }
 
@@ -86,7 +85,7 @@ impl Geometry for Path {
     }
 }
 
-#[derive(Debug, Copy, Clone, Reflect, FromReflect)]
+#[derive(Debug, Copy, Clone)]
 pub enum PathElement {
     MoveTo(Vec2),
     Arc {

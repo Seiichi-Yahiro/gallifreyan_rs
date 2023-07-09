@@ -1,15 +1,13 @@
 use super::{Class, Indent};
-use bevy::prelude::{FromReflect, Reflect};
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use bevy_prototype_lyon::prelude::Geometry;
 use bevy_prototype_lyon::shapes;
 use itertools::Itertools;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Default, Clone, Reflect, FromReflect)]
+#[derive(Debug, Default, Clone)]
 pub struct Circle {
     pub radius: f32,
-    #[reflect(ignore)]
     pub class: Class,
 }
 

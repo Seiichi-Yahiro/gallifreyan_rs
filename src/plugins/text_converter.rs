@@ -56,24 +56,7 @@ impl Plugin for TextConverterPlugin {
             )
             .add_system(
                 apply_system_buffers.in_base_set(TextConverterBaseSet::PostTextConverterFlush),
-            )
-            .register_type::<components::Sentence>()
-            .register_type::<components::Word>()
-            .register_type::<components::Letter>()
-            .register_type::<components::Consonant>()
-            .register_type::<components::Vocal>()
-            .register_type::<components::NestedLetter>()
-            .register_type::<components::NestedVocal>()
-            .register_type::<components::NestedVocalPositionCorrection>()
-            .register_type::<Option<Entity>>()
-            .register_type::<components::Dot>()
-            .register_type::<components::LineSlot>()
-            .register_type::<components::CircleChildren>()
-            .register_type::<components::LineSlotChildren>()
-            .register_type::<components::Text>()
-            .register_type::<components::Radius>()
-            .register_type::<components::PositionData>()
-            .register_type::<components::AnglePlacement>();
+            );
     }
 }
 

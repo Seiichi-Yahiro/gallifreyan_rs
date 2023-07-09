@@ -5,7 +5,7 @@ use crate::math::angle::Degree;
 use bevy::prelude::*;
 use strum_macros::EnumIter;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Reflect, FromReflect, EnumIter)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, EnumIter)]
 pub enum Vocal {
     A,
     E,
@@ -105,12 +105,10 @@ impl TryFrom<&str> for Vocal {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Debug, Copy, Clone, Default, Component)]
 pub struct NestedVocal;
 
-#[derive(Copy, Clone, Default, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Copy, Clone, Default, Component)]
 pub struct NestedVocalPositionCorrection;
 
 #[derive(Bundle)]

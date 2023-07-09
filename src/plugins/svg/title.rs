@@ -1,8 +1,7 @@
 use super::Indent;
-use bevy::prelude::{FromReflect, Reflect};
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Default, Clone, Reflect, FromReflect)]
+#[derive(Debug, Default, Clone)]
 pub struct Title(pub String);
 
 impl Display for Title {

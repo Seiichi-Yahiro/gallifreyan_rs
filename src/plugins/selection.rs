@@ -3,6 +3,7 @@ use crate::plugins::color_theme::{ColorDependency, ColorTheme, DRAW_COLOR, SELEC
 use crate::plugins::interaction::Interaction;
 use crate::plugins::svg_view::{ViewMode, WorldCursor};
 use crate::plugins::text_converter::components::PositionData;
+use crate::utils::contains::Contains;
 use bevy::app::{App, Plugin};
 use bevy::ecs::query::QuerySingleError;
 use bevy::ecs::system::SystemParam;

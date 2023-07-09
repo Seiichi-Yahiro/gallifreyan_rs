@@ -1,4 +1,4 @@
-use crate::plugins::file::{os, FileActions, FileHandleAction, Save};
+use crate::plugins::file::{FileActions, FileHandleAction};
 use crate::utils::event_set::SendEvent;
 use bevy::ecs::system::SystemParam;
 use bevy_egui::egui;
@@ -6,12 +6,13 @@ use bevy_egui::egui;
 #[derive(SystemParam)]
 pub struct FileSystemParams<'w> {
     file_actions: FileActions<'w>,
-    file_handles: os::FileHandlesResource<'w>,
+    //file_handles: os::FileHandlesResource<'w>,
 }
 
 pub fn ui(ui: &mut egui::Ui, mut params: FileSystemParams) {
     ui.menu_button("File", |ui| {
-        if ui.button("Open...").clicked() {
+        // TODO implement load and save
+        /*if ui.button("Open...").clicked() {
             ui.close_menu();
             params.file_actions.dispatch(FileHandleAction::Open);
         }
@@ -27,7 +28,7 @@ pub fn ui(ui: &mut egui::Ui, mut params: FileSystemParams) {
         if ui.button("Save as...").clicked() {
             ui.close_menu();
             params.file_actions.dispatch(FileHandleAction::Save);
-        }
+        }*/
 
         if ui.button("Export as SVG...").clicked() {
             ui.close_menu();

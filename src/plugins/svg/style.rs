@@ -1,10 +1,10 @@
 use super::DEFAULT_INDENTATION_DEPTH;
 use super::{Indent, ToCSSString};
-use bevy::prelude::{Color, FromReflect, Reflect};
+use bevy::prelude::Color;
 use itertools::Itertools;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Default, Clone, Reflect, FromReflect)]
+#[derive(Debug, Default, Clone)]
 pub struct Style(pub Vec<StyleRule>);
 
 impl Display for Style {
@@ -31,7 +31,7 @@ impl Style {
 
 impl Indent for Style {}
 
-#[derive(Debug, Default, Clone, Reflect, FromReflect)]
+#[derive(Debug, Default, Clone)]
 pub struct StyleRule {
     pub selectors: Vec<Selector>,
     pub rules: Vec<CSSRule>,
@@ -66,7 +66,7 @@ impl StyleRule {
 
 impl Indent for StyleRule {}
 
-#[derive(Debug, Clone, Reflect, FromReflect)]
+#[derive(Debug, Clone)]
 pub enum Selector {
     Class(String),
     Tag(String),
@@ -85,7 +85,7 @@ impl Display for Selector {
     }
 }
 
-#[derive(Debug, Copy, Clone, Reflect, FromReflect)]
+#[derive(Debug, Copy, Clone)]
 pub enum CSSRule {
     Stroke(Option<Color>),
     Fill(Option<Color>),
@@ -112,7 +112,7 @@ impl Display for CSSRule {
     }
 }
 
-#[derive(Debug, Copy, Clone, Reflect, FromReflect)]
+#[derive(Debug, Copy, Clone)]
 pub enum StrokeLineCap {
     Butt,
     Round,
@@ -153,7 +153,7 @@ impl ToCSSString for Option<Color> {
     }
 }
 
-#[derive(Debug, Clone, Default, Reflect, FromReflect)]
+#[derive(Debug, Clone, Default)]
 pub struct Class(pub String);
 
 impl Display for Class {

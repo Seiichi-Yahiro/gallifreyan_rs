@@ -1,17 +1,14 @@
 use super::{Class, Indent, SVGElement, ToCSSString, DEFAULT_INDENTATION_DEPTH};
 use bevy::math::Affine2;
-use bevy::prelude::{FromReflect, Reflect};
 use bevy_prototype_lyon::prelude::tess::path::path::Builder;
 use bevy_prototype_lyon::prelude::Geometry;
 use itertools::Itertools;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Default, Clone, Reflect, FromReflect)]
+#[derive(Debug, Default, Clone)]
 pub struct Group {
     pub elements: Vec<SVGElement>,
-    #[reflect(ignore)]
     pub affine2: Affine2,
-    #[reflect(ignore)]
     pub class: Class,
 }
 

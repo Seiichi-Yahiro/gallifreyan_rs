@@ -15,33 +15,26 @@ use bevy::prelude::*;
 
 pub const SVG_SIZE: f32 = 1000.0;
 
-#[derive(Default, Component, Deref, DerefMut, Reflect)]
-#[reflect(Component)]
+#[derive(Default, Component, Deref, DerefMut)]
 pub struct CircleChildren(pub Vec<Entity>);
 
-#[derive(Default, Component, Deref, DerefMut, Reflect)]
-#[reflect(Component)]
+#[derive(Default, Component, Deref, DerefMut)]
 pub struct LineSlotChildren(pub Vec<Entity>);
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Component, Deref, DerefMut, Reflect)]
-#[reflect(Component)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Component, Deref, DerefMut)]
 pub struct Text(pub String);
 
-#[derive(
-    Debug, Default, Copy, Clone, PartialEq, PartialOrd, Component, Deref, DerefMut, Reflect,
-)]
-#[reflect(Component)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, PartialOrd, Component, Deref, DerefMut)]
 pub struct Radius(pub f32);
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Component)]
 pub struct PositionData {
     pub angle: Degree,
     pub distance: f32,
     pub angle_placement: AnglePlacement,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Reflect)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum AnglePlacement {
     Absolute,
     Relative,

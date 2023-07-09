@@ -6,8 +6,7 @@ use bevy::prelude::*;
 
 pub const OUTER_CIRCLE_SIZE: f32 = 10.0;
 
-#[derive(Debug, Copy, Clone, Default, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Debug, Copy, Clone, Default, Component)]
 pub struct Sentence;
 
 impl Sentence {

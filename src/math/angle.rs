@@ -1,5 +1,4 @@
 use bevy::math::Vec2;
-use bevy::prelude::Reflect;
 
 pub trait Angle: Copy + PartialEq + PartialOrd {
     fn inner(self) -> f32;
@@ -8,7 +7,7 @@ pub trait Angle: Copy + PartialEq + PartialOrd {
     fn clamp(self, min: Self, max: Self) -> Self;
 }
 
-#[derive(Default, Debug, Copy, Clone, PartialEq, PartialOrd, Reflect)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub struct Degree(f32);
 
 impl From<Radian> for Degree {
@@ -51,7 +50,7 @@ impl Angle for Degree {
     }
 }
 
-#[derive(Default, Debug, Copy, Clone, PartialEq, PartialOrd, Reflect)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub struct Radian(f32);
 
 impl From<Degree> for Radian {
