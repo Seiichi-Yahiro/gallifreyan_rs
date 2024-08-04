@@ -1,4 +1,7 @@
+use std::time::Duration;
+
 use crate::plugins::ui::interactions::Pressed;
+use crate::plugins::ui::{FONT_HANDLE, FONT_SIZE};
 use ab_glyph::{Font as AbFont, ScaleFont};
 use bevy::ecs::world::Command;
 use bevy::input::keyboard::{Key, KeyboardInput};
@@ -6,7 +9,6 @@ use bevy::input::mouse::MouseButtonInput;
 use bevy::prelude::*;
 use bevy::text::BreakLineOn;
 use bevy::ui::RelativeCursorPosition;
-use std::time::Duration;
 use unicode_segmentation::UnicodeSegmentation;
 
 pub struct TextInputPlugin;
@@ -44,7 +46,6 @@ pub struct TextInputWidget {
 
 impl Command for TextInputWidget {
     fn apply(self, world: &mut World) {
-        let font_size = 13.0;
         let cursor_width = 1.0;
 
         let text = world
@@ -55,8 +56,8 @@ impl Command for TextInputWidget {
                         sections: vec![TextSection {
                             value: self.text,
                             style: TextStyle {
-                                font: Default::default(),
-                                font_size,
+                                font: FONT_HANDLE,
+                                font_size: FONT_SIZE,
                                 color: Color::WHITE,
                             },
                         }],
@@ -81,7 +82,7 @@ impl Command for TextInputWidget {
                     style: Style {
                         position_type: PositionType::Absolute,
                         width: Val::Px(cursor_width),
-                        height: Val::Px(font_size),
+                        height: Val::Px(FONT_SIZE),
                         align_self: AlignSelf::Center,
                         left: Val::Px(0.0),
                         ..default()
@@ -105,7 +106,7 @@ impl Command for TextInputWidget {
                     style: Style {
                         overflow: Overflow::clip(),
                         width: Val::Percent(100.0),
-                        height: Val::Px(font_size),
+                        height: Val::Px(FONT_SIZE),
                         ..default()
                     },
                     ..default()
