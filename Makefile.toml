@@ -1,0 +1,52 @@
+# install with:
+# cargo install --force cargo-make
+
+# run with:
+# cargo make <task name>
+
+[env]
+PROJECT_PACKAGE = "gallifreyan"
+PROJECT_BIN = "gallifreyan"
+
+[tasks.debug]
+env = { "RUST_LOG" = "gallifreyan=debug" }
+command = "cargo"
+args = [
+    "run",
+    "--package", "${PROJECT_PACKAGE}",
+    "--bin", "${PROJECT_BIN}",
+]
+
+[tasks.release]
+env = { "RUST_LOG" = "gallifreyan=warn" }
+command = "cargo"
+args = [
+    "run",
+    "--package", "${PROJECT_PACKAGE}",
+    "--bin", "${PROJECT_BIN}",
+    "--release"
+]
+
+[tasks.web_debug]
+env = { "RUSTFLAGS" = "--cfg=web_sys_unstable_apis", "RUST_LOG" = "gallifreyan_lib=debug" }
+command = "wasm-pack"
+install_crate = { crate_name = "wasm-pack", binary = "wasm-pack", test_arg = "--help" }
+args = [
+    "build",
+    "--target", "web",
+    "--weak-refs",
+    "--debug",
+    ".",
+]
+
+[tasks.web_release]
+env = { "RUSTFLAGS" = "--cfg=web_sys_unstable_apis", "RUST_LOG" = "gallifreyan_lib=warn" }
+command = "wasm-pack"
+install_crate = { crate_name = "wasm-pack", binary = "wasm-pack", test_arg = "--help" }
+args = [
+    "build",
+    "--target", "web",
+    "--weak-refs",
+    "--release",
+    ".",
+]

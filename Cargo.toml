@@ -1,0 +1,39 @@
+[package]
+name = "gallifreyan"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+path = "src/main.rs"
+name = "gallifreyan"
+
+[lib]
+path = "src/lib.rs"
+name = "gallifreyan_lib"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies.bevy]
+version = "0.14.1"
+default-features = false
+features = [
+    "bevy_state",
+    "bevy_core_pipeline",
+    "bevy_render",
+    "bevy_ui",
+    "bevy_text",
+    "bevy_winit",
+    "bevy_color",
+    "bevy_asset",
+    "default_font",
+    "x11",
+    "webgl2"
+]
+
+[dependencies]
+unicode-segmentation = "1.11.0"
+ab_glyph = "0.2.28"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2.92"
