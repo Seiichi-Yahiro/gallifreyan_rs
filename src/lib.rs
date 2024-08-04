@@ -1,3 +1,5 @@
+#[cfg(debug_assertions)]
+mod debug;
 mod plugins;
 
 use bevy::prelude::*;
@@ -41,5 +43,6 @@ pub fn run() {
             focused_mode: UpdateMode::reactive(Duration::from_secs_f64(1.0 / 15.0)),
             unfocused_mode: UpdateMode::reactive_low_power(Duration::from_secs(60)),
         })
+        .add_plugins(plugins::ui::UiPlugin)
         .run();
 }
