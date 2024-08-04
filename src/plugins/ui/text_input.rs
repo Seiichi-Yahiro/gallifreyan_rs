@@ -178,7 +178,16 @@ enum TextAction {
 enum CursorMovement {
     Start,
     End,
-    Relative(isize),
+    Relative {
+        offset: isize,
+        unit: CursorRelativeMovementUnit,
+    },
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+enum CursorRelativeMovementUnit {
+    Glyph,
+    Word,
 }
 
 #[derive(Component)]
@@ -251,6 +260,7 @@ fn handle_keyboard_input(
     mut commands: Commands,
     focused_text_input: Res<FocusedTextInput>,
     mut keyboard_events: EventReader<KeyboardInput>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
 ) {
     let Some(focused_entity) = focused_text_input.0 else {
         return;
@@ -261,16 +271,32 @@ fn handle_keyboard_input(
             continue;
         }
 
+        let ctrl = keyboard_input.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight]);
+
         match event.key_code {
             KeyCode::ArrowLeft => {
                 commands.trigger_targets(
-                    TextInputEvent::Cursor(CursorMovement::Relative(-1)),
+                    TextInputEvent::Cursor(CursorMovement::Relative {
+                        offset: -1,
+                        unit: if ctrl {
+                            CursorRelativeMovementUnit::Word
+                        } else {
+                            CursorRelativeMovementUnit::Glyph
+                        },
+                    }),
                     focused_entity,
                 );
             }
             KeyCode::ArrowRight => {
                 commands.trigger_targets(
-                    TextInputEvent::Cursor(CursorMovement::Relative(1)),
+                    TextInputEvent::Cursor(CursorMovement::Relative {
+                        offset: 1,
+                        unit: if ctrl {
+                            CursorRelativeMovementUnit::Word
+                        } else {
+                            CursorRelativeMovementUnit::Glyph
+                        },
+                    }),
                     focused_entity,
                 );
             }
@@ -360,12 +386,34 @@ fn handle_text_input_events(
         TextInputEvent::Cursor(CursorMovement::End) => {
             cursor_pos.glyph_index = text.sections[0].value.graphemes(true).count();
         }
-        TextInputEvent::Cursor(CursorMovement::Relative(offset)) => {
-            cursor_pos.glyph_index = cursor_pos
-                .glyph_index
-                .saturating_add_signed(*offset)
-                .min(text.sections[0].value.graphemes(true).count());
-        }
+        TextInputEvent::Cursor(CursorMovement::Relative { offset, unit }) => match unit {
+            CursorRelativeMovementUnit::Glyph => {
+                cursor_pos.glyph_index = cursor_pos
+                    .glyph_index
+                    .saturating_add_signed(*offset)
+                    .min(text.sections[0].value.graphemes(true).count());
+            }
+            CursorRelativeMovementUnit::Word => {
+                let byte_index = get_byte_index(cursor_pos.glyph_index);
+
+                let glyph_offset: isize = if *offset < 0 {
+                    -text.sections[0].value[..byte_index]
+                        .split_word_bounds()
+                        .rev()
+                        .map(|word| word.graphemes(true).count() as isize)
+                        .take((-offset) as usize)
+                        .sum::<isize>()
+                } else {
+                    text.sections[0].value[byte_index..]
+                        .split_word_bounds()
+                        .map(|word| word.graphemes(true).count() as isize)
+                        .take(*offset as usize)
+                        .sum::<isize>()
+                };
+
+                cursor_pos.glyph_index = cursor_pos.glyph_index.saturating_add_signed(glyph_offset);
+            }
+        },
     }
 
     cursor_timer.reset = true;
