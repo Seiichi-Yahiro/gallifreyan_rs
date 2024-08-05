@@ -4,6 +4,7 @@ mod plugins;
 
 use bevy::prelude::*;
 use bevy::winit::{UpdateMode, WinitSettings};
+use bevy_prototype_lyon::prelude::ShapePlugin;
 use std::time::Duration;
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen(start))]
@@ -43,6 +44,6 @@ pub fn run() {
             focused_mode: UpdateMode::reactive(Duration::from_secs_f64(1.0 / 15.0)),
             unfocused_mode: UpdateMode::reactive_low_power(Duration::from_secs(60)),
         })
-        .add_plugins(plugins::ui::UiPlugin)
+        .add_plugins((ShapePlugin, plugins::ui::UiPlugin))
         .run();
 }

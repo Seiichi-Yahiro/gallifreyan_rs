@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::plugins::ui::interactions::Pressed;
-use crate::plugins::ui::{FONT_HANDLE, FONT_SIZE};
+use crate::plugins::ui::styles;
 use ab_glyph::{Font as AbFont, ScaleFont};
 use bevy::ecs::world::Command;
 use bevy::input::keyboard::{Key, KeyboardInput};
@@ -42,6 +42,7 @@ impl Plugin for TextInputPlugin {
 
 pub struct TextInputWidget {
     pub text: String,
+    pub parent: Entity,
 }
 
 impl Command for TextInputWidget {
@@ -56,9 +57,9 @@ impl Command for TextInputWidget {
                         sections: vec![TextSection {
                             value: self.text,
                             style: TextStyle {
-                                font: FONT_HANDLE,
-                                font_size: FONT_SIZE,
-                                color: Color::WHITE,
+                                font: styles::FONT_HANDLE,
+                                font_size: styles::FONT_SIZE,
+                                color: styles::FONT_COLOR,
                             },
                         }],
                         justify: JustifyText::Left,
@@ -82,12 +83,12 @@ impl Command for TextInputWidget {
                     style: Style {
                         position_type: PositionType::Absolute,
                         width: Val::Px(cursor_width),
-                        height: Val::Px(FONT_SIZE),
+                        height: Val::Px(styles::FONT_SIZE),
                         align_self: AlignSelf::Center,
                         left: Val::Px(0.0),
                         ..default()
                     },
-                    background_color: BackgroundColor(Color::WHITE),
+                    background_color: BackgroundColor(styles::FONT_COLOR),
                     visibility: Visibility::Hidden,
                     ..default()
                 },
@@ -106,7 +107,7 @@ impl Command for TextInputWidget {
                     style: Style {
                         overflow: Overflow::clip(),
                         width: Val::Percent(100.0),
-                        height: Val::Px(FONT_SIZE),
+                        height: Val::Px(styles::FONT_SIZE),
                         ..default()
                     },
                     ..default()
@@ -123,13 +124,14 @@ impl Command for TextInputWidget {
                         min_width: Val::Px(50.0),
                         width: Val::Px(170.0),
                         max_width: Val::Px(170.0),
-                        border: UiRect::all(Val::Px(1.0)),
-                        padding: UiRect::all(Val::Px(4.0)),
+                        height: Val::Px(styles::FONT_SIZE + styles::PADDING * 2.0),
+                        border: UiRect::all(Val::Px(styles::BORDER_SIZE)),
+                        padding: UiRect::all(Val::Px(styles::PADDING)),
                         ..default()
                     },
-                    background_color: BackgroundColor(Color::srgb_u8(42, 42, 42)),
-                    border_color: BorderColor(Color::BLACK),
-                    border_radius: BorderRadius::all(Val::Px(4.0)),
+                    background_color: BackgroundColor(styles::BACKGROUND_COLOR),
+                    border_color: BorderColor(styles::BORDER_COLOR),
+                    border_radius: BorderRadius::all(Val::Px(styles::BORDER_RADIUS)),
                     ..default()
                 },
                 TextInput {
@@ -139,6 +141,7 @@ impl Command for TextInputWidget {
                 },
                 Interaction::None,
             ))
+            .set_parent(self.parent)
             .add_child(inner_node)
             .observe(focus)
             .observe(move_cursor_on_click)
