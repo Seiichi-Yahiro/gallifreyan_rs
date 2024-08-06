@@ -3,7 +3,6 @@ use std::time::Duration;
 use crate::plugins::ui::interactions::Pressed;
 use crate::plugins::ui::styles;
 use ab_glyph::{Font as AbFont, ScaleFont};
-use bevy::ecs::world::Command;
 use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::input::mouse::MouseButtonInput;
 use bevy::prelude::*;
@@ -17,6 +16,7 @@ impl Plugin for TextInputPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(FocusedTextInput(None))
             .add_event::<FocusEvent>()
+            .observe(create_widget)
             .add_systems(
                 Update,
                 (
@@ -25,10 +25,7 @@ impl Plugin for TextInputPlugin {
                 )
                     .chain(),
             )
-            .add_systems(
-                PostUpdate,
-                (unfocus.run_if(on_event::<MouseButtonInput>()),),
-            );
+            .add_systems(PostUpdate, unfocus.run_if(on_event::<MouseButtonInput>()));
 
         #[cfg(debug_assertions)]
         {
@@ -40,116 +37,129 @@ impl Plugin for TextInputPlugin {
     }
 }
 
+#[derive(Component)]
 pub struct TextInputWidget {
-    pub text: String,
-    pub parent: Entity,
+    name: Option<String>,
 }
 
-impl Command for TextInputWidget {
-    fn apply(self, world: &mut World) {
-        let cursor_width = 1.0;
-
-        let text = world
-            .spawn((
-                Name::new("Text Input Text"),
-                TextBundle {
-                    text: Text {
-                        sections: vec![TextSection {
-                            value: self.text,
-                            style: TextStyle {
-                                font: styles::FONT_HANDLE,
-                                font_size: styles::FONT_SIZE,
-                                color: styles::FONT_COLOR,
-                            },
-                        }],
-                        justify: JustifyText::Left,
-                        linebreak_behavior: BreakLineOn::NoWrap,
-                    },
-                    style: Style {
-                        left: Val::Px(0.0),
-                        ..default()
-                    },
-                    ..default()
-                },
-                TextInputText,
-                RelativeCursorPosition::default(),
-            ))
-            .id();
-
-        let cursor = world
-            .spawn((
-                Name::new("Text Input Cursor"),
-                NodeBundle {
-                    style: Style {
-                        position_type: PositionType::Absolute,
-                        width: Val::Px(cursor_width),
-                        height: Val::Px(styles::FONT_SIZE),
-                        align_self: AlignSelf::Center,
-                        left: Val::Px(0.0),
-                        ..default()
-                    },
-                    background_color: BackgroundColor(styles::FONT_COLOR),
-                    visibility: Visibility::Hidden,
-                    ..default()
-                },
-                CursorPos { glyph_index: 0 },
-                CursorTimer {
-                    timer: Timer::new(Duration::from_millis(500), TimerMode::Repeating),
-                    reset: false,
-                },
-            ))
-            .id();
-
-        let inner_node = world
-            .spawn((
-                Name::new("Text Input Inner Node"),
-                NodeBundle {
-                    style: Style {
-                        overflow: Overflow::clip(),
-                        width: Val::Percent(100.0),
-                        height: Val::Px(styles::FONT_SIZE),
-                        ..default()
-                    },
-                    ..default()
-                },
-            ))
-            .push_children(&[text, cursor])
-            .id();
-
-        world
-            .spawn((
-                Name::new("Text Input"),
-                NodeBundle {
-                    style: Style {
-                        min_width: Val::Px(50.0),
-                        width: Val::Px(170.0),
-                        max_width: Val::Px(170.0),
-                        height: Val::Px(styles::FONT_SIZE + styles::PADDING * 2.0),
-                        border: UiRect::all(Val::Px(styles::BORDER_SIZE)),
-                        padding: UiRect::all(Val::Px(styles::PADDING)),
-                        ..default()
-                    },
-                    background_color: BackgroundColor(styles::BACKGROUND_COLOR),
-                    border_color: BorderColor(styles::BORDER_COLOR),
-                    border_radius: BorderRadius::all(Val::Px(styles::BORDER_RADIUS)),
-                    ..default()
-                },
-                TextInput {
-                    inner_node,
-                    text_entity: text,
-                    cursor_entity: cursor,
-                },
-                Interaction::None,
-            ))
-            .set_parent(self.parent)
-            .add_child(inner_node)
-            .observe(focus)
-            .observe(move_cursor_on_click)
-            .observe(handle_text_input_events)
-            .observe(set_cursor_position)
-            .observe(show_cursor_on_focus)
-            .observe(hide_cursor_on_blur);
+impl TextInputWidget {
+    pub fn new(name: Option<String>) -> Self {
+        Self { name }
     }
+
+    pub fn name(&self) -> &str {
+        self.name.as_ref().map(String::as_ref).unwrap_or("Unnamed")
+    }
+}
+
+fn create_widget(
+    trigger: Trigger<OnAdd, TextInputWidget>,
+    mut commands: Commands,
+    widget_query: Query<&TextInputWidget>,
+) {
+    const CURSOR_WIDTH: f32 = 1.0;
+
+    let widget = widget_query.get(trigger.entity()).unwrap();
+
+    let text = commands
+        .spawn((
+            Name::new(format!("Text Input Text: {}", widget.name())),
+            TextBundle {
+                text: Text {
+                    sections: vec![TextSection {
+                        value: "".to_string(),
+                        style: TextStyle {
+                            font: styles::FONT_HANDLE,
+                            font_size: styles::FONT_SIZE,
+                            color: styles::FONT_COLOR,
+                        },
+                    }],
+                    justify: JustifyText::Left,
+                    linebreak_behavior: BreakLineOn::NoWrap,
+                },
+                style: Style {
+                    left: Val::Px(0.0),
+                    ..default()
+                },
+                ..default()
+            },
+            TextInputText,
+            RelativeCursorPosition::default(),
+        ))
+        .id();
+
+    let cursor = commands
+        .spawn((
+            Name::new(format!("Text Input Cursor: {}", widget.name())),
+            NodeBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    width: Val::Px(CURSOR_WIDTH),
+                    height: Val::Px(styles::FONT_SIZE),
+                    align_self: AlignSelf::Center,
+                    left: Val::Px(0.0),
+                    ..default()
+                },
+                background_color: BackgroundColor(styles::FONT_COLOR),
+                visibility: Visibility::Hidden,
+                ..default()
+            },
+            CursorPos { glyph_index: 0 },
+            CursorTimer {
+                timer: Timer::new(Duration::from_millis(500), TimerMode::Repeating),
+                reset: false,
+            },
+        ))
+        .id();
+
+    let inner_node = commands
+        .spawn((
+            Name::new(format!("Text Input Inner Node: {}", widget.name())),
+            NodeBundle {
+                style: Style {
+                    overflow: Overflow::clip(),
+                    width: Val::Percent(100.0),
+                    height: Val::Px(styles::FONT_SIZE),
+                    ..default()
+                },
+                ..default()
+            },
+        ))
+        .push_children(&[text, cursor])
+        .id();
+
+    commands
+        .entity(trigger.entity())
+        .insert((
+            Name::new(format!("Text Input: {}", widget.name())),
+            NodeBundle {
+                style: Style {
+                    min_width: Val::Px(50.0),
+                    width: Val::Percent(100.0),
+                    height: Val::Px(styles::FONT_SIZE + styles::PADDING * 2.0),
+                    border: UiRect::all(Val::Px(styles::BORDER_SIZE)),
+                    padding: UiRect::all(Val::Px(styles::PADDING)),
+                    ..default()
+                },
+                background_color: BackgroundColor(styles::BACKGROUND_COLOR),
+                border_color: BorderColor(styles::BORDER_COLOR),
+                border_radius: BorderRadius::all(Val::Px(styles::BORDER_RADIUS)),
+                ..default()
+            },
+            TextInput {
+                inner_node,
+                text_entity: text,
+                cursor_entity: cursor,
+            },
+            Interaction::None,
+        ))
+        .add_child(inner_node)
+        .observe(focus)
+        .observe(move_cursor_on_click)
+        .observe(handle_text_input_events)
+        .observe(set_cursor_position)
+        .observe(show_cursor_on_focus)
+        .observe(hide_cursor_on_blur);
 }
 
 #[derive(Resource)]

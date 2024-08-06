@@ -173,8 +173,7 @@ fn setup_ui(mut commands: Commands) {
         .set_parent(root)
         .id();
 
-    commands.add(TextInputWidget {
-        parent: left,
-        text: "".to_string(),
-    });
+    commands
+        .spawn(TextInputWidget::new(Some("Sentence".to_string())))
+        .set_parent(left);
 }
