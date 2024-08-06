@@ -32,7 +32,8 @@ impl Plugin for TextInputPlugin {
             use crate::debug::debug_log_observer;
 
             app.observe(debug_log_observer::<Focus>)
-                .observe(debug_log_observer::<Blur>);
+                .observe(debug_log_observer::<Blur>)
+                .observe(debug_log_observer::<Changed>);
         }
     }
 }
@@ -174,6 +175,9 @@ struct TextInput {
 
 #[derive(Component)]
 struct TextInputText;
+
+#[derive(Debug, Event)]
+pub struct Changed(String);
 
 #[derive(Debug, Event)]
 enum TextInputEvent {
@@ -381,6 +385,8 @@ fn handle_text_input_events(
             text.sections[0].value.insert_str(byte_index, text_addition);
             let graphemes = text_addition.graphemes(true).count();
             cursor_pos.glyph_index += graphemes;
+
+            commands.trigger_targets(Changed(text.sections[0].value.clone()), trigger.entity());
         }
         TextInputEvent::Text(TextAction::DeleteGlyphs(offset)) => {
             let current = get_byte_index(cursor_pos.glyph_index);
@@ -389,8 +395,12 @@ fn handle_text_input_events(
             if *offset < 0 {
                 text.sections[0].value.drain(after..current);
                 cursor_pos.glyph_index = cursor_pos.glyph_index.saturating_add_signed(*offset);
+
+                commands.trigger_targets(Changed(text.sections[0].value.clone()), trigger.entity());
             } else if *offset > 0 {
                 text.sections[0].value.drain(current..after);
+
+                commands.trigger_targets(Changed(text.sections[0].value.clone()), trigger.entity());
             }
         }
         TextInputEvent::Cursor(CursorMovement::Start) => {
