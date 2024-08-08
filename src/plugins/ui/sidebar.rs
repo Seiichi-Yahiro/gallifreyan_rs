@@ -1,5 +1,6 @@
+use crate::plugins::text_converter::SetText;
 use crate::plugins::ui::text_input::TextInputWidget;
-use crate::plugins::ui::{styles, UiRoot};
+use crate::plugins::ui::{styles, text_input, UiRoot};
 use bevy::prelude::*;
 
 pub struct SidebarPlugin;
@@ -41,5 +42,11 @@ fn setup(mut commands: Commands, ui_root_query: Query<Entity, With<UiRoot>>) {
 
     commands
         .spawn(TextInputWidget::new(Some("Sentence".to_string())))
-        .set_parent(left);
+        .set_parent(left)
+        .observe(on_sentence_change);
+}
+
+fn on_sentence_change(trigger: Trigger<text_input::Changed>, mut commands: Commands) {
+    let text = trigger.event().0.clone();
+    commands.trigger(SetText(text));
 }

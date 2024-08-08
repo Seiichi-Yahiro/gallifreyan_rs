@@ -177,7 +177,7 @@ struct TextInput {
 struct TextInputText;
 
 #[derive(Debug, Event)]
-pub struct Changed(String);
+pub struct Changed(pub String);
 
 #[derive(Debug, Event)]
 enum TextInputEvent {

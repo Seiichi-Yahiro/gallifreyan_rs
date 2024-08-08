@@ -44,6 +44,10 @@ pub fn run() {
             focused_mode: UpdateMode::reactive(Duration::from_secs_f64(1.0 / 15.0)),
             unfocused_mode: UpdateMode::reactive_low_power(Duration::from_secs(60)),
         })
-        .add_plugins((ShapePlugin, plugins::ui::UiPlugin))
+        .add_plugins(ShapePlugin)
+        .add_plugins((
+            plugins::text_converter::TextConverterPlugin,
+            plugins::ui::UiPlugin,
+        ))
         .run();
 }
