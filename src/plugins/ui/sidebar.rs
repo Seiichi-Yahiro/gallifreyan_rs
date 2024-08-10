@@ -46,7 +46,10 @@ fn setup(mut commands: Commands, ui_root_query: Query<Entity, With<UiRoot>>) {
         .observe(on_sentence_change);
 }
 
-fn on_sentence_change(trigger: Trigger<text_input::Changed>, mut commands: Commands) {
+fn on_sentence_change(
+    trigger: Trigger<text_input::Changed>,
+    mut set_text_events: EventWriter<SetText>,
+) {
     let text = trigger.event().0.clone();
-    commands.trigger(SetText(text));
+    set_text_events.send(SetText(text));
 }

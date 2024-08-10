@@ -1,3 +1,10 @@
+mod components;
+mod dot;
+mod letter;
+mod line_slot;
+mod sentence;
+mod word;
+
 use bevy::prelude::*;
 use itertools::Itertools;
 use lazy_static::lazy_static;
@@ -10,29 +17,6 @@ lazy_static! {
         .unwrap();
 }
 
-pub struct TextConverterPlugin;
-
-impl Plugin for TextConverterPlugin {
-    fn build(&self, app: &mut App) {
-        app.observe(set_text);
-    }
-}
-
-#[derive(Debug, Event)]
-pub struct SetText(pub String);
-
-fn set_text(trigger: Trigger<SetText>, mut state: Local<String>) {
-    let text = &trigger.event().0;
-    let sanitized_text = sanitize_text(text);
-
-    if *state == sanitized_text {
-        return;
-    }
-
-    debug!("Setting sanitized text: {}", sanitized_text);
-    *state = sanitized_text;
-}
-
 pub fn split_word_to_chars(word: &str) -> impl Iterator<Item = &str> {
     VALID_LETTER.find_iter(word).map(|matched| matched.as_str())
 }
@@ -43,6 +27,53 @@ pub fn sanitize_text(text: &str) -> String {
         .map(|mut word| word.join(""))
         .filter(|word| !word.is_empty())
         .join(" ")
+}
+
+pub struct TextConverterPlugin;
+
+impl Plugin for TextConverterPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<Text>()
+            .add_event::<SetText>()
+            .add_systems(
+                Update,
+                (
+                    set_text,
+                    (
+                        sentence::convert_sentence,
+                        word::convert_words,
+                        letter::convert_letters,
+                        dot::convert_dots,
+                        line_slot::convert_line_slots,
+                    )
+                        .chain()
+                        .run_if(resource_changed::<Text>),
+                )
+                    .chain()
+                    .run_if(on_event::<SetText>()),
+            );
+    }
+}
+
+#[derive(Debug, Default, Resource, Deref)]
+pub struct Text(String);
+
+#[derive(Debug, Event)]
+pub struct SetText(pub String);
+
+fn set_text(mut events: EventReader<SetText>, mut text: ResMut<Text>) {
+    let Some(SetText(new_text)) = events.read().last() else {
+        return;
+    };
+
+    let sanitized_text = sanitize_text(new_text);
+
+    if text.0 == sanitized_text {
+        return;
+    }
+
+    debug!("Setting sanitized text: {}", sanitized_text);
+    text.0 = sanitized_text;
 }
 
 #[cfg(test)]
@@ -104,5 +135,42 @@ mod test {
         let expected = "invalid";
 
         assert_eq!(result, expected);
+    }
+
+    pub fn test_component_update<C: Component + Clone, F: Component>(
+        text_before: &str,
+        text_after: &str,
+        assert: impl Fn(Vec<C>, Vec<C>),
+    ) {
+        let mut app = App::new();
+        app.add_plugins(TextConverterPlugin);
+
+        app.world_mut()
+            .resource_mut::<Events<SetText>>()
+            .send(SetText(text_before.to_string()));
+
+        app.update();
+
+        let mut query = app.world_mut().query_filtered::<(Entity, &C), With<F>>();
+
+        let before = query
+            .iter(&app.world())
+            .sorted_by(|(a, _), (b, _)| a.cmp(b))
+            .map(|(_, c)| c.clone())
+            .collect();
+
+        app.world_mut()
+            .resource_mut::<Events<SetText>>()
+            .send(SetText(text_after.to_string()));
+
+        app.update();
+
+        let after = query
+            .iter(&app.world())
+            .sorted_by(|(a, _), (b, _)| a.cmp(b))
+            .map(|(_, c)| c.clone())
+            .collect();
+
+        assert(before, after);
     }
 }
