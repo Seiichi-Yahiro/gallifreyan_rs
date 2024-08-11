@@ -1,6 +1,7 @@
 use crate::plugins::text_converter::SetText;
-use crate::plugins::ui::text_input::TextInputWidget;
-use crate::plugins::ui::{styles, text_input, UiRoot};
+use crate::plugins::ui::icons::Icons;
+use crate::plugins::ui::widgets;
+use crate::plugins::ui::{styles, UiRoot};
 use bevy::prelude::*;
 
 pub struct SidebarPlugin;
@@ -17,7 +18,7 @@ pub struct UiSidebarSet;
 #[derive(Component)]
 pub struct Sidebar;
 
-fn setup(mut commands: Commands, ui_root_query: Query<Entity, With<UiRoot>>) {
+fn setup(mut commands: Commands, ui_root_query: Query<Entity, With<UiRoot>>, icons: Res<Icons>) {
     let root = ui_root_query.get_single().unwrap();
 
     let left = commands
@@ -26,6 +27,9 @@ fn setup(mut commands: Commands, ui_root_query: Query<Entity, With<UiRoot>>) {
             Sidebar,
             NodeBundle {
                 style: Style {
+                    display: Display::Flex,
+                    flex_direction: FlexDirection::Column,
+                    row_gap: Val::Px(styles::PADDING),
                     width: Val::Percent(20.0),
                     height: Val::Percent(100.0),
                     padding: UiRect::all(Val::Px(styles::PADDING)),
@@ -40,14 +44,24 @@ fn setup(mut commands: Commands, ui_root_query: Query<Entity, With<UiRoot>>) {
         .set_parent(root)
         .id();
 
+    let text_input = widgets::text_input::create(&mut commands, "Sentence".to_string());
+
     commands
-        .spawn(TextInputWidget::new(Some("Sentence".to_string())))
+        .entity(text_input)
         .set_parent(left)
         .observe(on_sentence_change);
+
+    // TODO remove
+    let (foldable, content) =
+        widgets::foldable::create(&mut commands, &icons, "Foldable".to_string(), true);
+    commands.entity(foldable).set_parent(left);
+    commands
+        .spawn(TextBundle::from_section("Content", styles::TEXT_STYLE))
+        .set_parent(content);
 }
 
 fn on_sentence_change(
-    trigger: Trigger<text_input::Changed>,
+    trigger: Trigger<widgets::text_input::Changed>,
     mut set_text_events: EventWriter<SetText>,
 ) {
     let text = trigger.event().0.clone();

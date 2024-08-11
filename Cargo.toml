@@ -24,9 +24,9 @@ features = [
     "bevy_winit",
     "bevy_color",
     "bevy_asset",
-    "default_font",
     "x11",
-    "webgl2"
+    "webgl2",
+    "png"
 ]
 
 [dependencies]

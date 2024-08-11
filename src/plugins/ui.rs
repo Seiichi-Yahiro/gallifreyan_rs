@@ -1,11 +1,12 @@
+mod icons;
 mod interactions;
 mod sidebar;
 mod styles;
 mod svg_viewport;
-mod text_input;
+mod widgets;
 
+use crate::plugins::ui::icons::IconsPlugin;
 use crate::plugins::ui::interactions::InteractionsPlugin;
-use crate::plugins::ui::text_input::TextInputPlugin;
 use bevy::asset::load_internal_binary_asset;
 use bevy::prelude::*;
 
@@ -21,7 +22,7 @@ impl Plugin for UiPlugin {
         );
 
         app.add_plugins(InteractionsPlugin)
-            .add_plugins(TextInputPlugin)
+            .add_plugins((IconsPlugin, widgets::text_input::TextInputPlugin))
             .add_systems(Startup, setup_ui)
             .configure_sets(
                 Startup,

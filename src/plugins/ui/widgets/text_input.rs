@@ -16,7 +16,6 @@ impl Plugin for TextInputPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(FocusedTextInput(None))
             .add_event::<FocusEvent>()
-            .observe(create_widget)
             .add_systems(
                 Update,
                 (
@@ -38,42 +37,17 @@ impl Plugin for TextInputPlugin {
     }
 }
 
-#[derive(Component)]
-pub struct TextInputWidget {
-    name: Option<String>,
-}
-
-impl TextInputWidget {
-    pub fn new(name: Option<String>) -> Self {
-        Self { name }
-    }
-
-    pub fn name(&self) -> &str {
-        self.name.as_ref().map(String::as_ref).unwrap_or("Unnamed")
-    }
-}
-
-fn create_widget(
-    trigger: Trigger<OnAdd, TextInputWidget>,
-    mut commands: Commands,
-    widget_query: Query<&TextInputWidget>,
-) {
+pub fn create(commands: &mut Commands, name: String) -> Entity {
     const CURSOR_WIDTH: f32 = 1.0;
-
-    let widget = widget_query.get(trigger.entity()).unwrap();
 
     let text = commands
         .spawn((
-            Name::new(format!("Text Input Text: {}", widget.name())),
+            Name::new(format!("Text Input Text: {}", name)),
             TextBundle {
                 text: Text {
                     sections: vec![TextSection {
                         value: "".to_string(),
-                        style: TextStyle {
-                            font: styles::FONT_HANDLE,
-                            font_size: styles::FONT_SIZE,
-                            color: styles::FONT_COLOR,
-                        },
+                        style: styles::TEXT_STYLE,
                     }],
                     justify: JustifyText::Left,
                     linebreak_behavior: BreakLineOn::NoWrap,
@@ -91,7 +65,7 @@ fn create_widget(
 
     let cursor = commands
         .spawn((
-            Name::new(format!("Text Input Cursor: {}", widget.name())),
+            Name::new(format!("Text Input Cursor: {}", name)),
             NodeBundle {
                 style: Style {
                     position_type: PositionType::Absolute,
@@ -115,7 +89,7 @@ fn create_widget(
 
     let inner_node = commands
         .spawn((
-            Name::new(format!("Text Input Inner Node: {}", widget.name())),
+            Name::new(format!("Text Input Inner Node: {}", name)),
             NodeBundle {
                 style: Style {
                     overflow: Overflow::clip(),
@@ -129,10 +103,9 @@ fn create_widget(
         .push_children(&[text, cursor])
         .id();
 
-    commands
-        .entity(trigger.entity())
-        .insert((
-            Name::new(format!("Text Input: {}", widget.name())),
+    let text_input = commands
+        .spawn((
+            Name::new(format!("Text Input: {}", name)),
             NodeBundle {
                 style: Style {
                     min_width: Val::Px(50.0),
@@ -160,7 +133,10 @@ fn create_widget(
         .observe(handle_text_input_events)
         .observe(set_cursor_position)
         .observe(show_cursor_on_focus)
-        .observe(hide_cursor_on_blur);
+        .observe(hide_cursor_on_blur)
+        .id();
+
+    text_input
 }
 
 #[derive(Resource)]
