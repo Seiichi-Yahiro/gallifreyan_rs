@@ -22,7 +22,11 @@ impl Plugin for UiPlugin {
         );
 
         app.add_plugins(InteractionsPlugin)
-            .add_plugins((IconsPlugin, widgets::text_input::TextInputPlugin))
+            .add_plugins((
+                IconsPlugin,
+                widgets::text_input::TextInputPlugin,
+                widgets::scroll_area::ScrollAreaPlugin,
+            ))
             .add_systems(Startup, setup_ui)
             .configure_sets(
                 Startup,
