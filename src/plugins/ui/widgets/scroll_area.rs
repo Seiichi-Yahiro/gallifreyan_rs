@@ -29,7 +29,13 @@ impl Plugin for ScrollAreaPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (scroll.run_if(on_event::<MouseWheel>()), size_handle),
+            (
+                detect_content_size_changed,
+                handle_scroll_events.run_if(on_event::<MouseWheel>()),
+                update_view,
+                update_handle,
+            )
+                .chain(),
         );
     }
 }
@@ -45,6 +51,9 @@ struct ScrollArea {
     content: Entity,
     bar: Entity,
     handle: Entity,
+    offset: f32,
+    overflow: f32,
+    visible_area: f32,
 }
 
 #[derive(Component)]
@@ -64,25 +73,22 @@ fn deactivate_scroll(trigger: Trigger<HoverOut>, mut commands: Commands) {
     commands.entity(trigger.entity()).remove::<Scrollable>();
 }
 
-fn scroll(
-    mut mouse_wheel_events: EventReader<MouseWheel>,
-    scroll_area_query: Query<(&ScrollArea, &Node), With<Scrollable>>,
-    mut style_node_query: Query<(&mut Style, &Node)>,
+fn detect_content_size_changed(
+    content_query: Query<&Parent, (Changed<Node>, With<ScrollContent>)>,
+    mut scroll_area_query: Query<&mut ScrollArea>,
 ) {
-    match scroll_area_query.get_single() {
-        Ok((scroll_area, scroll_area_node)) => {
-            let [(mut content_style, content_node), (mut handle_style, handle_node)] =
-                style_node_query
-                    .get_many_mut([scroll_area.content, scroll_area.handle])
-                    .unwrap();
+    for parent in content_query.iter() {
+        let mut scroll_area = scroll_area_query.get_mut(parent.get()).unwrap();
+        scroll_area.set_changed();
+    }
+}
 
-            let current = match content_style.top {
-                Val::Px(top) => top,
-                _ => {
-                    panic!("Scroll offset should be in px");
-                }
-            };
-
+fn handle_scroll_events(
+    mut mouse_wheel_events: EventReader<MouseWheel>,
+    mut scroll_area_query: Query<&mut ScrollArea, With<Scrollable>>,
+) {
+    match scroll_area_query.get_single_mut() {
+        Ok(mut scroll_area) => {
             let offset = mouse_wheel_events
                 .read()
                 .map(|event| match event.unit {
@@ -91,14 +97,7 @@ fn scroll(
                 })
                 .sum::<f32>();
 
-            let content_min_top = (scroll_area_node.size().y - content_node.size().y).min(0.0);
-            let content_top = (current + offset).clamp(content_min_top, 0.0);
-
-            let handle_max_top = scroll_area_node.size().y - handle_node.size().y;
-            let handle_top = (content_top / content_min_top) * handle_max_top;
-
-            content_style.top = Val::Px(content_top);
-            handle_style.top = Val::Px(handle_top);
+            scroll_area.offset -= offset;
         }
         Err(QuerySingleError::MultipleEntities(_)) => {
             error!("Scrolling multiple entities not supported");
@@ -107,25 +106,52 @@ fn scroll(
     }
 }
 
-// TODO make lazy
-fn size_handle(
-    scroll_area_query: Query<(&ScrollArea, &Node)>,
-    content_query: Query<&Node, With<ScrollContent>>,
-    mut bar_query: Query<&mut Visibility, With<ScrollBar>>,
+fn update_view(
+    mut scroll_area_query: Query<
+        (&mut ScrollArea, &Node),
+        Or<(Changed<ScrollArea>, Changed<Node>)>,
+    >,
+    mut content_query: Query<(&mut Style, &Node), With<ScrollContent>>,
+) {
+    for (mut scroll_area, scroll_area_node) in scroll_area_query.iter_mut() {
+        let (mut content_style, content_node) = content_query.get_mut(scroll_area.content).unwrap();
+
+        scroll_area.overflow = (content_node.size().y - scroll_area_node.size().y).max(0.0);
+
+        scroll_area.offset = scroll_area.offset.clamp(0.0, scroll_area.overflow);
+
+        scroll_area.visible_area =
+            (scroll_area_node.size().y / content_node.size().y).clamp(0.0, 1.0);
+
+        content_style.top = Val::Px(-scroll_area.offset);
+    }
+}
+
+fn update_handle(
+    scroll_area_query: Query<&ScrollArea, Or<(Changed<ScrollArea>, Changed<Node>)>>,
+    mut bar_query: Query<(&mut Visibility, &Node), With<ScrollBar>>,
     mut handle_query: Query<&mut Style, With<ScrollHandle>>,
 ) {
-    for (scroll_area, scroll_area_node) in scroll_area_query.iter() {
-        let content_node = content_query.get(scroll_area.content).unwrap();
+    for scroll_area in scroll_area_query.iter() {
         let mut handle_style = handle_query.get_mut(scroll_area.handle).unwrap();
 
-        let factor = scroll_area_node.size().y / content_node.size().y;
-        let size = (scroll_area_node.size().y * factor).max(MIN_HANDLE_HEIGHT);
+        let (mut bar_visibility, bar_node) = bar_query.get_mut(scroll_area.bar).unwrap();
 
-        handle_style.height = Val::Px(size);
+        let bar_height = bar_node.size().y;
+        let handle_height = (bar_height * scroll_area.visible_area).max(MIN_HANDLE_HEIGHT);
 
-        let mut bar_visibility = bar_query.get_mut(scroll_area.bar).unwrap();
+        let scroll_offset_percent = if scroll_area.overflow == 0.0 {
+            0.0
+        } else {
+            scroll_area.offset / scroll_area.overflow
+        };
 
-        if factor == 1.0 {
+        let handle_offset = scroll_offset_percent * (bar_height - handle_height);
+
+        handle_style.height = Val::Px(handle_height);
+        handle_style.top = Val::Px(handle_offset);
+
+        if scroll_area.visible_area == 1.0 {
             *bar_visibility = Visibility::Hidden;
         } else {
             *bar_visibility = Visibility::Visible;
@@ -198,6 +224,9 @@ pub fn create(commands: &mut Commands) -> (Entity, Entity) {
                 content,
                 bar: scroll_bar,
                 handle: scroll_handle,
+                offset: 0.0,
+                overflow: 0.0,
+                visible_area: 1.0,
             },
             NodeBundle {
                 style: Style {
