@@ -117,6 +117,24 @@ fn handle_scroll_events(
     }
 }
 
+fn highlight_on_hover_in_handle(
+    trigger: Trigger<HoverIn>,
+    mut handle_query: Query<&mut BackgroundColor>,
+) {
+    trace!("Highlight {}", trigger.entity());
+    let mut background_color = handle_query.get_mut(trigger.entity()).unwrap();
+    background_color.0 = styles::HIGHLIGHT_COLOR;
+}
+
+fn remove_highlight_on_hover_out_handle(
+    trigger: Trigger<HoverOut>,
+    mut handle_query: Query<&mut BackgroundColor>,
+) {
+    trace!("Remove Highlight {}", trigger.entity());
+    let mut background_color = handle_query.get_mut(trigger.entity()).unwrap();
+    background_color.0 = HANDLE_COLOR;
+}
+
 fn activate_drag(trigger: Trigger<Pressed>, mut commands: Commands) {
     trace!("Start drag {}", trigger.entity());
     commands.entity(trigger.entity()).insert(Draggable);
@@ -247,7 +265,9 @@ pub fn create(commands: &mut Commands) -> (Entity, Entity) {
             },
             Interaction::None,
         ))
+        .observe(highlight_on_hover_in_handle)
         .observe(activate_drag)
+        .observe(remove_highlight_on_hover_out_handle)
         .id();
 
     let scroll_bar = commands
