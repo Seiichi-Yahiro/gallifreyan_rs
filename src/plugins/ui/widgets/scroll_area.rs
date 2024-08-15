@@ -1,7 +1,8 @@
-use crate::plugins::ui::interactions::{HoverIn, HoverOut};
+use crate::plugins::ui::interactions::{HoverIn, HoverOut, Pressed};
 use crate::plugins::ui::styles;
 use bevy::ecs::component::StorageType;
 use bevy::ecs::query::QuerySingleError;
+use bevy::input::common_conditions::input_just_released;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
@@ -32,6 +33,8 @@ impl Plugin for ScrollAreaPlugin {
             (
                 detect_content_size_changed,
                 handle_scroll_events.run_if(on_event::<MouseWheel>()),
+                deactivate_drag.run_if(input_just_released(MouseButton::Left)),
+                handle_drag.run_if(on_event::<CursorMoved>()),
                 update_view,
                 update_handle,
             )
@@ -65,12 +68,10 @@ struct ScrollBar;
 #[derive(Component)]
 struct ScrollHandle;
 
-fn activate_scroll(trigger: Trigger<HoverIn>, mut commands: Commands) {
-    commands.entity(trigger.entity()).insert(Scrollable);
-}
+struct Draggable;
 
-fn deactivate_scroll(trigger: Trigger<HoverOut>, mut commands: Commands) {
-    commands.entity(trigger.entity()).remove::<Scrollable>();
+impl Component for Draggable {
+    const STORAGE_TYPE: StorageType = StorageType::SparseSet;
 }
 
 fn detect_content_size_changed(
@@ -81,6 +82,16 @@ fn detect_content_size_changed(
         let mut scroll_area = scroll_area_query.get_mut(parent.get()).unwrap();
         scroll_area.set_changed();
     }
+}
+
+fn activate_scroll(trigger: Trigger<HoverIn>, mut commands: Commands) {
+    trace!("Activate scroll {}", trigger.entity());
+    commands.entity(trigger.entity()).insert(Scrollable);
+}
+
+fn deactivate_scroll(trigger: Trigger<HoverOut>, mut commands: Commands) {
+    trace!("Deactivate scroll {}", trigger.entity());
+    commands.entity(trigger.entity()).remove::<Scrollable>();
 }
 
 fn handle_scroll_events(
@@ -103,6 +114,47 @@ fn handle_scroll_events(
             error!("Scrolling multiple entities not supported");
         }
         Err(QuerySingleError::NoEntities(_)) => {}
+    }
+}
+
+fn activate_drag(trigger: Trigger<Pressed>, mut commands: Commands) {
+    trace!("Start drag {}", trigger.entity());
+    commands.entity(trigger.entity()).insert(Draggable);
+}
+
+fn deactivate_drag(draggable_query: Query<Entity, With<Draggable>>, mut commands: Commands) {
+    match draggable_query.get_single() {
+        Ok(entity) => {
+            trace!("Stop drag {}", entity);
+            commands.entity(entity).remove::<Draggable>();
+        }
+        Err(QuerySingleError::MultipleEntities(_)) => {
+            error!("Multiple Scrollbars are marked as draggable");
+        }
+        Err(QuerySingleError::NoEntities(_)) => {}
+    }
+}
+
+fn handle_drag(
+    mut mouse_motion_events: EventReader<CursorMoved>,
+    handle_query: Query<(&Parent, &Node), (With<ScrollHandle>, With<Draggable>)>,
+    bar_query: Query<(&Parent, &Node), With<ScrollBar>>,
+    mut scroll_area_query: Query<&mut ScrollArea>,
+) {
+    match handle_query.get_single() {
+        Ok((handle_parent, handle_node)) => {
+            let delta: f32 = mouse_motion_events
+                .read()
+                .map(|event| event.delta.map(|delta| delta.y).unwrap_or(0.0))
+                .sum();
+
+            let (bar_parent, bar_node) = bar_query.get(handle_parent.get()).unwrap();
+            let mut scroll_area = scroll_area_query.get_mut(bar_parent.get()).unwrap();
+
+            let ratio = scroll_area.overflow / (bar_node.size().y - handle_node.size().y);
+            scroll_area.offset += ratio * delta;
+        }
+        _ => {}
     }
 }
 
@@ -193,7 +245,9 @@ pub fn create(commands: &mut Commands) -> (Entity, Entity) {
                 focus_policy: FocusPolicy::Block,
                 ..default()
             },
+            Interaction::None,
         ))
+        .observe(activate_drag)
         .id();
 
     let scroll_bar = commands
