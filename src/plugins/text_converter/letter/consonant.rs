@@ -1,17 +1,41 @@
 use super::Decorated;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ConsonantCluster {
+    Single(Consonant),
+    Digraph(Digraph),
+}
+
+impl TryFrom<&str> for ConsonantCluster {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value.len() {
+            1 => Consonant::try_from(value).map(ConsonantCluster::Single),
+            2 => Digraph::try_from(value).map(ConsonantCluster::Digraph),
+            _ => Err(format!("'{}' is not a valid consonant!", value)),
+        }
+    }
+}
+
+impl From<Consonant> for ConsonantCluster {
+    fn from(value: Consonant) -> Self {
+        Self::Single(value)
+    }
+}
+
+impl From<Digraph> for ConsonantCluster {
+    fn from(value: Digraph) -> Self {
+        Self::Digraph(value)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Consonant {
     B,
     J,
     T,
-    TH,
-    PH,
-    WH,
-    GH,
-    CH,
     K,
-    SH,
     Y,
     D,
     L,
@@ -22,7 +46,6 @@ pub enum Consonant {
     G,
     N,
     V,
-    QU,
     H,
     P,
     W,
@@ -30,7 +53,6 @@ pub enum Consonant {
     F,
     M,
     S,
-    NG,
 }
 
 impl TryFrom<&str> for Consonant {
@@ -41,13 +63,7 @@ impl TryFrom<&str> for Consonant {
             "b" => Self::B,
             "j" => Self::J,
             "t" => Self::T,
-            "th" => Self::TH,
-            "ph" => Self::PH,
-            "wh" => Self::WH,
-            "gh" => Self::GH,
-            "ch" => Self::CH,
             "k" => Self::K,
-            "sh" => Self::SH,
             "y" => Self::Y,
             "d" => Self::D,
             "l" => Self::L,
@@ -58,7 +74,6 @@ impl TryFrom<&str> for Consonant {
             "g" => Self::G,
             "n" => Self::N,
             "v" => Self::V,
-            "qu" => Self::QU,
             "h" => Self::H,
             "p" => Self::P,
             "w" => Self::W,
@@ -66,11 +81,55 @@ impl TryFrom<&str> for Consonant {
             "f" => Self::F,
             "m" => Self::M,
             "s" => Self::S,
-            "ng" => Self::NG,
-            _ => return Err(format!("'{}' is not a valid consonant!", value)),
+            _ => return Err(format!("'{}' is not a valid grapheme!", value)),
         };
 
         Ok(consonant)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Digraph {
+    TH,
+    PH,
+    WH,
+    GH,
+    CH,
+    SH,
+    QU,
+    NG,
+}
+
+impl TryFrom<&str> for Digraph {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let digraph = match value.to_ascii_lowercase().as_str() {
+            "th" => Self::TH,
+            "ph" => Self::PH,
+            "wh" => Self::WH,
+            "gh" => Self::GH,
+            "ch" => Self::CH,
+            "sh" => Self::SH,
+            "qu" => Self::QU,
+            "ng" => Self::NG,
+            _ => return Err(format!("'{}' is not a valid digraph!", value)),
+        };
+
+        Ok(digraph)
+    }
+}
+
+pub trait ConsonantPlacementT: Into<ConsonantPlacement> {
+    fn placement(&self) -> ConsonantPlacement;
+}
+
+impl<T> ConsonantPlacementT for T
+where
+    T: Into<ConsonantPlacement> + Copy,
+{
+    fn placement(&self) -> ConsonantPlacement {
+        (*self).into()
     }
 }
 
@@ -85,36 +144,54 @@ pub enum ConsonantPlacement {
 impl From<Consonant> for ConsonantPlacement {
     fn from(value: Consonant) -> Self {
         match value {
-            Consonant::B
-            | Consonant::CH
-            | Consonant::D
-            | Consonant::G
-            | Consonant::H
-            | Consonant::F => Self::DeepCut,
+            Consonant::B | Consonant::D | Consonant::G | Consonant::H | Consonant::F => {
+                Self::DeepCut
+            }
             Consonant::J
-            | Consonant::PH
             | Consonant::K
             | Consonant::L
             | Consonant::C
             | Consonant::N
             | Consonant::P
             | Consonant::M => Self::Inside,
-            Consonant::T
-            | Consonant::WH
-            | Consonant::SH
-            | Consonant::R
-            | Consonant::V
-            | Consonant::W
-            | Consonant::S => Self::ShallowCut,
-            Consonant::TH
-            | Consonant::GH
-            | Consonant::Y
-            | Consonant::Z
-            | Consonant::Q
-            | Consonant::QU
-            | Consonant::X
-            | Consonant::NG => Self::OnLine,
+            Consonant::T | Consonant::R | Consonant::V | Consonant::W | Consonant::S => {
+                Self::ShallowCut
+            }
+            Consonant::Y | Consonant::Z | Consonant::Q | Consonant::X => Self::OnLine,
         }
+    }
+}
+
+impl From<Digraph> for ConsonantPlacement {
+    fn from(value: Digraph) -> Self {
+        match value {
+            Digraph::PH => Self::Inside,
+            Digraph::CH => Self::DeepCut,
+            Digraph::WH | Digraph::SH => Self::ShallowCut,
+            Digraph::TH | Digraph::GH | Digraph::QU | Digraph::NG => Self::OnLine,
+        }
+    }
+}
+
+impl From<ConsonantCluster> for ConsonantPlacement {
+    fn from(value: ConsonantCluster) -> Self {
+        match value {
+            ConsonantCluster::Single(grapheme) => grapheme.into(),
+            ConsonantCluster::Digraph(digraph) => digraph.into(),
+        }
+    }
+}
+
+pub trait ConsonantDecorationT: Into<ConsonantDecoration> {
+    fn decoration(&self) -> ConsonantDecoration;
+}
+
+impl<T> ConsonantDecorationT for T
+where
+    T: Into<ConsonantDecoration> + Copy,
+{
+    fn decoration(&self) -> ConsonantDecoration {
+        (*self).into()
     }
 }
 
@@ -133,14 +210,34 @@ pub enum ConsonantDecoration {
 impl From<Consonant> for ConsonantDecoration {
     fn from(value: Consonant) -> Self {
         match value {
-            Consonant::B | Consonant::J | Consonant::T | Consonant::TH => Self::None,
-            Consonant::PH | Consonant::WH | Consonant::GH => Self::SingleDot,
-            Consonant::CH | Consonant::K | Consonant::SH | Consonant::Y => Self::DoubleDot,
+            Consonant::B | Consonant::J | Consonant::T => Self::None,
+            Consonant::K | Consonant::Y => Self::DoubleDot,
             Consonant::D | Consonant::L | Consonant::R | Consonant::Z => Self::TripleDot,
             Consonant::C | Consonant::Q => Self::QuadrupleDot,
-            Consonant::G | Consonant::N | Consonant::V | Consonant::QU => Self::SingleLine,
+            Consonant::G | Consonant::N | Consonant::V => Self::SingleLine,
             Consonant::H | Consonant::P | Consonant::W | Consonant::X => Self::DoubleLine,
-            Consonant::F | Consonant::M | Consonant::S | Consonant::NG => Self::TripleLine,
+            Consonant::F | Consonant::M | Consonant::S => Self::TripleLine,
+        }
+    }
+}
+
+impl From<Digraph> for ConsonantDecoration {
+    fn from(value: Digraph) -> Self {
+        match value {
+            Digraph::TH => Self::None,
+            Digraph::PH | Digraph::WH | Digraph::GH => Self::SingleDot,
+            Digraph::CH | Digraph::SH => Self::DoubleDot,
+            Digraph::QU => Self::SingleLine,
+            Digraph::NG => Self::TripleLine,
+        }
+    }
+}
+
+impl From<ConsonantCluster> for ConsonantDecoration {
+    fn from(value: ConsonantCluster) -> Self {
+        match value {
+            ConsonantCluster::Single(grapheme) => grapheme.into(),
+            ConsonantCluster::Digraph(digraph) => digraph.into(),
         }
     }
 }
