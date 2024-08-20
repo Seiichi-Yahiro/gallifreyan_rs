@@ -1,4 +1,4 @@
-mod letter;
+pub mod letter;
 
 use crate::plugins::text_converter::letter::combinator::CombineLetters;
 use crate::plugins::text_converter::letter::Letter;
@@ -120,7 +120,7 @@ impl LetterText {
     }
 }
 
-fn split_word_to_letters(word: &str) -> impl Iterator<Item=LetterText> + '_ {
+fn split_word_to_letters(word: &str) -> impl Iterator<Item = LetterText> + '_ {
     word.graphemes(true)
         .filter_map(|grapheme| {
             Letter::try_from(grapheme)
@@ -377,7 +377,7 @@ mod test {
         let result: Vec<LetterText> = split_word_to_letters(
             "äöüy̆+*~#'私i#あ-_.:,;<>|@n€^°1!2²\"3§³4$5v%6한글&7/{a8([9)l]0=i}ßd?\\´`",
         )
-            .collect();
+        .collect();
 
         let expected = [
             LetterText::new(0, "i", Vocal::I),

@@ -1,3 +1,4 @@
+use crate::plugins::text_converter::letter::{Decorated, Letter};
 use crate::plugins::text_converter::{SentenceText, SetText, SetTextSet, TextModification};
 use crate::plugins::ui::icons::Icons;
 use crate::plugins::ui::widgets;
@@ -224,10 +225,32 @@ fn handle_text_modifications(
     for event in text_modification_events.read() {
         match event {
             TextModification::Create { new_id, text } => {
-                let (foldable, _content) =
-                    widgets::foldable::create(&mut commands, &icons, text.clone(), true);
+                let letter = Letter::try_from(text.as_str()).unwrap();
 
-                insert_tasks.push((*new_id, LetterEntity { entity: foldable }));
+                let entity = if letter.dots() + letter.lines() == 0 {
+                    commands
+                        .spawn(TextBundle::from_section(text, styles::TEXT_STYLE))
+                        .id()
+                } else {
+                    let (foldable, content) =
+                        widgets::foldable::create(&mut commands, &icons, text.clone(), true);
+
+                    for _ in 0..letter.dots() {
+                        commands
+                            .spawn(TextBundle::from_section("DOT", styles::TEXT_STYLE))
+                            .set_parent(content);
+                    }
+
+                    for _ in 0..letter.lines() {
+                        commands
+                            .spawn(TextBundle::from_section("LINE", styles::TEXT_STYLE))
+                            .set_parent(content);
+                    }
+
+                    foldable
+                };
+
+                insert_tasks.push((*new_id, LetterEntity { entity }));
             }
             TextModification::Move { old_id, new_id, .. } => {
                 let letter_entity = sentence_entity.words[old_id.word]
