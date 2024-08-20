@@ -6,8 +6,18 @@ use bevy::prelude::*;
 #[derive(Component)]
 pub struct Foldable {
     pub header: Entity,
+    pub label: Entity,
     pub content: Entity,
 }
+
+#[derive(Component)]
+pub struct FoldableHeader;
+
+#[derive(Component)]
+pub struct FoldableLabel;
+
+#[derive(Component)]
+pub struct FoldableContent;
 
 #[derive(Component)]
 struct Opened(bool);
@@ -57,6 +67,7 @@ pub fn create(
     let content = commands
         .spawn((
             Name::new("Foldable Content"),
+            FoldableContent,
             NodeBundle {
                 style: Style {
                     display: Display::Flex,
@@ -118,9 +129,10 @@ pub fn create(
         .observe(remove_highlight_chevron_on_hover_out)
         .id();
 
-    let text = commands
+    let header_label = commands
         .spawn((
             Name::new("Foldable label"),
+            FoldableLabel,
             TextBundle::from_section(label, styles::TEXT_STYLE),
         ))
         .id();
@@ -128,6 +140,7 @@ pub fn create(
     let header = commands
         .spawn((
             Name::new("Foldable Header"),
+            FoldableHeader,
             NodeBundle {
                 style: Style {
                     display: Display::Flex,
@@ -139,13 +152,17 @@ pub fn create(
                 ..default()
             },
         ))
-        .push_children(&[chevron, text])
+        .push_children(&[chevron, header_label])
         .id();
 
     let foldable = commands
         .spawn((
             Name::new("Foldable"),
-            Foldable { header, content },
+            Foldable {
+                header,
+                label: header_label,
+                content,
+            },
             NodeBundle {
                 style: Style {
                     display: Display::Flex,
@@ -201,3 +218,38 @@ fn remove_highlight_chevron_on_hover_out(
     let mut image = chevron_query.get_mut(trigger.entity()).unwrap();
     image.color = styles::FONT_COLOR;
 }
+
+/*#[derive(Debug)]
+pub enum FoldableContent {
+    Add { index: usize, child: Entity },
+    Remove(Entity),
+}
+
+impl EntityCommand for FoldableContent {
+    fn apply(self, id: Entity, world: &mut World) {
+        let content = world.entity(id).get::<Foldable>().unwrap().content;
+
+        let content_count = world
+            .entity(content)
+            .get::<Children>()
+            .map(|children| children.len())
+            .unwrap_or(0);
+
+        let mut content = world.commands().entity(content);
+
+        match self {
+            FoldableContent::Add { index, child } => {
+                if index >= content_count {
+                    content.add_child(child);
+                } else {
+                    content.insert_children(index, &[child]);
+                }
+            }
+            FoldableContent::Remove(child) => {
+                content.remove_children(&[child]);
+            }
+        }
+
+        world.flush_commands();
+    }
+}*/

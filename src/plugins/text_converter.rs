@@ -14,26 +14,40 @@ impl Plugin for TextConverterPlugin {
         app.init_resource::<SentenceText>()
             .add_event::<SetText>()
             .add_event::<TextModification>()
-            .add_systems(Update, set_text.run_if(on_event::<SetText>()));
+            .add_systems(
+                Update,
+                set_text.in_set(SetTextSet).run_if(on_event::<SetText>()),
+            );
 
         #[cfg(debug_assertions)]
-        app.add_systems(Update, |mut events: EventReader<TextModification>| {
-            for event in events.read() {
-                debug!("{:?}", event);
-            }
-        });
+        app.add_systems(
+            Update,
+            debug_text_modifications
+                .after(set_text)
+                .in_set(SetTextSet)
+                .run_if(on_event::<TextModification>()),
+        );
     }
 }
 
+fn debug_text_modifications(mut events: EventReader<TextModification>) {
+    for event in events.read() {
+        debug!("{:?}", event);
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]
+pub struct SetTextSet;
+
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy, PartialOrd, Ord, Hash)]
-pub struct TextId {
-    sentence: usize,
-    word: usize,
-    letter: usize,
+pub struct LetterId {
+    pub sentence: usize,
+    pub word: usize,
+    pub letter: usize,
 }
 
 #[cfg(test)]
-impl From<(usize, usize, usize)> for TextId {
+impl From<(usize, usize, usize)> for LetterId {
     fn from(value: (usize, usize, usize)) -> Self {
         Self {
             sentence: value.0,
@@ -51,7 +65,7 @@ pub struct SentenceText {
 }
 
 impl SentenceText {
-    fn flatten_letters(&self) -> (Vec<TextId>, Vec<&str>) {
+    fn flatten_letters(&self) -> (Vec<LetterId>, Vec<&str>) {
         self.words
             .iter()
             .flat_map(|word| {
@@ -59,7 +73,7 @@ impl SentenceText {
                     .iter()
                     .map(|letter| {
                         (
-                            TextId {
+                            LetterId {
                                 sentence: self.local_index,
                                 word: word.local_index,
                                 letter: letter.local_index,
@@ -68,7 +82,7 @@ impl SentenceText {
                         )
                     })
                     .chain(std::iter::once((
-                        TextId {
+                        LetterId {
                             // this is a fake id that will not be used
                             sentence: 0,
                             word: 0,
@@ -146,30 +160,30 @@ fn convert_sentence(sentence: &str) -> SentenceText {
 #[derive(Debug, Clone, PartialEq, Eq, Event)]
 pub enum TextModification {
     Create {
-        new_id: TextId,
+        new_id: LetterId,
         text: String,
     },
     Move {
-        old_id: TextId,
-        new_id: TextId,
+        old_id: LetterId,
+        new_id: LetterId,
         text: String,
     },
     Delete {
-        old_id: TextId,
+        old_id: LetterId,
         text: String,
     },
 }
 
 #[cfg(test)]
 impl TextModification {
-    fn create<I: Into<TextId>, T: Into<String>>(new_id: I, text: T) -> Self {
+    fn create<I: Into<LetterId>, T: Into<String>>(new_id: I, text: T) -> Self {
         Self::Create {
             new_id: new_id.into(),
             text: text.into(),
         }
     }
 
-    fn r#move<I: Into<TextId>, T: Into<String>>(old_id: I, new_id: I, text: T) -> Self {
+    fn r#move<I: Into<LetterId>, T: Into<String>>(old_id: I, new_id: I, text: T) -> Self {
         Self::Move {
             old_id: old_id.into(),
             new_id: new_id.into(),
@@ -177,7 +191,7 @@ impl TextModification {
         }
     }
 
-    fn delete<I: Into<TextId>, T: Into<String>>(old_id: I, text: T) -> Self {
+    fn delete<I: Into<LetterId>, T: Into<String>>(old_id: I, text: T) -> Self {
         Self::Delete {
             old_id: old_id.into(),
             text: text.into(),
@@ -201,8 +215,8 @@ fn set_text(
     let old_sentence = std::mem::replace(&mut *sentence_text, new_sentence);
     let new_sentence = &*sentence_text;
 
-    let (old_text_ids, old_letters) = old_sentence.flatten_letters();
-    let (new_text_ids, new_letters) = new_sentence.flatten_letters();
+    let (old_letter_ids, old_letters) = old_sentence.flatten_letters();
+    let (new_letter_ids, new_letters) = new_sentence.flatten_letters();
 
     let diff = TextDiff::configure()
         .algorithm(Algorithm::Myers)
@@ -213,16 +227,16 @@ fn set_text(
         .filter(|change| change.value() != " ")
         .map(|change| match change.tag() {
             ChangeTag::Equal => TextModification::Move {
-                old_id: old_text_ids[change.old_index().unwrap()],
-                new_id: new_text_ids[change.new_index().unwrap()],
+                old_id: old_letter_ids[change.old_index().unwrap()],
+                new_id: new_letter_ids[change.new_index().unwrap()],
                 text: change.value().to_string(),
             },
             ChangeTag::Delete => TextModification::Delete {
-                old_id: old_text_ids[change.old_index().unwrap()],
+                old_id: old_letter_ids[change.old_index().unwrap()],
                 text: change.value().to_string(),
             },
             ChangeTag::Insert => TextModification::Create {
-                new_id: new_text_ids[change.new_index().unwrap()],
+                new_id: new_letter_ids[change.new_index().unwrap()],
                 text: change.value().to_string(),
             },
         })
