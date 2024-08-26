@@ -1,4 +1,5 @@
 use super::Decorated;
+use std::fmt;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Vocal {
@@ -7,6 +8,19 @@ pub enum Vocal {
     I,
     O,
     U,
+}
+
+impl fmt::Display for Vocal {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = match self {
+            Vocal::A => "A",
+            Vocal::E => "E",
+            Vocal::I => "I",
+            Vocal::O => "O",
+            Vocal::U => "U",
+        };
+        write!(f, "{}", s)
+    }
 }
 
 impl TryFrom<&str> for Vocal {

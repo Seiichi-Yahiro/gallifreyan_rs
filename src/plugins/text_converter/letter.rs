@@ -1,7 +1,8 @@
 use bevy::prelude::*;
+use std::cmp::Ordering;
+use std::fmt;
 
-use consonant::{Consonant, ConsonantCluster, ConsonantDecoration, Digraph};
-use vocal::{Vocal, VocalDecoration};
+use crate::plugins::text_converter::prelude::*;
 
 pub mod combinator;
 pub mod consonant;
@@ -11,6 +12,27 @@ pub mod vocal;
 pub enum Letter {
     Vocal(Vocal),
     Consonant(ConsonantCluster),
+}
+
+impl fmt::Display for Letter {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Letter::Vocal(v) => write!(f, "{}", v),
+            Letter::Consonant(cluster) => write!(f, "{}", cluster),
+        }
+    }
+}
+
+impl PartialOrd for Letter {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Letter {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.to_string().cmp(&other.to_string())
+    }
 }
 
 impl TryFrom<&str> for Letter {
@@ -53,6 +75,29 @@ impl From<Vocal> for Letter {
     }
 }
 
+#[derive(Bundle)]
+pub struct LetterBundle {
+    pub name: Name,
+    pub letter: Letter,
+    pub text: GFText,
+    pub dots: CircleChildren,
+    pub line_slots: LineSlotChildren,
+    pub sibling_index: SiblingIndex,
+}
+
+impl LetterBundle {
+    pub fn new(text: String, letter: Letter, sibling_index: usize) -> Self {
+        Self {
+            name: Name::new("Letter"),
+            letter,
+            text: GFText(text),
+            dots: Default::default(),
+            line_slots: Default::default(),
+            sibling_index: SiblingIndex(sibling_index),
+        }
+    }
+}
+
 pub trait Decorated {
     fn dots(&self) -> usize;
     fn lines(&self) -> usize;
@@ -71,5 +116,211 @@ impl Decorated for Letter {
             Letter::Vocal(vocal) => VocalDecoration::from(*vocal).lines(),
             Letter::Consonant(consonant) => ConsonantDecoration::from(*consonant).lines(),
         }
+    }
+}
+
+fn split_word_to_letters(word: &str) -> impl Iterator<Item=LetterText> + '_ {
+    // assume word is sanitized
+    word.chars()
+        .map(|grapheme| {
+            let text = grapheme.to_string();
+
+            LetterText {
+                letter: Letter::try_from(text.as_str()).unwrap(),
+                text,
+            }
+        })
+        .combine_letters()
+}
+
+pub fn convert_letters(
+    mut commands: Commands,
+    mut word_query: Query<(Entity, &GFText, &mut CircleChildren), (With<Word>, Changed<GFText>)>,
+    mut letter_query: Query<(Entity, &mut GFText, &mut Letter, &mut SiblingIndex), Without<Word>>,
+) {
+    for (word_entity, word_text, mut children) in word_query.iter_mut() {
+        let mut existing_letters = letter_query.iter_many_mut(children.0.iter());
+        let mut new_letters_iter = split_word_to_letters(&word_text.0).combine_letters();
+
+        let mut new_children: Vec<Entity> = Vec::new();
+
+        loop {
+            let next_existing_letter = existing_letters.fetch_next();
+            let next_new_letter = new_letters_iter.next();
+            let sibling_index = new_children.len();
+
+            match (next_existing_letter, next_new_letter) {
+                // update letter
+                (
+                    Some((letter_entity, mut text, mut letter, mut letter_sibling_index)),
+                    Some(LetterText {
+                             text: new_text,
+                             letter: new_letter,
+                         }),
+                ) => {
+                    if text.0 != new_text {
+                        debug!(
+                            "Update letter: {:?} -> {:?}, {:?}",
+                            *letter, new_letter, letter_entity
+                        );
+
+                        text.0 = new_text;
+                        *letter = new_letter;
+                    }
+
+                    letter_sibling_index.0 = sibling_index;
+                    new_children.push(letter_entity);
+                }
+                // remove letter
+                (Some((letter_entity, _text, letter, _letter_sibling_index)), None) => {
+                    debug!("Despawn letter: {:?}, {:?}", *letter, letter_entity);
+
+                    commands.entity(letter_entity).despawn_recursive();
+                }
+                // add letter
+                (
+                    None,
+                    Some(LetterText {
+                             text: new_text,
+                             letter: new_letter,
+                         }),
+                ) => {
+                    let bundle = LetterBundle::new(new_text, new_letter, sibling_index);
+
+                    let letter_entity = commands.spawn(bundle).id();
+                    debug!("Spawn letter: {:?}, {:?}", new_letter, letter_entity);
+
+                    commands.entity(word_entity).add_child(letter_entity);
+                    new_children.push(letter_entity);
+                }
+                (None, None) => {
+                    break;
+                }
+            }
+        }
+
+        children.0 = new_children;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn should_split_lower_case_word() {
+        let result: Vec<LetterText> =
+            split_word_to_letters("aeioubjtthphwhghchkshydlrzcqgnvquhpwxfmsng").collect();
+
+        let expected = [
+            LetterText::new("a", Vocal::A),
+            LetterText::new("e", Vocal::E),
+            LetterText::new("i", Vocal::I),
+            LetterText::new("o", Vocal::O),
+            LetterText::new("u", Vocal::U),
+            LetterText::new("b", Consonant::B),
+            LetterText::new("j", Consonant::J),
+            LetterText::new("t", Consonant::T),
+            LetterText::new("th", Digraph::TH),
+            LetterText::new("ph", Digraph::PH),
+            LetterText::new("wh", Digraph::WH),
+            LetterText::new("gh", Digraph::GH),
+            LetterText::new("ch", Digraph::CH),
+            LetterText::new("k", Consonant::K),
+            LetterText::new("sh", Digraph::SH),
+            LetterText::new("y", Consonant::Y),
+            LetterText::new("d", Consonant::D),
+            LetterText::new("l", Consonant::L),
+            LetterText::new("r", Consonant::R),
+            LetterText::new("z", Consonant::Z),
+            LetterText::new("c", Consonant::C),
+            LetterText::new("q", Consonant::Q),
+            LetterText::new("g", Consonant::G),
+            LetterText::new("n", Consonant::N),
+            LetterText::new("v", Consonant::V),
+            LetterText::new("qu", Digraph::QU),
+            LetterText::new("h", Consonant::H),
+            LetterText::new("p", Consonant::P),
+            LetterText::new("w", Consonant::W),
+            LetterText::new("x", Consonant::X),
+            LetterText::new("f", Consonant::F),
+            LetterText::new("m", Consonant::M),
+            LetterText::new("s", Consonant::S),
+            LetterText::new("ng", Digraph::NG),
+        ];
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_split_upper_case_word() {
+        let result: Vec<LetterText> =
+            split_word_to_letters("AEIOUBJTTHPHWHGHCHKSHYDLRZCQGNVQUHPWXFMSNG").collect();
+
+        let expected = [
+            LetterText::new("A", Vocal::A),
+            LetterText::new("E", Vocal::E),
+            LetterText::new("I", Vocal::I),
+            LetterText::new("O", Vocal::O),
+            LetterText::new("U", Vocal::U),
+            LetterText::new("B", Consonant::B),
+            LetterText::new("J", Consonant::J),
+            LetterText::new("T", Consonant::T),
+            LetterText::new("TH", Digraph::TH),
+            LetterText::new("PH", Digraph::PH),
+            LetterText::new("WH", Digraph::WH),
+            LetterText::new("GH", Digraph::GH),
+            LetterText::new("CH", Digraph::CH),
+            LetterText::new("K", Consonant::K),
+            LetterText::new("SH", Digraph::SH),
+            LetterText::new("Y", Consonant::Y),
+            LetterText::new("D", Consonant::D),
+            LetterText::new("L", Consonant::L),
+            LetterText::new("R", Consonant::R),
+            LetterText::new("Z", Consonant::Z),
+            LetterText::new("C", Consonant::C),
+            LetterText::new("Q", Consonant::Q),
+            LetterText::new("G", Consonant::G),
+            LetterText::new("N", Consonant::N),
+            LetterText::new("V", Consonant::V),
+            LetterText::new("QU", Digraph::QU),
+            LetterText::new("H", Consonant::H),
+            LetterText::new("P", Consonant::P),
+            LetterText::new("W", Consonant::W),
+            LetterText::new("X", Consonant::X),
+            LetterText::new("F", Consonant::F),
+            LetterText::new("M", Consonant::M),
+            LetterText::new("S", Consonant::S),
+            LetterText::new("NG", Digraph::NG),
+        ];
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_split_mixed_case_digraph_letters() {
+        let result: Vec<LetterText> =
+            split_word_to_letters("tHThpHPhwHWhgHGhcHChsHShqUQunGNg").collect();
+
+        let expected = [
+            LetterText::new("tH", Digraph::TH),
+            LetterText::new("Th", Digraph::TH),
+            LetterText::new("pH", Digraph::PH),
+            LetterText::new("Ph", Digraph::PH),
+            LetterText::new("wH", Digraph::WH),
+            LetterText::new("Wh", Digraph::WH),
+            LetterText::new("gH", Digraph::GH),
+            LetterText::new("Gh", Digraph::GH),
+            LetterText::new("cH", Digraph::CH),
+            LetterText::new("Ch", Digraph::CH),
+            LetterText::new("sH", Digraph::SH),
+            LetterText::new("Sh", Digraph::SH),
+            LetterText::new("qU", Digraph::QU),
+            LetterText::new("Qu", Digraph::QU),
+            LetterText::new("nG", Digraph::NG),
+            LetterText::new("Ng", Digraph::NG),
+        ];
+
+        assert_eq!(result, expected);
     }
 }

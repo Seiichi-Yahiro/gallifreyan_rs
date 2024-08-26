@@ -1,9 +1,19 @@
 use super::Decorated;
+use std::fmt;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ConsonantCluster {
     Single(Consonant),
     Digraph(Digraph),
+}
+
+impl fmt::Display for ConsonantCluster {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ConsonantCluster::Single(consonant) => write!(f, "{}", consonant),
+            ConsonantCluster::Digraph(digraph) => write!(f, "{}", digraph),
+        }
+    }
 }
 
 impl TryFrom<&str> for ConsonantCluster {
@@ -55,6 +65,35 @@ pub enum Consonant {
     S,
 }
 
+impl fmt::Display for Consonant {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = match self {
+            Consonant::B => "B",
+            Consonant::C => "C",
+            Consonant::D => "D",
+            Consonant::F => "F",
+            Consonant::G => "G",
+            Consonant::H => "H",
+            Consonant::J => "J",
+            Consonant::K => "K",
+            Consonant::L => "L",
+            Consonant::M => "M",
+            Consonant::N => "N",
+            Consonant::P => "P",
+            Consonant::Q => "Q",
+            Consonant::R => "R",
+            Consonant::S => "S",
+            Consonant::T => "T",
+            Consonant::V => "V",
+            Consonant::W => "W",
+            Consonant::X => "X",
+            Consonant::Y => "Y",
+            Consonant::Z => "Z",
+        };
+        write!(f, "{}", s)
+    }
+}
+
 impl TryFrom<&str> for Consonant {
     type Error = String;
 
@@ -98,6 +137,22 @@ pub enum Digraph {
     SH,
     QU,
     NG,
+}
+
+impl fmt::Display for Digraph {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = match self {
+            Digraph::CH => "CH",
+            Digraph::GH => "GH",
+            Digraph::NG => "NG",
+            Digraph::PH => "PH",
+            Digraph::QU => "QU",
+            Digraph::SH => "SH",
+            Digraph::TH => "TH",
+            Digraph::WH => "WH",
+        };
+        write!(f, "{}", s)
+    }
 }
 
 impl TryFrom<&str> for Digraph {
