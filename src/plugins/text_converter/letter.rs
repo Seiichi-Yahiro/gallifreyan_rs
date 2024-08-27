@@ -83,6 +83,8 @@ pub struct LetterBundle {
     pub dots: CircleChildren,
     pub line_slots: LineSlotChildren,
     pub sibling_index: SiblingIndex,
+    pub radius: Radius,
+    pub position_data: PositionData,
 }
 
 impl LetterBundle {
@@ -94,6 +96,8 @@ impl LetterBundle {
             dots: Default::default(),
             line_slots: Default::default(),
             sibling_index: SiblingIndex(sibling_index),
+            radius: Radius::default(),
+            position_data: PositionData::default(),
         }
     }
 }

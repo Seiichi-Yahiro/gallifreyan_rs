@@ -9,6 +9,7 @@ pub struct LineSlotBundle {
     pub name: Name,
     pub line_slot: LineSlot,
     pub sibling_index: SiblingIndex,
+    pub position_data: PositionData,
 }
 
 impl LineSlotBundle {
@@ -17,6 +18,7 @@ impl LineSlotBundle {
             name: Name::new("Line Slot"),
             line_slot: LineSlot,
             sibling_index: SiblingIndex(sibling_index),
+            position_data: PositionData::default(),
         }
     }
 }

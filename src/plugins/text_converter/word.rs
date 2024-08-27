@@ -12,6 +12,8 @@ pub struct WordBundle {
     pub letters: CircleChildren,
     pub line_slots: LineSlotChildren,
     pub sibling_index: SiblingIndex,
+    pub radius: Radius,
+    pub position_data: PositionData,
 }
 
 impl WordBundle {
@@ -23,6 +25,8 @@ impl WordBundle {
             letters: CircleChildren::default(),
             line_slots: LineSlotChildren::default(),
             sibling_index: SiblingIndex(sibling_index),
+            radius: Radius::default(),
+            position_data: PositionData::default(),
         }
     }
 }

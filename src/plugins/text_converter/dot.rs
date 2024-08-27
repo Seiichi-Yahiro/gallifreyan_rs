@@ -9,6 +9,8 @@ pub struct DotBundle {
     pub name: Name,
     pub dot: Dot,
     pub sibling_index: SiblingIndex,
+    pub radius: Radius,
+    pub position_data: PositionData,
 }
 
 impl DotBundle {
@@ -17,6 +19,8 @@ impl DotBundle {
             name: Name::new("Dot"),
             dot: Dot,
             sibling_index: SiblingIndex(sibling_index),
+            radius: Radius::default(),
+            position_data: PositionData::default(),
         }
     }
 }

@@ -15,6 +15,8 @@ pub struct SentenceBundle {
     pub words: CircleChildren,
     pub line_slots: LineSlotChildren,
     pub sibling_index: SiblingIndex,
+    pub radius: Radius,
+    pub position_data: PositionData,
 }
 
 impl SentenceBundle {
@@ -26,6 +28,8 @@ impl SentenceBundle {
             words: CircleChildren::default(),
             line_slots: LineSlotChildren::default(),
             sibling_index: SiblingIndex(sibling_index),
+            radius: Radius::default(),
+            position_data: PositionData::default(),
         }
     }
 }

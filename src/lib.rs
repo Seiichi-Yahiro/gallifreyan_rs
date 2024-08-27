@@ -1,5 +1,6 @@
 #[cfg(debug_assertions)]
 mod debug;
+mod math;
 mod plugins;
 
 use bevy::prelude::*;

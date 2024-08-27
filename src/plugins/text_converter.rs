@@ -7,7 +7,9 @@ mod word;
 
 #[allow(unused_imports)]
 pub mod prelude {
-    pub use super::components::{CircleChildren, GFText, LineSlotChildren, SiblingIndex};
+    pub use super::components::{
+        CircleChildren, GFText, LineSlotChildren, PositionData, Radius, SiblingIndex,
+    };
     pub use super::dot::{Dot, DotBundle};
     pub use super::letter::{
         combinator::{CombineLetters, LetterCombinator, LetterText},
