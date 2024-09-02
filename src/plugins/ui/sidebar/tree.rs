@@ -1,5 +1,4 @@
 use crate::plugins::text_converter::prelude::*;
-use crate::plugins::text_converter::TextConversionSet;
 use crate::plugins::ui::icons::Icons;
 use crate::plugins::ui::sidebar::{Sidebar, UiSidebarSet};
 use crate::plugins::ui::widgets::foldable::Foldable;

@@ -23,6 +23,7 @@ pub mod prelude {
     pub use super::line_slot::{LineSlot, LineSlotBundle};
     pub use super::sentence::{Sentence, SentenceBundle, SetSentence, SetSentenceSet};
     pub use super::word::{Word, WordBundle};
+    pub use super::TextConversionSet;
 }
 
 use crate::plugins::text_converter::dot::convert_dots;

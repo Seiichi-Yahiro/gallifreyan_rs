@@ -48,6 +48,7 @@ pub fn run() {
         .add_plugins(ShapePlugin)
         .add_plugins((
             plugins::text_converter::TextConverterPlugin,
+            plugins::svg::SVGPlugin,
             plugins::ui::UiPlugin,
         ))
         .run();

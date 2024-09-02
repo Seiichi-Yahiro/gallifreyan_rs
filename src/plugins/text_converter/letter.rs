@@ -123,7 +123,7 @@ impl Decorated for Letter {
     }
 }
 
-fn split_word_to_letters(word: &str) -> impl Iterator<Item=LetterText> + '_ {
+fn split_word_to_letters(word: &str) -> impl Iterator<Item = LetterText> + '_ {
     // assume word is sanitized
     word.chars()
         .map(|grapheme| {
@@ -158,9 +158,9 @@ pub fn convert_letters(
                 (
                     Some((letter_entity, mut text, mut letter, mut letter_sibling_index)),
                     Some(LetterText {
-                             text: new_text,
-                             letter: new_letter,
-                         }),
+                        text: new_text,
+                        letter: new_letter,
+                    }),
                 ) => {
                     if text.0 != new_text {
                         debug!(
@@ -185,9 +185,9 @@ pub fn convert_letters(
                 (
                     None,
                     Some(LetterText {
-                             text: new_text,
-                             letter: new_letter,
-                         }),
+                        text: new_text,
+                        letter: new_letter,
+                    }),
                 ) => {
                     let bundle = LetterBundle::new(new_text, new_letter, sibling_index);
 
