@@ -13,7 +13,7 @@ name = "gallifreyan_lib"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies.bevy]
-version = "0.14.1"
+version = "0.14.2"
 default-features = false
 features = [
     "bevy_state",
