@@ -1,4 +1,5 @@
 use crate::math::angle::Degree;
+use crate::plugins::svg::SVG_SIZE;
 use crate::plugins::text_converter::prelude::*;
 use bevy::ecs::query::QuerySingleError;
 use bevy::prelude::*;
@@ -95,7 +96,7 @@ pub fn set_sentence(
 
 pub fn set_default_radius(mut query: Query<&mut Radius, With<Sentence>>) {
     for mut radius in query.iter_mut() {
-        radius.0 = 1000.0 * 0.9 / 2.0;
+        radius.0 = SVG_SIZE * 0.9 / 2.0;
     }
 }
 

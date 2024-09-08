@@ -10,11 +10,14 @@ use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::tess::path::Builder;
 use bevy_prototype_lyon::prelude::*;
 
+pub const SVG_SIZE: f32 = 1000.0;
+
 pub mod prelude {
     pub use super::circle::Circle;
     pub use super::element::SVGElement;
     pub use super::group::Group;
     pub use super::line::Line;
+    pub use super::SVG_SIZE;
 }
 
 pub struct SVGPlugin;

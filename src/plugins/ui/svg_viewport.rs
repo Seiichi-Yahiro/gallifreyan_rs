@@ -1,16 +1,21 @@
-use crate::plugins::svg::prelude::SVGElement;
+use crate::plugins::svg::prelude::{SVGElement, SVG_SIZE};
 use crate::plugins::ui::{styles, UiRoot};
 use bevy::prelude::*;
 use bevy::render::camera::Viewport;
 use bevy::render::view::RenderLayers;
-use bevy::window::PrimaryWindow;
+use bevy::window::{PrimaryWindow, WindowResized};
 
 pub struct SVGViewportPlugin;
 
 impl Plugin for SVGViewportPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup.in_set(UiSVGViewportSet))
-            .add_systems(Update, update_svg_viewport_size)
+            .add_systems(
+                Update,
+                (update_svg_viewport_size, center_view)
+                    .chain()
+                    .run_if(viewport_size_changed),
+            )
             .observe(add_svg_viewport_render_layer);
     }
 }
@@ -65,6 +70,13 @@ fn add_svg_viewport_render_layer(trigger: Trigger<OnAdd, SVGElement>, mut comman
         .insert(SVG_VIEWPORT_RENDER_LAYER);
 }
 
+fn viewport_size_changed(
+    node_query: Query<Entity, (With<SVGViewport>, Changed<Node>)>,
+    mut window_resized_events: EventReader<WindowResized>,
+) -> bool {
+    !node_query.is_empty() || !window_resized_events.is_empty()
+}
+
 fn update_svg_viewport_size(
     viewport_query: Query<(&Node, &GlobalTransform), With<SVGViewport>>,
     window_query: Query<&Window, With<PrimaryWindow>>,
@@ -100,4 +112,20 @@ fn update_svg_viewport_size(
         physical_size: UVec2::new(vw as u32, vh as u32),
         ..default()
     });
+}
+
+fn center_view(
+    mut camera_query: Query<(&Camera, &mut OrthographicProjection), With<SVGViewport>>,
+    windows: Query<&Window>,
+) {
+    let (camera, mut orthographic_projection) = camera_query.single_mut();
+
+    let viewport_size = camera.logical_viewport_size().unwrap_or_else(|| {
+        let window = windows
+            .get_single()
+            .expect("There should only be one window!");
+        Vec2::new(window.width(), window.height())
+    });
+
+    orthographic_projection.scale = SVG_SIZE / viewport_size.min_element();
 }
