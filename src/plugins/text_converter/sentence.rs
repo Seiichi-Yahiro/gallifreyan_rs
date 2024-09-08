@@ -1,4 +1,4 @@
-use crate::math::Degree;
+use crate::math::angle::Degree;
 use crate::plugins::text_converter::prelude::*;
 use bevy::ecs::query::QuerySingleError;
 use bevy::prelude::*;

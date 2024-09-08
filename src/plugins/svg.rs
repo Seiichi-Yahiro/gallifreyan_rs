@@ -3,7 +3,7 @@ mod element;
 mod group;
 mod line;
 
-use crate::math::Angle;
+use crate::math::angle::Angle;
 use crate::plugins::svg::element::SVGElement;
 use crate::plugins::text_converter::prelude::*;
 use bevy::prelude::*;

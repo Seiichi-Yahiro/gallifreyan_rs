@@ -1,4 +1,4 @@
-use crate::math::Degree;
+use crate::math::angle::Degree;
 use bevy::prelude::*;
 
 #[derive(Debug, Component)]
