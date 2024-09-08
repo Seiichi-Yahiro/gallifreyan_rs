@@ -1,3 +1,4 @@
+use crate::math::Degree;
 use crate::plugins::text_converter::prelude::*;
 use bevy::prelude::*;
 
@@ -89,5 +90,40 @@ pub fn convert_words(
         }
 
         children.0 = new_children;
+    }
+}
+
+pub fn set_default_radius(
+    sentence_query: Query<(&Radius, &CircleChildren), (With<Sentence>, Without<Word>)>,
+    mut word_query: Query<(&Parent, &mut Radius), (With<Word>, Without<Sentence>)>,
+) {
+    for (word_parent, mut word_radius) in word_query.iter_mut() {
+        let (sentence_radius, sentence_children) = sentence_query.get(word_parent.get()).unwrap();
+
+        let number_of_words = sentence_children.0.len() as f32;
+
+        word_radius.0 = (sentence_radius.0 * 0.75) / (1.0 + number_of_words / 2.0);
+    }
+}
+
+pub fn set_default_position(
+    sentence_query: Query<(&Radius, &CircleChildren), (With<Sentence>, Without<Word>)>,
+    mut word_query: Query<
+        (&Parent, &mut PositionData, &Radius, &SiblingIndex),
+        (With<Word>, Without<Sentence>),
+    >,
+) {
+    for (word_parent, mut position_data, word_radius, word_index) in word_query.iter_mut() {
+        let (sentence_radius, sentence_children) = sentence_query.get(word_parent.get()).unwrap();
+
+        let number_of_words = sentence_children.0.len();
+
+        if number_of_words > 1 {
+            position_data.distance = sentence_radius.0 - word_radius.0 * 1.5;
+        } else {
+            position_data.distance = 0.0;
+        }
+
+        position_data.angle = Degree(word_index.0 as f32 * (360.0 / number_of_words as f32));
     }
 }

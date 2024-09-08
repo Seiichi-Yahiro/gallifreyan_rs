@@ -24,7 +24,7 @@ pub trait Angle: Copy + PartialEq + PartialOrd + From<f32> {
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, PartialOrd)]
-pub struct Degree(f32);
+pub struct Degree(pub f32);
 
 impl fmt::Display for Degree {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -106,7 +106,7 @@ impl Angle for Degree {
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, PartialOrd)]
-pub struct Radian(f32);
+pub struct Radian(pub f32);
 
 impl fmt::Display for Radian {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

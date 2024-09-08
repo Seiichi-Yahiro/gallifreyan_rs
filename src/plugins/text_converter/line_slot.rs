@@ -1,3 +1,4 @@
+use crate::math::Degree;
 use crate::plugins::text_converter::prelude::*;
 use bevy::prelude::*;
 
@@ -69,5 +70,37 @@ pub fn convert_line_slots(
         }
 
         children.0 = new_children;
+    }
+}
+
+pub fn set_default_position(
+    parent_query: Query<(&Radius, Option<&Letter>, &LineSlotChildren), Without<LineSlot>>,
+    mut line_slot_query: Query<(&Parent, &mut PositionData, &SiblingIndex), With<LineSlot>>,
+) {
+    for (line_slot_parent, mut position_data, line_slot_index) in line_slot_query.iter_mut() {
+        let (parent_radius, letter, line_slot_children) =
+            parent_query.get(line_slot_parent.get()).unwrap();
+
+        let number_of_lines = line_slot_children.0.len();
+
+        let line_points_outside = letter
+            .map(|it| match it {
+                Letter::Vocal(vocal) => {
+                    VocalDecoration::from(*vocal) == VocalDecoration::LineOutside
+                }
+                Letter::Consonant(_) => false,
+            })
+            .unwrap_or(false);
+
+        let side_angle = if line_points_outside { 0.0 } else { 180.0 };
+        const LINE_DISTANCE_ANGLE: f32 = 45.0;
+        let center_lines_on_side_angle = ((number_of_lines - 1) as f32 * LINE_DISTANCE_ANGLE) / 2.0;
+
+        position_data.distance = parent_radius.0;
+
+        position_data.angle = Degree(
+            line_slot_index.0 as f32 * LINE_DISTANCE_ANGLE - center_lines_on_side_angle
+                + side_angle,
+        );
     }
 }

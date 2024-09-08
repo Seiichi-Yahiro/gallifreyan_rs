@@ -3,6 +3,7 @@ mod element;
 mod group;
 mod line;
 
+use crate::math::Angle;
 use crate::plugins::svg::element::SVGElement;
 use crate::plugins::text_converter::prelude::*;
 use bevy::prelude::*;
@@ -35,6 +36,7 @@ impl Plugin for SVGPlugin {
                 add_shape.in_set(PrepareLyonSet),
                 add_svg_element.in_set(PrepareSVGSet),
                 (
+                    update_transform,
                     draw_sentence,
                     draw_word_and_letter,
                     draw_dots,
@@ -119,6 +121,23 @@ fn add_svg_element(
     for entity in query.iter() {
         debug!("Add svg element for {:?}", entity);
         commands.entity(entity).insert(SVGElement::default());
+    }
+}
+
+fn update_transform(mut query: Query<(&mut Transform, &PositionData), Changed<PositionData>>) {
+    for (mut transform, position_data) in query.iter_mut() {
+        let translation = Vec3::new(0.0, -position_data.distance, transform.translation.z);
+        let rotation = Quat::from_rotation_z(position_data.angle.to_radians().inner());
+
+        match position_data.angle_placement {
+            AnglePlacement::Absolute => {
+                transform.translation = rotation * translation;
+            }
+            AnglePlacement::Relative => {
+                *transform =
+                    Transform::from_rotation(rotation) * Transform::from_translation(translation);
+            }
+        }
     }
 }
 

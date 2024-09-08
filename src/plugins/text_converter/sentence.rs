@@ -1,3 +1,4 @@
+use crate::math::Degree;
 use crate::plugins::text_converter::prelude::*;
 use bevy::ecs::query::QuerySingleError;
 use bevy::prelude::*;
@@ -89,6 +90,19 @@ pub fn set_sentence(
         Err(QuerySingleError::MultipleEntities(_)) => {
             error!("Only one sentence is currently supported");
         }
+    }
+}
+
+pub fn set_default_radius(mut query: Query<&mut Radius, With<Sentence>>) {
+    for mut radius in query.iter_mut() {
+        radius.0 = 1000.0 * 0.9 / 2.0;
+    }
+}
+
+pub fn set_default_position(mut query: Query<&mut PositionData, With<Sentence>>) {
+    for mut position_data in query.iter_mut() {
+        position_data.angle = Degree(0.0);
+        position_data.distance = 0.0;
     }
 }
 

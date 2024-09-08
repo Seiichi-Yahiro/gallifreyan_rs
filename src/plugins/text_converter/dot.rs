@@ -1,3 +1,4 @@
+use crate::math::Degree;
 use crate::plugins::text_converter::prelude::*;
 use bevy::prelude::*;
 
@@ -71,5 +72,43 @@ pub fn convert_dots(
         }
 
         children.0 = new_children;
+    }
+}
+
+pub fn set_default_radius(
+    letter_query: Query<&Radius, (With<Letter>, Without<Dot>)>,
+    mut dot_query: Query<(&Parent, &mut Radius), (With<Dot>, Without<Letter>)>,
+) {
+    for (dot_parent, mut dot_radius) in dot_query.iter_mut() {
+        let letter_radius = letter_query.get(dot_parent.get()).unwrap();
+
+        dot_radius.0 = letter_radius.0 * 0.1;
+    }
+}
+
+pub fn set_default_position(
+    letter_query: Query<(&Radius, &CircleChildren), (With<Letter>, Without<Dot>)>,
+    mut dot_query: Query<
+        (&Parent, &mut PositionData, &Radius, &SiblingIndex),
+        (With<Dot>, Without<Letter>),
+    >,
+) {
+    for (dot_parent, mut position_data, dot_radius, dot_index) in dot_query.iter_mut() {
+        let (letter_radius, letter_children) = letter_query.get(dot_parent.get()).unwrap();
+
+        let number_of_dots = letter_children.0.len();
+
+        const LETTER_SIDE_ANGLE: f32 = 180.0;
+        const DOT_DISTANCE_ANGLE: f32 = 45.0;
+
+        let center_dots_on_letter_side_angle: f32 =
+            ((number_of_dots - 1) as f32 * DOT_DISTANCE_ANGLE) / 2.0;
+
+        position_data.distance = letter_radius.0 - dot_radius.0 * 1.5;
+
+        position_data.angle = Degree(
+            dot_index.0 as f32 * DOT_DISTANCE_ANGLE - center_dots_on_letter_side_angle
+                + LETTER_SIDE_ANGLE,
+        );
     }
 }

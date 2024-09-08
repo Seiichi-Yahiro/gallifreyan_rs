@@ -8,7 +8,8 @@ mod word;
 #[allow(unused_imports)]
 pub mod prelude {
     pub use super::components::{
-        CircleChildren, GFText, LineSlotChildren, PositionData, Radius, SiblingIndex,
+        AnglePlacement, CircleChildren, GFText, LineSlotChildren, PositionData, Radius,
+        SiblingIndex,
     };
     pub use super::dot::{Dot, DotBundle};
     pub use super::letter::{
@@ -41,7 +42,9 @@ impl Plugin for TextConverterPlugin {
             .configure_sets(
                 Update,
                 (
-                    TextConversionSet.in_set(SetSentenceSet),
+                    (TextConversionSet, TextDefaultDataSet)
+                        .chain()
+                        .in_set(SetSentenceSet),
                     SetSentenceSet.run_if(on_event::<SetSentence>()),
                 ),
             )
@@ -56,9 +59,28 @@ impl Plugin for TextConverterPlugin {
                 )
                     .chain()
                     .in_set(TextConversionSet),
+            )
+            .add_systems(
+                Update,
+                (
+                    sentence::set_default_radius,
+                    sentence::set_default_position,
+                    word::set_default_radius,
+                    word::set_default_position,
+                    letter::set_default_radius,
+                    letter::set_default_position,
+                    dot::set_default_radius,
+                    dot::set_default_position,
+                    line_slot::set_default_position,
+                )
+                    .chain()
+                    .in_set(TextDefaultDataSet),
             );
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]
 pub struct TextConversionSet;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]
+pub struct TextDefaultDataSet;

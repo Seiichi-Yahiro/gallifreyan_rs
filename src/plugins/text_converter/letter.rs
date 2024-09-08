@@ -1,8 +1,9 @@
+use crate::math::Degree;
+use crate::plugins::text_converter::components::AnglePlacement;
+use crate::plugins::text_converter::prelude::*;
 use bevy::prelude::*;
 use std::cmp::Ordering;
 use std::fmt;
-
-use crate::plugins::text_converter::prelude::*;
 
 pub mod combinator;
 pub mod consonant;
@@ -97,7 +98,10 @@ impl LetterBundle {
             line_slots: Default::default(),
             sibling_index: SiblingIndex(sibling_index),
             radius: Radius::default(),
-            position_data: PositionData::default(),
+            position_data: PositionData {
+                angle_placement: AnglePlacement::Relative,
+                ..default()
+            },
         }
     }
 }
@@ -204,6 +208,70 @@ pub fn convert_letters(
         }
 
         children.0 = new_children;
+    }
+}
+
+pub fn set_default_radius(
+    word_query: Query<(&Radius, &CircleChildren), (With<Word>, Without<Letter>)>,
+    mut letter_query: Query<(&Parent, &Letter, &mut Radius), Without<Word>>,
+) {
+    for (letter_parent, letter, mut letter_radius) in letter_query.iter_mut() {
+        let (word_radius, word_children) = word_query.get(letter_parent.get()).unwrap();
+
+        let number_of_letters = word_children.0.len() as f32;
+
+        letter_radius.0 = match letter {
+            Letter::Vocal(_) => (word_radius.0 * 0.75 * 0.4) / (1.0 + number_of_letters / 2.0),
+            Letter::Consonant(_) => (word_radius.0 * 0.75) / (1.0 + number_of_letters / 2.0),
+        };
+    }
+}
+
+pub fn set_default_position(
+    word_query: Query<(&Radius, &CircleChildren), (With<Word>, Without<Letter>)>,
+    mut letter_query: Query<
+        (&Parent, &Letter, &mut PositionData, &Radius, &SiblingIndex),
+        Without<Word>,
+    >,
+) {
+    for (letter_parent, letter, mut position_data, letter_radius, letter_index) in
+        letter_query.iter_mut()
+    {
+        let (word_radius, word_children) = word_query.get(letter_parent.get()).unwrap();
+
+        let number_of_letters = word_children.0.len();
+
+        match letter {
+            Letter::Vocal(vocal) => {
+                position_data.distance = match VocalPlacement::from(*vocal) {
+                    VocalPlacement::OnLine => word_radius.0,
+                    VocalPlacement::Outside => word_radius.0 + letter_radius.0 * 1.5,
+                    VocalPlacement::Inside => {
+                        if number_of_letters > 1 {
+                            word_radius.0 - letter_radius.0 * 1.5
+                        } else {
+                            0.0
+                        }
+                    }
+                };
+            }
+            Letter::Consonant(consonant) => {
+                position_data.distance = match ConsonantPlacement::from(*consonant) {
+                    ConsonantPlacement::DeepCut => word_radius.0 - letter_radius.0 * 0.75,
+                    ConsonantPlacement::Inside => {
+                        if number_of_letters > 1 {
+                            word_radius.0 - letter_radius.0 * 1.5
+                        } else {
+                            0.0
+                        }
+                    }
+                    ConsonantPlacement::ShallowCut => word_radius.0,
+                    ConsonantPlacement::OnLine => word_radius.0,
+                };
+            }
+        }
+
+        position_data.angle = Degree(letter_index.0 as f32 * (360.0 / number_of_letters as f32));
     }
 }
 
