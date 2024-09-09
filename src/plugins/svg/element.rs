@@ -1,6 +1,7 @@
 use crate::plugins::svg::circle::Circle;
 use crate::plugins::svg::group::Group;
 use crate::plugins::svg::line::Line;
+use crate::plugins::svg::path::Path;
 use bevy::prelude::Component;
 use bevy_prototype_lyon::geometry::Geometry;
 use bevy_prototype_lyon::prelude::tess::path::Builder;
@@ -10,6 +11,7 @@ pub enum SVGElement {
     Group(Group),
     Circle(Circle),
     Line(Line),
+    Path(Path),
 }
 
 impl Default for SVGElement {
@@ -28,6 +30,9 @@ impl Geometry for SVGElement {
                 it.add_geometry(b);
             }
             SVGElement::Line(it) => {
+                it.add_geometry(b);
+            }
+            SVGElement::Path(it) => {
                 it.add_geometry(b);
             }
         }
@@ -49,5 +54,11 @@ impl From<Circle> for SVGElement {
 impl From<Line> for SVGElement {
     fn from(value: Line) -> Self {
         Self::Line(value)
+    }
+}
+
+impl From<Path> for SVGElement {
+    fn from(value: Path) -> Self {
+        Self::Path(value)
     }
 }

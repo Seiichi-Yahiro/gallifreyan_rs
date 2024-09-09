@@ -2,21 +2,31 @@ mod circle;
 mod element;
 mod group;
 mod line;
+mod path;
 
 use crate::math::angle::Angle;
+use crate::math::circle::Circle as MCircle;
+use crate::math::circle::{Intersection, IntersectionResult};
 use crate::plugins::svg::element::SVGElement;
+use crate::plugins::svg::path::{
+    generate_letter_path, generate_word_path, sort_intersections_by_angle,
+};
 use crate::plugins::text_converter::prelude::*;
 use bevy::prelude::*;
+use bevy::utils::HashSet;
 use bevy_prototype_lyon::prelude::tess::path::Builder;
 use bevy_prototype_lyon::prelude::*;
+use circle::Circle as SVGCircle;
 
 pub const SVG_SIZE: f32 = 1000.0;
 
+#[allow(unused_imports)]
 pub mod prelude {
     pub use super::circle::Circle;
     pub use super::element::SVGElement;
     pub use super::group::Group;
     pub use super::line::Line;
+    pub use super::path::{Path, PathElement};
     pub use super::SVG_SIZE;
 }
 
@@ -157,8 +167,8 @@ fn draw_sentence(mut query: Query<(&mut SVGElement, &Radius), (Changed<Radius>, 
         debug!("Redraw sentence");
         let mut group = group::Group::new();
 
-        let outer_circle = circle::Circle::new(radius.0 + 10.0);
-        let inner_circle = circle::Circle::new(radius.0);
+        let outer_circle = SVGCircle::new(radius.0 + 10.0);
+        let inner_circle = SVGCircle::new(radius.0);
 
         group.push(outer_circle);
         group.push(inner_circle);
@@ -168,12 +178,85 @@ fn draw_sentence(mut query: Query<(&mut SVGElement, &Radius), (Changed<Radius>, 
 }
 
 fn draw_word_and_letter(
-    mut query: Query<(&mut SVGElement, &Radius), (Changed<Radius>, Or<(With<Word>, With<Letter>)>)>,
+    changed_word_query: Query<Entity, (With<Word>, Changed<Radius>)>,
+    changed_letter_query: Query<
+        &Parent,
+        Or<(Changed<Radius>, Changed<PositionData>, Changed<Letter>)>,
+    >,
+    mut word_query: Query<
+        (&Radius, &CircleChildren, &mut SVGElement),
+        (With<Word>, Without<Letter>),
+    >,
+    mut letter_query: Query<
+        (&Letter, &Radius, &PositionData, &Transform, &mut SVGElement),
+        Without<Word>,
+    >,
 ) {
-    for (mut svg_element, radius) in query.iter_mut() {
-        debug!("Redraw word or letter");
+    let words: HashSet<Entity> = changed_letter_query
+        .iter()
+        .map(Parent::get)
+        .chain(changed_word_query.iter())
+        .collect();
 
-        *svg_element = circle::Circle::new(radius.0).into();
+    let mut word_iter = word_query.iter_many_mut(words.iter());
+
+    while let Some((word_radius, letters, mut word_svg_element)) = word_iter.fetch_next() {
+        debug!("Redraw word");
+
+        let word_circle = MCircle {
+            radius: word_radius.0,
+            position: Vec2::ZERO,
+        };
+
+        let mut word_intersections: Vec<Vec2> = Vec::new();
+
+        let mut letter_iter = letter_query.iter_many_mut(letters.0.iter());
+
+        while let Some((
+            letter,
+            letter_radius,
+            letter_position_data,
+            letter_transform,
+            mut letter_svg_element,
+        )) = letter_iter.fetch_next()
+        {
+            debug!("Redraw letter: {:?}", letter);
+
+            if letter.is_cutting() {
+                let letter_circle = MCircle {
+                    radius: letter_radius.0,
+                    position: letter_transform.translation.truncate(),
+                };
+
+                if let IntersectionResult::Two(a, b) = word_circle.intersection(&letter_circle) {
+                    let sorted_intersections =
+                        sort_intersections_by_angle(word_circle, letter_circle, a, b);
+
+                    word_intersections.extend(sorted_intersections.iter());
+
+                    let letter_intersections = sorted_intersections
+                        .map(|pos| pos - letter_circle.position)
+                        .map(|pos| {
+                            Vec2::from_angle(-letter_position_data.angle.to_radians().inner())
+                                .rotate(pos)
+                        });
+
+                    *letter_svg_element =
+                        generate_letter_path(letter_radius.0, letter_intersections).into();
+                } else {
+                    error!("{:?} should intersect with word but it doesn't!", letter);
+                    *letter_svg_element = SVGCircle::new(letter_radius.0).into();
+                }
+            } else {
+                *letter_svg_element = SVGCircle::new(letter_radius.0).into();
+            }
+        }
+
+        *word_svg_element = if word_intersections.is_empty() {
+            SVGCircle::new(word_radius.0).into()
+        } else {
+            generate_word_path(word_radius.0, word_intersections).into()
+        };
     }
 }
 
@@ -181,7 +264,7 @@ fn draw_dots(mut query: Query<(&mut SVGElement, &Radius), (Changed<Radius>, With
     for (mut svg_element, radius) in query.iter_mut() {
         debug!("Redraw dot");
 
-        *svg_element = circle::Circle::new(radius.0).into();
+        *svg_element = SVGCircle::new(radius.0).into();
     }
 }
 

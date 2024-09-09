@@ -106,6 +106,18 @@ impl LetterBundle {
     }
 }
 
+impl Letter {
+    pub fn is_cutting(&self) -> bool {
+        match self {
+            Self::Consonant(consonant) => match ConsonantPlacement::from(*consonant) {
+                ConsonantPlacement::DeepCut | ConsonantPlacement::ShallowCut => true,
+                ConsonantPlacement::OnLine | ConsonantPlacement::Inside => false,
+            },
+            Self::Vocal(_) => false,
+        }
+    }
+}
+
 pub trait Decorated {
     fn dots(&self) -> usize;
     fn lines(&self) -> usize;
